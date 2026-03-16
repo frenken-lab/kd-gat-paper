@@ -1,0 +1,41 @@
+version: 1
+project:
+  title: "Adaptive Fusion of Graph-Based Ensembles for Automotive Intrusion Detection"
+  subtitle: "Multi-Stage Knowledge Distillation with DQN-Based Expert Fusion"
+  authors:
+    - name: Robert Frenken
+      affiliation: The Ohio State University
+    - name: Hanqin Zhang
+      affiliation: The Ohio State University
+    - name: Sidra Ghayour Bhatti
+      affiliation: The Ohio State University
+    - name: Qadeer Ahmed
+      affiliation: The Ohio State University
+  keywords:
+    - Machine Learning
+    - Graph Neural Networks
+    - Ensemble Learning
+    - Intrusion Detection
+  bibliography:
+    - references.bib
+  toc:
+    - file: index.md
+    - title: Main Paper
+      children:
+        - file: content/introduction.md
+        - file: content/background.md
+        - file: content/related-work.md
+        - file: content/methodology.md
+        - file: content/experiments.md
+        - file: content/results.md
+        - file: content/ablation.md
+        - file: content/explainability.md
+        - file: content/conclusion.md
+    - title: Appendix
+      children:
+        - file: appendix/architecture.md
+
+site:
+  template: book-theme
+  domains:
+    - rob.curve.space
