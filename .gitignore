@@ -9,5 +9,8 @@ __pycache__/
 *.pyc
 .ipynb_checkpoints/
 
+# Interactive figure build (committed outputs go to figures/)
+interactive/node_modules/
+
 # OS
 .DS_Store
