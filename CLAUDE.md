@@ -7,12 +7,10 @@ MyST paper: "Adaptive Fusion of Graph-Based Ensembles for Automotive IDS". Deplo
 | Layer | Tool | Why |
 |-------|------|-----|
 | Paper authoring | **MyST Markdown** | Cross-references, math, citations, builds to HTML |
-| Interactive figures | **SveltePlot 0.12** (grammar-of-graphics) | Spec-driven: `<Cell>`, `<RectY>`, `<Line>` — not imperative D3. SVG output, Svelte-native |
-| UMAP scatter | **D3.js** (imperative) | Simple scatter — D3 is fine for direct SVG control on one figure |
-| Attention graph | **SveltePlot** marks + **d3-force** | `<Arrow>`/`<Dot>` for rendering, d3-force for layout |
+| Interactive figures | **SveltePlot 0.12** (grammar-of-graphics) | Spec-driven: `<Cell>`, `<RectY>`, `<Line>`, `<Dot>`, `<Arrow>`. SVG output, Svelte-native |
 | Architecture diagram | **TikZ** | Gold standard for ML paper diagrams, version-controllable |
 | Build | **Vite 6** + `vite-plugin-singlefile` | Each figure → self-contained HTML (JS+CSS+data inlined) |
-| Validation schemas | **`data/schemas.json`** | Single source of truth for both export and pull validation |
+| Validation schemas | **`data/schemas.yaml`** | Single source of truth for both export and pull validation |
 | CI/CD | **GitHub Actions** | validate → figures → build+deploy (3 jobs) |
 
 ## Key Commands
@@ -35,24 +33,26 @@ make all           # data → figures → diagrams → site
 ```
 KD-GAT eval artifacts
   → export_paper_data.py → ESS exports/paper/ (_manifest.json + _provenance.json)
-  → pull_data.py (validates checksums + schemas.json) → data/csv/ + interactive/src/*/data.json
+  → pull_data.py (validates checksums + schemas.yaml) → data/csv/ + interactive/src/*/data.json
   → npm run build → figures/*.html
   → myst build → _build/ → curvenote deploy → rob.curve.space
 ```
 
 ## Schema Convention
 
-`data/schemas.json` defines column names, types, and constraints for all CSV and JSON data files. Both `export_paper_data.py` (KD-GAT) and `pull_data.py` (this repo) read from it. Don't hardcode schemas elsewhere.
+`data/schemas.yaml` defines contracts for all CSV and JSON data files. Both `export_paper_data.py` (KD-GAT) and `pull_data.py` (this repo) read from it. Don't hardcode schemas elsewhere.
 
 ## Figure Convention
 
-- **Spec-driven**: Use SveltePlot marks (`<Cell>`, `<RectY>`, `<Line>`, `<Dot>`). No imperative D3 for standard chart types.
+- **Dumb renderers**: Figures import `data.json` and plot it. No data transforms in `.svelte` files.
+- All preprocessing (sampling, flattening, ROC computation, layout) happens in `export_paper_data.py`.
+- Use SveltePlot marks (`<Cell>`, `<RectY>`, `<Line>`, `<Dot>`, `<Arrow>`). No D3.
 - Each figure: `interactive/src/<name>/App.svelte` + `data.json` + `index.html` + `main.js`
-- Handle empty data: show "Awaiting data export" when `data` is `[]` or `{}`
+- Handle empty data: show "Awaiting data export" when data is `[]` or `{}`
 
 ## What NOT To Do
 
-- Don't write imperative D3 for heatmaps, histograms, or line charts. Use SveltePlot.
+- Don't compute derived data in figure components. Move transforms to the export script.
+- Don't import D3 or other chart libraries. SveltePlot only.
 - Don't edit `_build/` or `figures/*.html` — generated output.
-- Don't hardcode data or schemas — figures read `data.json`, validation reads `schemas.json`.
-- Don't add validation logic without updating `data/schemas.json`.
+- Don't hardcode schemas — validation reads `data/schemas.yaml`.

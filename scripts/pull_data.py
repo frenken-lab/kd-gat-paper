@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pull paper data from ESS and validate against data/schemas.json.
+"""Pull paper data from ESS and validate against data/schemas.yaml.
 
 Usage:
     python scripts/pull_data.py                    # Pull from ESS + validate
@@ -18,11 +18,13 @@ import shutil
 import sys
 from pathlib import Path
 
+import yaml
+
 log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
 ROOT = Path(__file__).resolve().parent.parent
-SCHEMAS = json.loads((ROOT / "data" / "schemas.json").read_text())
+SCHEMAS = yaml.safe_load((ROOT / "data" / "schemas.yaml").read_text())
 
 
 def _sha256(path: Path) -> str:
