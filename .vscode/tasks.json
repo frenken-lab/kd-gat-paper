@@ -2,6 +2,14 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "Start Dev Session",
+      "type": "shell",
+      "command": "bash scripts/dev-session.sh",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "runOptions": { "runOn": "folderOpen" }
+    },
+    {
       "label": "Paper Preview",
       "type": "shell",
       "command": "myst start",
