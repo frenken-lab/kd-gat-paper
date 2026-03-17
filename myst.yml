@@ -39,3 +39,6 @@ site:
   template: book-theme
   domains:
     - rob.curve.space
+  options:
+    css:
+      - _static/custom.css

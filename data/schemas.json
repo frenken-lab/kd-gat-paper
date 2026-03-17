@@ -1,0 +1,52 @@
+{
+  "csv": {
+    "main_results.csv": {
+      "columns": ["model", "accuracy", "precision", "recall", "f1"],
+      "min_rows": 1
+    },
+    "test_results.csv": {
+      "columns": ["model", "scenario", "accuracy", "f1"],
+      "min_rows": 1
+    },
+    "vgae_threshold.csv": {
+      "columns": ["metric", "value"],
+      "min_rows": 1
+    }
+  },
+  "json": {
+    "umap": {
+      "type": "array",
+      "item_keys": ["x", "y", "label", "attack_type"],
+      "min_items": 50
+    },
+    "reconstruction": {
+      "type": "array",
+      "item_keys": ["composite_error", "label", "attack_type"],
+      "min_items": 50
+    },
+    "fusion": {
+      "type": "array",
+      "item_keys": ["alpha", "label"],
+      "min_items": 10
+    },
+    "cka": {
+      "type": "object",
+      "required_keys": ["matrix", "teacher_layers", "student_layers"]
+    },
+    "attention": {
+      "type": "array",
+      "item_keys": ["graph_idx", "label", "nodes", "edges"],
+      "min_items": 1
+    }
+  },
+  "file_map": {
+    "csv/main_results.csv": "data/csv/main_results.csv",
+    "csv/test_results.csv": "data/csv/test_results.csv",
+    "csv/vgae_threshold.csv": "data/csv/vgae_threshold.csv",
+    "figures/umap/data.json": "interactive/src/umap/data.json",
+    "figures/reconstruction/data.json": "interactive/src/reconstruction/data.json",
+    "figures/fusion/data.json": "interactive/src/fusion/data.json",
+    "figures/cka/data.json": "interactive/src/cka/data.json",
+    "figures/attention/data.json": "interactive/src/attention/data.json"
+  }
+}

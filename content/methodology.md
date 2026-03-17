@@ -11,7 +11,7 @@ The proposed framework employs a three-stage pipeline for robust intrusion detec
 CAN messages are broadcast by Electronic Control Units (ECUs); CAN IDs identify message types and are not unique per packet---multiple ECUs can transmit the same ID, and any ECU can receive all messages. This broadcast model underpins the graph representation, capturing sequential dependencies within the CAN stream.
 
 :::{admonition} Algorithm 1: Graph Construction from CAN Stream
-:class: note
+:class: algorithm
 :label: alg-graph-construction
 
 **Require:** CAN stream $M = \{m_t = (\text{ID}_t, \text{payload}_t)\}$, window size $W$
@@ -39,7 +39,7 @@ Node features (11 dimensions) include: CAN ID, normalized payload bytes (mean ac
 #### Stage 1: VGAE Training and Hard Sample Selection
 
 :::{admonition} Algorithm 2: VGAE-Based Hard Sample Selection
-:class: note
+:class: algorithm
 :label: alg-hard-sample
 
 **Require:** Trained VGAE model on normal graphs

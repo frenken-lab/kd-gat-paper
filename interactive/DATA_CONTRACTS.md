@@ -47,17 +47,18 @@ VGAE reconstruction error components.
 
 ```json
 [{
-  "composite_error": 0.45,   // Weighted sum (α=1.0, β=20.0, γ=0.3)
-  "node_error": 0.12,        // Node feature reconstruction MSE
-  "neighbor_error": 0.015,   // Neighborhood reconstruction error
-  "canid_error": 0.33,       // CAN ID prediction cross-entropy
+  "composite_error": 0.45,   // Composite reconstruction error (MSE of continuous features)
+  "node_error": 0.12,        // Node feature reconstruction MSE (vgae_error_recon)
+  "canid_error": 0.33,       // CAN ID prediction cross-entropy (vgae_error_canid)
+  "neighbor_error": 0.015,   // Neighborhood reconstruction BCE (vgae_error_nbr)
+  "kl_error": 0.001,         // KL divergence (vgae_error_kl)
   "label": 0,
   "attack_type": "Normal"
 }]
 ```
 
-**Source:** `eval_*/embeddings.npz` → `vgae_errors` (if multi-component) or
-`eval_*/metrics.json` → reconstruction error breakdown. Sample 10%.
+**Source:** `eval_*/embeddings.npz` → `vgae_errors` (composite) + `vgae_error_recon`,
+`vgae_error_canid`, `vgae_error_nbr`, `vgae_error_kl` (per-component arrays). Sample 10%.
 
 **Expected size:** ~3K-5K records, ~200KB JSON.
 

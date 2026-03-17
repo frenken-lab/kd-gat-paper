@@ -1,0 +1,23 @@
+/* Algorithm blocks — styled admonitions for pseudocode */
+.admonition.algorithm {
+  border-left: 4px solid #0066cc;
+  background: #f0f6ff;
+  font-family: 'Computer Modern', 'Latin Modern Roman', 'Times New Roman', serif;
+  padding: 1em 1.2em;
+}
+
+.admonition.algorithm .admonition-title {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-weight: 600;
+  color: #0066cc;
+  font-size: 0.95em;
+  margin-bottom: 0.5em;
+}
+
+.admonition.algorithm ol {
+  padding-left: 1.5em;
+}
+
+.admonition.algorithm p {
+  margin: 0.3em 0;
+}
