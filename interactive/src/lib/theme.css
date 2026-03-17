@@ -1,0 +1,67 @@
+/* Shared figure styles — imported by each figure's main.js */
+:root {
+  font-family: system-ui, -apple-system, sans-serif;
+  color: #333;
+}
+
+.figure {
+  max-width: 760px;
+  padding: 8px;
+}
+
+.figure h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: #333;
+}
+
+.figure h4 {
+  margin: 16px 0 4px;
+  font-size: 12px;
+  color: #666;
+}
+
+.figure .empty {
+  color: #999;
+  font-size: 12px;
+}
+
+.figure .controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+  font-size: 12px;
+  align-items: center;
+}
+
+.figure .toggle {
+  padding: 2px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  background: #f5f5f5;
+}
+
+.figure .toggle.active {
+  background: #eef;
+  opacity: 1;
+}
+
+.figure .toggle.inactive {
+  opacity: 0.4;
+}
+
+.figure .toggle.selected {
+  background: #4E79A7;
+  color: white;
+}
+
+.figure select {
+  font-size: 12px;
+}
+
+.figure .meta {
+  color: #666;
+}
