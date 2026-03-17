@@ -12,6 +12,12 @@ Raw CAN-graph data projected via UMAP shows loose clustering that indicates limi
 
 Despite binary supervision (attack vs. normal), the learned embedding space forms well-separated clusters aligned with specific attack types (DoS, Fuzzy, Gear, RPM). This emergent multi-class structure demonstrates that our model captures high-level semantic patterns in CAN traffic and generalizes across attack categories without explicit multi-class labels. The clear cluster separation in embedding space, absent in raw features, validates the GAT's ability to learn discriminative representations from graph-structured temporal data.
 
+:::{iframe} ../figures/umap.html
+:label: fig-umap
+:width: 100%
+UMAP projections of GAT embeddings (10% sample). Toggle attack types to explore cluster separation.
+:::
+
 ### Composite VGAE Reconstruction Error
 
 To assess the overall reconstruction quality of the VGAE, we combine three types of reconstruction errors: node feature reconstruction error ($E_{\text{node}}$), CAN ID prediction error ($E_{\text{CAN\,ID}}$), and neighborhood reconstruction error ($E_{\text{neighbor}}$). Each error captures a different aspect of the graph structure and message semantics. We compute a single composite score as a weighted sum:
@@ -25,6 +31,28 @@ where $\alpha$, $\beta$, and $\gamma$ are empirically chosen weights that regula
 
 This approach enables the detection of subtle anomalies by jointly evaluating node content, CAN identifier semantics, and local neighborhood structure.
 
+:::{iframe} ../figures/reconstruction.html
+:label: fig-reconstruction
+:width: 100%
+VGAE reconstruction error decomposition. Top: per-component distributions (normal vs attack). Middle: error heatmap sorted by composite score. Bottom: per-component ROC curves.
+:::
+
 ### DQN-Fusion Analysis
 
 The learned DQN fusion policy exhibits interpretable, context-specific weighting that validates adaptive expert selection. Analysis reveals a strong correlation between VGAE anomaly scores and fusion weights: low VGAE scores cluster at $\alpha \approx 0$ (favoring the robust expert), while higher scores transition to intermediate weights, demonstrating the policy learned to default to VGAE's out-of-distribution detection while conditionally leveraging GAT's strength on known attacks. The multimodal distribution with peaks at $\alpha \approx 0, 0.2, 0.4, 0.6, 0.8$ indicates the DQN discovered distinct attack-type-specific strategies rather than learning fixed averaging ($\alpha = 0.5$). Critically, the divergence between normal and attack distributions validates meaningful anomaly detection logic.
+
+:::{iframe} ../figures/fusion.html
+:label: fig-fusion
+:width: 100%
+DQN fusion weight distribution by attack type. Peaks at distinct alpha values indicate learned attack-type-specific strategies.
+:::
+
+### GAT Attention Weights
+
+To understand which CAN message relationships the GAT deems important, we visualize the learned attention weights on selected graphs. Edge width and opacity are proportional to the mean attention across heads for a given layer.
+
+:::{iframe} ../figures/attention.html
+:label: fig-attention
+:width: 100%
+GAT attention weights on selected CAN bus graphs. Select different graphs and layers to compare normal vs attack attention patterns.
+:::

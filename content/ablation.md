@@ -20,6 +20,14 @@ df = pd.read_csv("data/ablation_kd.csv")
 Markdown(df.to_markdown(index=False))
 ```
 
+To further characterize how knowledge transfers between teacher and student networks, we compute Centered Kernel Alignment (CKA) between all pairs of teacher and student layers. High CKA values indicate that corresponding layers learn similar representations despite the 20$\times$ parameter reduction.
+
+:::{iframe} ../figures/cka.html
+:label: fig-cka
+:width: 100%
+CKA similarity between teacher and student GAT layers. Hover for exact values.
+:::
+
 ### GAT Training Strategy
 
 ```{code-cell} python
