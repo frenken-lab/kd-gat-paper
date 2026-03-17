@@ -1,0 +1,42 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Paper Preview",
+      "type": "shell",
+      "command": "myst start",
+      "isBackground": true,
+      "problemMatcher": [],
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "Figure Dev Server",
+      "type": "shell",
+      "command": "cd interactive && npm run dev -- --port 5173",
+      "isBackground": true,
+      "problemMatcher": [],
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "Build Figures",
+      "type": "shell",
+      "command": "cd interactive && npm run build",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Pull Data",
+      "type": "shell",
+      "command": "python scripts/pull_data.py",
+      "problemMatcher": []
+    },
+    {
+      "label": "Validate",
+      "type": "shell",
+      "command": "make validate && make bib",
+      "problemMatcher": []
+    }
+  ]
+}

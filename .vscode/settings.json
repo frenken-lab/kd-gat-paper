@@ -1,0 +1,20 @@
+{
+  "remote.autoForwardPorts": true,
+  "remote.autoForwardPortsSource": "hybrid",
+
+  "ltex.language": "en-US",
+  "pandocCiter.DefaultBib": "references.bib",
+
+  "files.associations": {
+    "*.md": "markdown"
+  },
+
+  "[markdown]": {
+    "editor.wordWrap": "wordWrapColumn",
+    "editor.wordWrapColumn": 100
+  },
+
+  "[svelte]": {
+    "editor.defaultFormatter": "svelte.svelte-vscode"
+  }
+}

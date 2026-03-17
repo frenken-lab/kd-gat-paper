@@ -1,0 +1,10 @@
+{
+  "recommendations": [
+    "ExecutableBookProject.myst-highlight",
+    "svelte.svelte-vscode",
+    "goessner.mdmath",
+    "ltex-plus.vscode-ltex-plus",
+    "notZaki.pandocciter",
+    "yunierolivera.markdown-quarto-word-count"
+  ]
+}
