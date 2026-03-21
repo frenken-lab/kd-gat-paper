@@ -36,7 +36,7 @@ project:
         - file: appendix/architecture.md
 
 site:
-  template: book-theme
+  template: article-theme
   domains:
     - rob.curve.space
   options:
