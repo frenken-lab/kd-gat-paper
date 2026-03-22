@@ -8,74 +8,75 @@ Usage:
 
 from __future__ import annotations
 
-import re
 import sys
 from pathlib import Path
 
+import bibtexparser
+
 BIB_PATH = Path(__file__).resolve().parent.parent / "references.bib"
 
-REQUIRED = {
+REQUIRED_FIELDS: dict[str, list[str]] = {
     "article": ["author", "title", "journal", "year"],
     "inproceedings": ["author", "title", "booktitle", "year"],
     "book": ["author", "title", "publisher", "year"],
+    "incollection": ["author", "title", "booktitle", "publisher", "year"],
+    "phdthesis": ["author", "title", "school", "year"],
+    "mastersthesis": ["author", "title", "school", "year"],
+    "techreport": ["author", "title", "institution", "year"],
+    "misc": ["title"],
 }
-
-
-def parse_entries(text: str) -> list[dict]:
-    entries = []
-    for m in re.finditer(r"@(\w+)\s*\{([^,]+),", text):
-        etype, key = m.group(1).lower(), m.group(2).strip()
-        # Find matching closing brace (handle nesting)
-        start = m.end()
-        depth, i = 1, start
-        while i < len(text) and depth > 0:
-            if text[i] == "{":
-                depth += 1
-            elif text[i] == "}":
-                depth -= 1
-            i += 1
-        body = text[start : i - 1]
-        fields = {
-            fm.group(1).lower(): fm.group(2).strip()
-            for fm in re.finditer(r"(\w+)\s*=\s*\{((?:[^{}]|\{[^{}]*\})*)\}", body)
-        }
-        entries.append({"type": etype, "key": key, "fields": fields})
-    return entries
 
 
 def main() -> None:
     strict = "--strict" in sys.argv
-    text = BIB_PATH.read_text()
-    entries = parse_entries(text)
-    print(f"Parsed {len(entries)} entries")
 
-    errors, warnings = [], []
+    library = bibtexparser.parse_file(BIB_PATH)
+    print(f"Parsed {len(library.entries)} entries")
 
-    # Duplicate keys
-    seen = set()
-    for e in entries:
-        if e["key"] in seen:
-            errors.append(f"Duplicate: {e['key']}")
-        seen.add(e["key"])
+    if library.failed_blocks:
+        print(f"WARNING: {len(library.failed_blocks)} block(s) failed to parse")
+        for block in library.failed_blocks:
+            print(f"  - {block.raw[:60]}...")
 
-    # Required fields
-    for e in entries:
-        if e["type"] in ("comment", "string"):
-            continue
-        for f in REQUIRED.get(e["type"], ["title"]):
-            if f not in e["fields"] or not e["fields"][f]:
-                errors.append(f"[{e['key']}] missing: {f}")
-        if "doi" not in e["fields"] and e["type"] in ("article", "inproceedings"):
-            warnings.append(f"[{e['key']}] no DOI")
+    errors: list[str] = []
+    warnings: list[str] = []
 
+    # Check for duplicate keys
+    seen_keys: set[str] = set()
+    for entry in library.entries:
+        if entry.key in seen_keys:
+            errors.append(f"Duplicate key: {entry.key}")
+        seen_keys.add(entry.key)
+
+    # Validate required fields per entry type
+    for entry in library.entries:
+        entry_type = entry.entry_type.lower()
+        fields = entry.fields_dict
+
+        required = REQUIRED_FIELDS.get(entry_type, ["title"])
+        for field_name in required:
+            field = fields.get(field_name)
+            if field is None or not field.value.strip():
+                errors.append(f"[{entry.key}] missing required field: {field_name}")
+
+        # Warn on missing DOI for articles/proceedings
+        if entry_type in ("article", "inproceedings") and "doi" not in fields:
+            warnings.append(f"[{entry.key}] no DOI")
+
+        # Warn on missing URL when no DOI
+        if "doi" not in fields and "url" not in fields:
+            if entry_type in ("misc", "online"):
+                warnings.append(f"[{entry.key}] no DOI or URL")
+
+    # Print results
     for w in warnings:
         print(f"WARN: {w}")
     for e in errors:
         print(f"ERROR: {e}")
 
-    n = len(errors) + (len(warnings) if strict else 0)
+    n_issues = len(errors) + (len(warnings) if strict else 0)
     print(f"\n{len(errors)} error(s), {len(warnings)} warning(s)")
-    sys.exit(1 if n > 0 else 0)
+    sys.exit(1 if n_issues > 0 else 0)
 
 
 if __name__ == "__main__":

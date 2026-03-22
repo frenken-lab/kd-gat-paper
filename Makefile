@@ -1,4 +1,4 @@
-.PHONY: data validate figures diagrams site dev tmlr deploy bib all clean
+.PHONY: data validate figures diagrams site dev tmlr tmlr-anon deploy bib all clean
 
 data:
 	python scripts/pull_data.py
@@ -19,7 +19,10 @@ dev:
 	myst start
 
 tmlr: figures
-	python scripts/convert_tmlr.py --output submission_folder/
+	python scripts/tmlr/build.py --output submission_folder/
+
+tmlr-anon: figures
+	python scripts/tmlr/build.py --output submission_folder/ --anonymous
 
 deploy: site
 	npx curvenote deploy --yes
