@@ -1,4 +1,4 @@
-.PHONY: data validate figures diagrams site dev tmlr tmlr-anon deploy bib all clean
+.PHONY: data validate figures diagrams tables site dev tmlr tmlr-anon deploy bib all clean
 
 data:
 	python scripts/pull_data.py
@@ -12,7 +12,10 @@ figures: data
 diagrams:
 	bash scripts/build-tikz.sh
 
-site: figures diagrams
+tables: data
+	python scripts/tables/build.py
+
+site: figures diagrams tables
 	myst build
 
 dev:
@@ -34,3 +37,4 @@ all: site
 
 clean:
 	rm -rf _build submission_folder figures/*.html
+	find data/tables -name '*.md' -delete 2>/dev/null || true

@@ -8,17 +8,8 @@ To assess the contribution of different model configurations, we perform ablatio
 
 ### Knowledge Distillation Effects
 
-```{code-cell} python
-:tags: [remove-input]
-:label: tbl-ablation-kd
-:caption: "Ablation Study: Knowledge Distillation Effects"
-
-import pandas as pd
-from IPython.display import Markdown
-
-df = pd.read_csv("data/ablation_kd.csv")
-Markdown(df.to_markdown(index=False))
-```
+<!-- TODO: Wire up when ablation_kd.csv is exported from KD-GAT -->
+*Awaiting data export for Knowledge Distillation ablation table.*
 
 To further characterize how knowledge transfers between teacher and student networks, we compute Centered Kernel Alignment (CKA) between all pairs of teacher and student layers. High CKA values indicate that corresponding layers learn similar representations despite the 20$\times$ parameter reduction.
 
@@ -30,28 +21,14 @@ CKA similarity between teacher and student GAT layers. Hover for exact values.
 
 ### GAT Training Strategy
 
-```{code-cell} python
-:tags: [remove-input]
-:label: tbl-ablation-gat
-:caption: "Ablation Study: GAT Training Strategy Comparison"
+<!-- TODO: Wire up when ablation_gat_training.csv is exported from KD-GAT -->
+*Awaiting data export for GAT training strategy ablation table.*
 
-import pandas as pd
-from IPython.display import Markdown
+### Bandit Fusion vs. Baseline Strategies
 
-df = pd.read_csv("data/ablation_gat_training.csv")
-Markdown(df.to_markdown(index=False))
+:::{table} VGAE Anomaly Detection Threshold Analysis
+:label: tbl-vgae-threshold
+
+```{include} ../data/tables/vgae_threshold.md
 ```
-
-### DQN Fusion vs. Baseline Strategies
-
-```{code-cell} python
-:tags: [remove-input]
-:label: tbl-ablation-fusion
-:caption: "Ablation Study: DQN Fusion vs. Baseline Strategies"
-
-import pandas as pd
-from IPython.display import Markdown
-
-df = pd.read_csv("data/ablation_fusion.csv")
-Markdown(df.to_markdown(index=False))
-```
+:::

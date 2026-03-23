@@ -1,0 +1,3 @@
+model,accuracy,precision,recall,f1,auc,citation_key
+BEPCD,0.9800,0.9700,0.9800,0.9700,0.9900,jichici2024bepcd
+HyDL-IDS,0.9910,0.9900,0.9910,0.9900,0.9970,lo2022hydlids

@@ -10,7 +10,7 @@
   $: filtered = isEmpty ? [] : data.filter(d => visible[d.attack_type]);
 </script>
 
-<Figure title="DQN Fusion Weight Analysis">
+<Figure title="Bandit Fusion Weight Analysis">
   {#if isEmpty}
     <p class="empty">Awaiting data export from KD-GAT</p>
   {:else}

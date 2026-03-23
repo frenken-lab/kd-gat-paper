@@ -1,7 +1,7 @@
 version: 1
 project:
   title: "Adaptive Fusion of Graph-Based Ensembles for Automotive Intrusion Detection"
-  subtitle: "Multi-Stage Knowledge Distillation with DQN-Based Expert Fusion"
+  subtitle: "Multi-Stage Knowledge Distillation with Bandit-Based Expert Fusion"
   authors:
     - name: Robert Frenken
       affiliation: The Ohio State University

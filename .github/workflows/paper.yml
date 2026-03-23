@@ -44,7 +44,7 @@ jobs:
 
       - name: Convert TMLR
         if: github.ref == 'refs/heads/main'
-        run: python scripts/convert_tmlr.py -o submission_folder/ --anonymous
+        run: python scripts/tmlr/build.py --output submission_folder/ --anonymous
       - uses: actions/upload-artifact@v4
         if: github.ref == 'refs/heads/main'
         with: { name: tmlr-submission, path: submission_folder/ }

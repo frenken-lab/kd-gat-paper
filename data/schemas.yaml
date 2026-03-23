@@ -3,13 +3,16 @@
 
 csv:
   main_results.csv:
-    columns: [model, accuracy, precision, recall, f1]
+    columns: [model, accuracy, precision, recall, f1, auc, specificity, mcc]
     min_rows: 1
   test_results.csv:
     columns: [model, scenario, accuracy, f1]
     min_rows: 1
   vgae_threshold.csv:
     columns: [metric, value]
+    min_rows: 1
+  literature_baselines.csv:
+    columns: [model, accuracy, precision, recall, f1, auc, citation_key]
     min_rows: 1
 
 # Figure data.json contracts — export ships plot-ready data,

@@ -6,6 +6,7 @@ main_results:
   title: "Test Performance on HCRL Car-Hacking Dataset"
   label: tbl-main-results
   source: csv/main_results.csv
+  baselines_source: csv/literature_baselines.csv
   columns:
     model: Model
     accuracy: Accuracy
@@ -19,22 +20,10 @@ main_results:
     recall: "{:.4f}"
     f1: "{:.4f}"
     auc: "{:.4f}"
-  sort_by: [model]
-  baselines:
-    - model: BEPCD
-      accuracy: 0.9800
-      precision: 0.9700
-      recall: 0.9800
-      f1: 0.9700
-      auc: 0.9900
-      source: literature
-    - model: HyDL-IDS
-      accuracy: 0.9910
-      precision: 0.9900
-      recall: 0.9910
-      f1: 0.9900
-      auc: 0.9970
-      source: literature
+  # Baselines appear first (alphabetical), then a separator, then our models (bolded)
+  sort_order:
+    baselines_first: true
+    bold_models: [GAT, VGAE, FUSION]
 
 test_scenarios:
   title: "Cross-Scenario Test Results"

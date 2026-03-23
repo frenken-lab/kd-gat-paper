@@ -6,33 +6,23 @@ title: "Results and Discussion"
 
 ### Test Set Performance
 
-[](#tbl-results-car) and [](#tbl-results-synth) summarize the test set performance across six datasets. We compare against four GNN-based baselines: KD-GAT [@frenken2025kdgat], A&D GAT [@AD], G-IDCS [@Park], and GUARD-CAN [@guardcan2025]. KD-GAT serves as the primary baseline since it is the only method evaluated on the comprehensive can-train-and-test dataset [@Lampe2024cantrainandtest].
+[](#tbl-main-results) and [](#tbl-test-scenarios) summarize the test set performance across six datasets. We compare against four GNN-based baselines: KD-GAT [@frenken2025kdgat], A&D GAT [@AD], G-IDCS [@Park], and GUARD-CAN [@guardcan2025]. KD-GAT serves as the primary baseline since it is the only method evaluated on the comprehensive can-train-and-test dataset [@Lampe2024cantrainandtest].
 
 Our approach demonstrates consistent improvements across all datasets, with particularly significant gains on highly imbalanced datasets. Compared to KD-GAT, we achieve an average improvement of 2.09% in accuracy and 16.22% in F1-score. The most substantial improvements occur on challenging datasets S02 and S04, where F1-scores improve by 55.25% and 30.64% respectively, indicating superior handling of severe class imbalance.
 
-```{code-cell} python
-:tags: [remove-input]
-:label: tbl-results-car
-:caption: "Test Set Performance on CarH and CarS"
+:::{table} Test Performance on HCRL Car-Hacking Dataset
+:label: tbl-main-results
 
-import pandas as pd
-from IPython.display import Markdown
-
-df = pd.read_csv("data/car_hacking.csv")
-Markdown(df.to_markdown(index=False))
+```{include} ../data/tables/main_results.md
 ```
+:::
 
-```{code-cell} python
-:tags: [remove-input]
-:label: tbl-results-synth
-:caption: "Test Set Performance on CAN-train-and-test Datasets (S01--S04)"
+:::{table} Cross-Scenario Test Results
+:label: tbl-test-scenarios
 
-import pandas as pd
-from IPython.display import Markdown
-
-df = pd.read_csv("data/can_datasets.csv")
-Markdown(df.to_markdown(index=False))
+```{include} ../data/tables/test_scenarios.md
 ```
+:::
 
 ### Discussion
 
