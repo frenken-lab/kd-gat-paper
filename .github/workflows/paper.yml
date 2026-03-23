@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      - run: pip install pyyaml bibtexparser
+      - run: pip install pyyaml "bibtexparser>=2"
       - run: python scripts/pull_data.py --from-repo
       - run: python scripts/validate_bib.py
 
