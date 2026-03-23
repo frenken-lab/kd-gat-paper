@@ -1,1 +1,9 @@
-[]
+{
+  "matrix": [
+    [0.92, 0.45],
+    [0.51, 0.88],
+    [0.38, 0.71]
+  ],
+  "teacher_layers": ["Teacher L1", "Teacher L2", "Teacher L3"],
+  "student_layers": ["Student L1", "Student L2"]
+}
