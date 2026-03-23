@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
-"""Build TMLR Beyond PDF submission."""
+"""Build TMLR Beyond PDF submission from MyST AST.
+
+Reads the site-build AST JSON (``_build/site/content/*.json``) and
+serializes to Distill-layout markdown for TMLR Beyond PDF.
+"""
 
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import shutil
 import subprocess
@@ -11,29 +16,179 @@ import sys
 from pathlib import Path
 
 import yaml
+from tabulate import tabulate as _tabulate
 
 ROOT = Path(__file__).resolve().parents[2]
+SITE_CONTENT = ROOT / "_build" / "site" / "content"
+SITE_CONFIG = ROOT / "_build" / "site" / "config.json"
 
 
-def _strip_frontmatter(text: str) -> str:
-    """Remove YAML frontmatter delimited by ``---``."""
-    if text.startswith("---"):
-        end = text.find("\n---", 3)
-        if end != -1:
-            return text[end + 4:].lstrip()
-    return text
+# ---------------------------------------------------------------------------
+# AST → Distill Markdown serializer
+# ---------------------------------------------------------------------------
+
+def serialize(node: dict) -> str:
+    """Recursively serialize an MDAST node to Distill-compatible markdown."""
+    t = node.get("type", "")
+    children = node.get("children", [])
+
+    # --- Leaf nodes ---
+    if t == "text":
+        # Strip MyST header attributes baked into text values
+        val = node.get("value", "")
+        val = re.sub(r"\s*\{#[^}]+\}\s*$", "", val)
+        return val
+    if t == "inlineMath":
+        return f'${node["value"]}$'
+    if t == "math":
+        return f'\n$$\n{node["value"]}\n$$\n'
+    if t == "inlineCode":
+        return f'`{node.get("value", "")}`'
+    if t == "code":
+        lang = node.get("lang", "")
+        return f'\n```{lang}\n{node.get("value", "")}\n```\n'
+    if t == "comment":
+        return ""
+    if t == "thematicBreak":
+        return "\n---\n"
+
+    # --- Citations ---
+    if t == "citeGroup":
+        refs = [f'@{c["identifier"]}' for c in children if c.get("type") == "cite"]
+        return "[" + "; ".join(refs) + "]"
+    if t == "cite":
+        # Standalone cite (not inside citeGroup)
+        return f'[@{node["identifier"]}]'
+
+    # --- Cross-references ---
+    if t == "crossReference":
+        template = node.get("template", "")
+        enum = node.get("enumerator", "")
+        if template and enum:
+            return template.replace("%s", str(enum))
+        inner = _children(children)
+        return inner if inner else f'[{node.get("identifier", "")}]'
+
+    # --- Structure ---
+    if t == "heading":
+        prefix = "#" * node.get("depth", 2)
+        return f'\n{prefix} {_children(children)}\n'
+    if t == "paragraph":
+        return f'\n{_children(children)}\n'
+    if t in ("root", "block"):
+        return _children(children)
+
+    # --- Formatting ---
+    if t == "strong":
+        return f'**{_children(children)}**'
+    if t == "emphasis":
+        return f'*{_children(children)}*'
+    if t == "link":
+        url = node.get("url", "")
+        return f'[{_children(children)}]({url})'
+
+    # --- Lists ---
+    if t == "list":
+        ordered = node.get("ordered", False)
+        items = []
+        for i, c in enumerate(children):
+            marker = f"{i + 1}. " if ordered else "- "
+            items.append(marker + serialize(c).strip())
+        return "\n" + "\n".join(items) + "\n"
+    if t == "listItem":
+        return _children(children)
+
+    # --- Tables ---
+    if t == "table":
+        return "\n" + _serialize_table(children) + "\n"
+    if t == "include":
+        # Already resolved by myst — children contain parsed content
+        return _children(children)
+
+    # --- Figures / containers ---
+    if t == "container":
+        kind = node.get("kind", "")
+        label = node.get("identifier", "")
+        if kind == "figure":
+            inner = _children(children)
+            id_attr = f' id="{label}"' if label else ""
+            return f'\n<figure{id_attr}>\n{inner}\n</figure>\n'
+        if kind == "table":
+            # Render caption as bold header, then table content from legend
+            cap = ""
+            body = ""
+            for c in children:
+                if c.get("type") == "caption":
+                    cap = _text_of(c).strip()
+                else:
+                    body += serialize(c)
+            header = f"\n**{cap}**\n" if cap else ""
+            return f"{header}{body}"
+        return _children(children)
+    if t == "caption":
+        return f'\n<figcaption>{_children(children)}</figcaption>'
+    if t == "captionNumber":
+        # Render "Table 1:" etc. — children contain the text
+        return _children(children)
+    if t == "legend":
+        # Table containers store {include} content in legend nodes
+        return _children(children)
+    if t == "iframe":
+        src = Path(node.get("src", "")).name
+        return f'<iframe src="assets/html/submission/{src}" width="100%" style="border:none; min-height:450px;"></iframe>'
+
+    # --- Admonitions (algorithms, notes) ---
+    if t == "admonition":
+        title = ""
+        body_parts = []
+        for c in children:
+            if c.get("type") == "admonitionTitle":
+                title = _children(c.get("children", []))
+            else:
+                body_parts.append(serialize(c).strip())
+        body = "\n".join(f"> {line}" if line else ">" for part in body_parts for line in part.split("\n"))
+        if title:
+            return f'\n> **{title}**\n>\n{body}\n'
+        return f'\n{body}\n'
+    if t == "admonitionTitle":
+        return ""
+
+    # --- Executable code outputs (appendix tables) ---
+    if t == "outputs":
+        return _children(children)
+
+    # --- Fallback: render children ---
+    return _children(children)
 
 
-def _resolve_includes(text: str, base_dir: Path) -> str:
-    """Inline ``{include}`` directives with referenced file content."""
-    def _repl(m: re.Match) -> str:
-        inc = (base_dir / m.group(1).strip()).resolve()
-        return inc.read_text().strip() if inc.exists() else m.group(0)
-    return re.sub(r"```\{include\}\s*(\S+)\s*\n```", _repl, text)
+def _children(children: list[dict]) -> str:
+    return "".join(serialize(c) for c in children)
 
+
+def _text_of(node: dict) -> str:
+    """Extract plain text from an AST node (no markdown formatting)."""
+    if node.get("type") == "text":
+        return node.get("value", "")
+    return "".join(_text_of(c) for c in node.get("children", []))
+
+
+def _serialize_table(rows: list[dict]) -> str:
+    """Render tableRow nodes as a pipe table via tabulate."""
+    grid = [
+        [_children(cell.get("children", [])).strip() for cell in row.get("children", [])]
+        for row in rows if row.get("type") == "tableRow"
+    ]
+    if len(grid) < 2:
+        return ""
+    return _tabulate(grid[1:], headers=grid[0], tablefmt="github")
+
+
+# ---------------------------------------------------------------------------
+# Build orchestration
+# ---------------------------------------------------------------------------
 
 def main() -> None:
-    p = argparse.ArgumentParser()
+    p = argparse.ArgumentParser(description="Build TMLR Beyond PDF submission")
     p.add_argument("--output", "-o", type=Path, required=True)
     p.add_argument("--anonymous", action="store_true")
     args = p.parse_args()
@@ -41,150 +196,52 @@ def main() -> None:
     out = args.output.resolve()
     out.mkdir(parents=True, exist_ok=True)
 
-    # 1. Get TOC files
-    cfg = yaml.safe_load((ROOT / "myst.yml").read_text())
-    toc = cfg.get("project", {}).get("toc", [])
-    files = []
-    for entry in toc:
-        if isinstance(entry, dict):
-            if "file" in entry:
-                files.append(ROOT / entry["file"])
-            for child in entry.get("children", []):
-                if isinstance(child, dict) and "file" in child:
-                    files.append(ROOT / child["file"])
-
-    # 2. Export each file — myst for prose, raw source for directive-heavy files
-    print("Exporting paper sections...")
-    exported_parts: list[str] = []
-    exports_dir = ROOT / "_build" / "exports"
-
-    for f in files:
-        if not f.exists():
-            continue
-        rel = f.relative_to(ROOT)
-        raw = f.read_text()
-
-        # Files with {include} or :::{iframe} break myst --md export
-        # (tables mangled to lists, iframe causes TypeError).
-        # Use resolved raw source for these files.
-        if "```{include}" in raw or ":::{iframe}" in raw:
-            print(f"  raw: {rel}")
-            text = _strip_frontmatter(raw)
-            text = _resolve_includes(text, f.parent)
-            exported_parts.append(text)
-            continue
-
-        cmd = ["npx", "mystmd", "build", str(rel), "--md", "--force"]
-        subprocess.run(cmd, cwd=ROOT, capture_output=True)
-
-        out_name = f.stem + ".md"
-        out_path = exports_dir / out_name
-        if out_path.exists():
-            text = _strip_frontmatter(out_path.read_text())
-            exported_parts.append(text)
-            out_path.unlink()
-        else:
-            # myst failed — fall back to raw source
-            print(f"  fallback: {rel}")
-            text = _strip_frontmatter(raw)
-            exported_parts.append(text)
-
-    if not exported_parts:
-        print("No files exported")
+    # 1. Ensure site AST is built
+    print("Building site AST...")
+    subprocess.run(
+        ["npx", "mystmd", "build", "--site", "--force"],
+        cwd=ROOT, capture_output=True,
+    )
+    if not SITE_CONTENT.exists() or not SITE_CONFIG.exists():
+        print("ERROR: myst build --site produced no content")
         sys.exit(1)
 
-    content = "\n\n".join(exported_parts)
+    site_cfg = json.loads(SITE_CONFIG.read_text())
+    proj = site_cfg.get("projects", [{}])[0]
 
-    # Post-process: convert MyST syntax to standard markdown
-    # {cite:p}`key` or {cite:p}`key1,key2` -> [@key] or [@key1; @key2]
-    def convert_cite(m):
-        keys = m.group(1).split(',')
-        return '[' + '; '.join(f'@{k.strip()}' for k in keys) + ']'
-    content = re.sub(r'\{cite:p\}`([^`]+)`', convert_cite, content)
-    # {math}`...` -> $...$
-    content = re.sub(r'\{math\}`([^`]+)`', r'$\1$', content)
-    # ```{math}\n:label: ...\n\nEQN\n``` -> $$\nEQN\n$$
-    content = re.sub(
-        r'```\{math\}\n(?::label:[^\n]*\n)*\n?(.*?)\n```',
-        r'$$\n\1\n$$',
-        content,
-        flags=re.DOTALL
-    )
-    # Convert :::{iframe} directives to <iframe> HTML
-    def convert_iframe(m: re.Match) -> str:
-        path = m.group(1).strip()
-        body = m.group(2)
-        filename = Path(path).name
-        src = f"assets/html/submission/{filename}"
-        label = ""
-        caption_lines = []
-        for line in body.strip().split("\n"):
-            if line.startswith(":label:"):
-                label = line.split(":", 2)[2].strip()
-            elif line.startswith(":"):
-                continue
-            elif line.strip():
-                caption_lines.append(line.strip())
-        caption = " ".join(caption_lines)
-        id_attr = f' id="{label}"' if label else ""
-        tag = f'<iframe src="{src}" width="100%" style="border:none; min-height:450px;"></iframe>'
-        if caption:
-            return f"<figure{id_attr}>\n{tag}\n<figcaption>{caption}</figcaption>\n</figure>"
-        return f"<figure{id_attr}>\n{tag}\n</figure>"
+    # 2. Read TOC order from site config
+    toc_files = []
+    for entry in proj.get("toc", []):
+        if isinstance(entry, dict):
+            if "file" in entry:
+                toc_files.append(entry["file"])
+            for child in entry.get("children", []):
+                if isinstance(child, dict) and "file" in child:
+                    toc_files.append(child["file"])
 
-    content = re.sub(
-        r":::\{iframe\}\s+(\S+)\n(.*?)^:::\s*$",
-        convert_iframe,
-        content,
-        flags=re.DOTALL | re.MULTILINE,
-    )
+    parts: list[str] = []
+    for rel in toc_files:
+        slug = Path(rel).stem
+        ast_path = SITE_CONTENT / f"{slug}.json"
+        if not ast_path.exists():
+            print(f"  skip: {rel} (no AST)")
+            continue
+        data = json.loads(ast_path.read_text())
+        mdast = data["mdast"]
+        if isinstance(mdast, str):
+            mdast = json.loads(mdast)
+        parts.append(serialize(mdast))
+        print(f"  ok: {rel}")
 
-    # Convert :::{table} directives — keep content, add caption
-    def convert_table(m: re.Match) -> str:
-        caption = m.group(1).strip()
-        body = m.group(2)
-        clean = "\n".join(
-            ln for ln in body.split("\n") if not ln.startswith(":")
-        ).strip()
-        if caption:
-            return f"**{caption}**\n\n{clean}"
-        return clean
+    if not parts:
+        print("No content serialized")
+        sys.exit(1)
 
-    content = re.sub(
-        r":::\{table\}\s*([^\n]*)\n(.*?)^:::\s*$",
-        convert_table,
-        content,
-        flags=re.DOTALL | re.MULTILINE,
-    )
+    content = "\n\n".join(parts)
+    # Clean up excessive blank lines
+    content = re.sub(r"\n{3,}", "\n\n", content)
 
-    # Convert :::{admonition} directives to blockquotes
-    def convert_admonition(m: re.Match) -> str:
-        title = m.group(1).strip()
-        body = m.group(2)
-        clean = "\n".join(
-            ln for ln in body.split("\n") if not ln.startswith(":")
-        ).strip()
-        quoted = "\n".join(f"> {ln}" if ln.strip() else ">" for ln in clean.split("\n"))
-        if title:
-            return f"> **{title}**\n>\n{quoted}"
-        return quoted
-
-    content = re.sub(
-        r":::\{admonition\}\s*([^\n]*)\n(.*?)^:::\s*$",
-        convert_admonition,
-        content,
-        flags=re.DOTALL | re.MULTILINE,
-    )
-
-    # Remove remaining ::: directive wrappers (keep content)
-    content = re.sub(r":::\{[^}]+\}[^\n]*\n?", "", content)
-    content = re.sub(r"^:::\s*$", "", content, flags=re.MULTILINE)
-    # +++ thematic breaks -> ---
-    content = re.sub(r"^\+\+\+\s*$", "---", content, flags=re.MULTILINE)
-    # Strip MyST header attributes like {#sec-dqn} or {.class}
-    content = re.sub(r"(^#{1,6}\s+.*?)\s*\{[^}]+\}\s*$", r"\1", content, flags=re.MULTILINE)
-
-    # Build TOC from ## and ### headers
+    # 3. Build TOC from headers
     toc_entries: list[dict] = []
     for line in content.split("\n"):
         if line.startswith("## ") and not line.startswith("### "):
@@ -194,15 +251,22 @@ def main() -> None:
                 {"name": line[4:].strip()}
             )
 
-    proj = cfg.get("project", {})
-    idx = ROOT / "index.md"
+    # 4. Build frontmatter from AST metadata
+    # Abstract lives in the index page's AST frontmatter.parts.abstract
     abstract = ""
-    if idx.exists() and idx.read_text().startswith("---"):
-        fm = yaml.safe_load(idx.read_text().split("---")[1])
-        abstract = fm.get("abstract", "").replace("\n", " ") if fm else ""
+    idx_path = SITE_CONTENT / "index.json"
+    if idx_path.exists():
+        idx_data = json.loads(idx_path.read_text())
+        abstract_ast = (
+            idx_data.get("frontmatter", {}).get("parts", {}).get("abstract", {}).get("mdast")
+        )
+        if abstract_ast:
+            if isinstance(abstract_ast, str):
+                abstract_ast = json.loads(abstract_ast)
+            abstract = _text_of(abstract_ast)
 
     authors = ["Anonymous"] if args.anonymous else [
-        a.get("name") if isinstance(a, dict) else a for a in proj.get("authors", [])
+        a.get("name", "") for a in proj.get("authors", [])
     ]
 
     tmlr_fm = yaml.dump({
