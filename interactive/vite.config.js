@@ -1,16 +1,13 @@
 import { defineConfig } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { viteSingleFile } from "vite-plugin-singlefile";
-import { readdirSync } from "fs";
 import { resolve } from "path";
 
-// Auto-discover figure entry points: src/*/index.html
-const figureEntries = {};
-import { existsSync } from "fs";
-for (const dir of readdirSync("src", { withFileTypes: true })) {
-  if (dir.isDirectory() && existsSync(resolve("src", dir.name, "index.html"))) {
-    figureEntries[dir.name] = resolve("src", dir.name, "index.html");
-  }
+// vite-plugin-singlefile requires a single entry point per build.
+// FIGURE env var selects which figure to build; build.js iterates all.
+const figure = process.env.FIGURE;
+if (!figure) {
+  throw new Error("Set FIGURE env var (e.g. FIGURE=umap vite build). Use `npm run build` to build all.");
 }
 
 export default defineConfig({
@@ -19,7 +16,7 @@ export default defineConfig({
     outDir: "../figures",
     emptyOutDir: false,
     rollupOptions: {
-      input: figureEntries,
+      input: resolve("src", figure, "index.html"),
     },
   },
 });
