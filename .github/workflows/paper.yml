@@ -56,4 +56,4 @@ jobs:
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         env:
           CURVENOTE_TOKEN: ${{ secrets.CURVENOTE_TOKEN }}
-        run: npm install -g @curvenote/cli && curvenote deploy --yes
+        run: npx -y @curvenote/cli deploy --yes
