@@ -1,4 +1,4 @@
-.PHONY: data validate figures diagrams tables site dev tmlr tmlr-anon deploy push sync bib all clean
+.PHONY: data validate figures diagrams tables site dev tmlr tmlr-anon deploy sync bib all clean
 
 data:
 	python scripts/pull_data.py
@@ -27,10 +27,7 @@ tmlr: figures
 tmlr-anon: figures
 	python scripts/tmlr/build.py --output submission_folder/ --anonymous
 
-push:
-	npx curvenote push --yes
-
-deploy: site push
+deploy: site
 	npx curvenote deploy --yes
 
 sync:
