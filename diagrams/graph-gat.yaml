@@ -1,0 +1,12 @@
+# GAT attention graph
+figsize: [5, 4]
+
+components:
+  - type: graph
+    params:
+      n: 5
+      layout: organic
+      edges: sparse
+      color: gat
+      labels: auto
+      id: gat

@@ -1,0 +1,113 @@
+# Full KD-GAT pipeline: Input → VGAE (KD) → GAT (KD) → DQN → Output
+figsize: [20, 12]
+direction: horizontal
+
+components:
+  # ── Main pipeline (horizontal flow) ──
+
+  # Input CAN bus graph
+  - type: graph
+    params:
+      n: 5
+      layout: organic
+      edges: sparse
+      color: data
+      labels: ["0x1A0", "0x2B3", "0x3C1", "0x4D5", "0x5E2"]
+      id: input
+
+  # VGAE teacher
+  - type: vgae
+    params:
+      enc_layers: [5, 3]
+      id: vgae_t
+      gap: 1.0
+    place:
+      dy: 3
+
+  # GAT teacher
+  - type: gat
+    params:
+      n_layers: 3
+      n: 5
+      id: gat_t
+      gap: 1.0
+    place:
+      dy: 3
+
+  # DQN fusion
+  - type: box
+    params:
+      id: dqn
+      label: "DQN Fusion"
+      color: dqn
+    place:
+      dy: 0
+
+  # Output
+  - type: box
+    params:
+      id: output
+      label: "Anomaly Score"
+      color: data
+    place:
+      dy: 0
+
+  # ── Students (absolute offset, below teachers) ──
+
+  # VGAE student — placed below VGAE teacher
+  - type: vgae
+    params:
+      enc_layers: [3, 2]
+      latent_n: 2
+      id: vgae_s
+      gap: 1.0
+    offset:
+      dx: 6.2
+      dy: -4.0
+
+  # GAT student — placed below GAT teacher
+  - type: gat
+    params:
+      n_layers: 2
+      n: 3
+      id: gat_s
+      gap: 1.0
+    offset:
+      dx: 10.6
+      dy: -3.0
+
+edges:
+  # Main pipeline
+  - from: input.output
+    to: vgae_t.input
+    color: "#BAB0AC"
+
+  - from: vgae_t.output
+    to: gat_t.input
+    color: "#BAB0AC"
+    label: "hard samples"
+
+  - from: vgae_t.output
+    to: dqn.input
+    color: "#BAB0AC"
+    label: "recon error"
+
+  - from: gat_t.output
+    to: dqn.input
+    color: "#BAB0AC"
+    label: "classification"
+
+  - from: dqn.output
+    to: output.input
+    color: "#BAB0AC"
+
+  # Knowledge distillation arrows (dashed, red)
+  - from: vgae_t.output
+    to: vgae_s.input
+    style: dashed
+    color: "#E15759"
+
+  - from: gat_t.output
+    to: gat_s.input
+    style: dashed
+    color: "#E15759"

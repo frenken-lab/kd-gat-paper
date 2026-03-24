@@ -1,0 +1,7 @@
+# GAT classifier with container boxes
+figsize: [6, 10]
+
+components:
+  - type: gat
+    params: {n_layers: 3, n: 5, id: gat}
+    container: {label: "GAT Model", color: gat, style: dashed}

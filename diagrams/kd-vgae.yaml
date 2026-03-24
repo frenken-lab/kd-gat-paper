@@ -1,0 +1,17 @@
+# KD-VGAE: VGAE teacher/student knowledge distillation pair
+figsize: [12, 10]
+direction: horizontal
+
+components:
+  - type: vgae
+    params: {enc_layers: [5, 3], latent_n: 3, id: teacher}
+  - type: vgae
+    params: {enc_layers: [3, 2], latent_n: 2, id: student}
+
+edges:
+  - from: teacher.output
+    to: student.output
+    color: "#E15759"
+    style: dashed
+    width: 2.0
+    label: KD

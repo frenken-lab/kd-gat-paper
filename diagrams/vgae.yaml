@@ -1,0 +1,7 @@
+# VGAE autoencoder with container box
+figsize: [6, 10]
+
+components:
+  - type: vgae
+    params: {enc_layers: [5, 3], latent_n: 3, id: vgae}
+    container: {label: "VGAE Model", color: vgae, style: dashed}

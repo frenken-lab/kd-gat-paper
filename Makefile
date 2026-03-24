@@ -1,16 +1,18 @@
 .PHONY: data validate figures diagrams tables site dev tmlr tmlr-anon preview deploy sync bib all clean
 
+SYNC := python ~/KD-GAT/scripts/data/paper_sync.py
+
 data:
-	python scripts/pull_data.py
+	$(SYNC) pull --schema data/schemas.yaml
 
 validate:
-	python scripts/pull_data.py --from-repo
+	$(SYNC) validate --schema data/schemas.yaml
 
 figures: data
 	cd interactive && npm run build
 
 diagrams:
-	bash scripts/build-tikz.sh
+	python scripts/build-diagrams.py
 
 tables: data
 	python scripts/tables/build.py

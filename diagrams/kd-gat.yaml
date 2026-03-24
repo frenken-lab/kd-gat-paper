@@ -1,0 +1,17 @@
+# KD-GAT: GAT teacher/student knowledge distillation pair
+figsize: [12, 10]
+direction: horizontal
+
+components:
+  - type: gat
+    params: {n_layers: 3, n: 5, id: teacher}
+  - type: gat
+    params: {n_layers: 2, n: 3, id: student}
+
+edges:
+  - from: teacher.output
+    to: student.output
+    color: "#E15759"
+    style: dashed
+    width: 2.0
+    label: KD
