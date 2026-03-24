@@ -10,7 +10,7 @@ keywords: machine-learning, ml, deep-learning, TMLR, Transactions-on-Machine-Lea
 lang: en
 icon: tmlr-favicon.ico
 
-baseurl: /tmlr-beyond-pdf
+baseurl: /kd-gat-paper
 last_updated: false
 impressum_path:  # set to path to include impressum link in the footer, use the same path as permalink in a page, helps to conform with EU GDPR
 

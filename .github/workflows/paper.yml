@@ -92,10 +92,10 @@ jobs:
         with: { python-version: "3.12" }
       - run: pip install pyyaml tabulate
 
-      # Rebuild site (with author names)
+      # Build MyST AST → Distill markdown
       - name: Build MyST AST
         run: npm install -g mystmd && myst build --site
-      - name: Build site
+      - name: Build Distill site
         run: python scripts/tmlr/build.py --output submission_folder/
 
       # Merge into author kit
@@ -104,9 +104,18 @@ jobs:
           cp submission_folder/submission.md tmlr_do_not_modify/_under_review/submission.md
           cp -r submission_folder/assets/* tmlr_do_not_modify/assets/ 2>/dev/null || true
 
+      # Build Jekyll
+      - uses: ruby/setup-ruby@v1
+        with: { ruby-version: "3.2" }
+      - name: Build Jekyll site
+        run: |
+          cd tmlr_do_not_modify
+          bundle install
+          bundle exec jekyll build --baseurl "/kd-gat-paper"
+
       - uses: actions/configure-pages@v4
       - uses: actions/upload-pages-artifact@v3
-        with: { path: tmlr_do_not_modify/ }
+        with: { path: tmlr_do_not_modify/_site/ }
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
