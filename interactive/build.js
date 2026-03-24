@@ -4,13 +4,12 @@
  * vite-plugin-singlefile requires inlineDynamicImports which is
  * incompatible with multiple rollup entry points in a single pass.
  */
-import { readdirSync, existsSync, renameSync, rmSync, mkdirSync, copyFileSync } from "fs";
+import { readdirSync, existsSync, renameSync, rmSync } from "fs";
 import { resolve } from "path";
 import { execSync } from "child_process";
 
 const srcDir = resolve(import.meta.dirname, "src");
 const outDir = resolve(import.meta.dirname, "..", "figures");
-const staticDir = resolve(import.meta.dirname, "..", "_static", "figures");
 const figures = readdirSync(srcDir, { withFileTypes: true })
   .filter(d => d.isDirectory() && existsSync(resolve(srcDir, d.name, "index.html")))
   .map(d => d.name);
@@ -27,11 +26,7 @@ for (const fig of figures) {
   // Vite outputs figures/src/<name>/index.html — flatten to figures/<name>.html
   const nested = resolve(outDir, "src", fig, "index.html");
   if (existsSync(nested)) {
-    const flat = resolve(outDir, `${fig}.html`);
-    renameSync(nested, flat);
-    // Also copy to _static/figures/ so MyST site can serve them
-    mkdirSync(staticDir, { recursive: true });
-    copyFileSync(flat, resolve(staticDir, `${fig}.html`));
+    renameSync(nested, resolve(outDir, `${fig}.html`));
   }
 }
 

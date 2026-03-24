@@ -1,0 +1,14 @@
+| Model  | Scenario                               | Accuracy | F1     | Precision | Recall |
+| ------ | -------------------------------------- | -------- | ------ | --------- | ------ |
+| GAT    | test_01_known_vehicle_known_attack     | 0.9990   | 0.9990 | 1.0000    | 0.9979 |
+| GAT    | test_02_unknown_vehicle_known_attack   | 0.4052   | 0.5767 | 0.4052    | 1.0000 |
+| GAT    | test_03_known_vehicle_unknown_attack   | 0.8186   | 0.6852 | 1.0000    | 0.5211 |
+| GAT    | test_04_unknown_vehicle_unknown_attack | 0.3915   | 0.5627 | 0.3915    | 1.0000 |
+| VGAE   | test_01_known_vehicle_known_attack     | 0.6768   | 0.7492 | 0.5989    | 1.0000 |
+| VGAE   | test_02_unknown_vehicle_known_attack   | 0.4052   | 0.5767 | 0.4052    | 1.0000 |
+| VGAE   | test_03_known_vehicle_unknown_attack   | 0.6059   | 0.6578 | 0.4901    | 1.0000 |
+| VGAE   | test_04_unknown_vehicle_unknown_attack | 0.3915   | 0.5627 | 0.3915    | 1.0000 |
+| FUSION | test_01_known_vehicle_known_attack     | 0.9990   | 0.9990 | 1.0000    | 0.9979 |
+| FUSION | test_02_unknown_vehicle_known_attack   | 0.4052   | 0.5767 | 0.4052    | 1.0000 |
+| FUSION | test_03_known_vehicle_unknown_attack   | 0.8235   | 0.6963 | 1.0000    | 0.5341 |
+| FUSION | test_04_unknown_vehicle_unknown_attack | 0.3915   | 0.5627 | 0.3915    | 1.0000 |
