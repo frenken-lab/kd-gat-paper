@@ -14,7 +14,7 @@ Object with 3 panels, each pre-computed:
 - `heatmap`: `[{row, component, value}]` — sorted by composite error
 - `roc`: `[{fpr, tpr, component}]` — per-component ROC curves
 
-## fusion — DQN weight distribution
+## fusion — Bandit fusion weight distribution
 Array of `{alpha, label, attack_type}`.
 
 ## cka — Teacher-student layer similarity

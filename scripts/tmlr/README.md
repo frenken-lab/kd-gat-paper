@@ -1,6 +1,6 @@
 # TMLR Beyond PDF Conversion
 
-Converts MyST sources to TMLR Beyond PDF submission format using `myst build --md`.
+Converts MyST paper to TMLR Beyond PDF submission format by serializing the MyST AST.
 
 ## Usage
 
@@ -9,18 +9,21 @@ make tmlr          # Build submission
 make tmlr-anon     # Build anonymous submission
 ```
 
-## What It Does
+## How It Works
 
-1. Reads TOC from `myst.yml` to get file order
-2. Exports each file with `npx mystmd build <file> --md --force`
-3. Concatenates exported markdown
-4. Post-processes MyST syntax to standard markdown:
-   - `{math}\`...\`` → `$...$`
-   - `` ```{math} `` blocks → `$$...$$`
-   - `:::` directives → removed (content kept)
-   - `+++` → `---`
-5. Adds TMLR frontmatter (`layout: distill`)
-6. Copies assets to submission folder
+1. Runs `myst build --site` to produce AST JSON in `_build/site/content/`
+2. Reads each page's AST from `config.json` TOC order
+3. Walks the MDAST tree and serializes to Distill-compatible markdown:
+   - `cite`/`citeGroup` → `[@key]` / `[@k1; @k2]`
+   - `inlineMath`/`math` → `$...$` / `$$...$$`
+   - `iframe` → `<iframe src="assets/html/submission/...">` in `<figure>`
+   - `container` (table) → bold caption + pipe table (via `tabulate`)
+   - `crossReference` → resolved text (`Table 1`, `Figure 2`)
+   - `admonition` → blockquote
+4. Builds TOC from `##`/`###` headers
+5. Reads abstract/authors/title from AST frontmatter (not source files)
+6. Generates TMLR frontmatter (`layout: distill`, `htmlwidgets: true`)
+7. Copies assets: `figures/*.html` → `assets/html/submission/`, `references.bib` → `assets/bibliography/`
 
 ## Output Structure
 
@@ -30,11 +33,11 @@ submission_folder/
 └── assets/
     ├── img/submission/
     ├── gif/submission/
-    ├── html/submission/
+    ├── html/submission/    ← interactive figures
     └── bibliography/submission.bib
 ```
 
 ## Dependencies
 
-- Node.js 18+ (for mystmd via npx)
-- Python 3.12+ with PyYAML
+- Node.js 18+ (for mystmd)
+- Python 3.12+ with PyYAML, tabulate

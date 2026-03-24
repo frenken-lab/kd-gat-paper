@@ -8,10 +8,14 @@ node_modules/
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
+.ruff_cache/
 
 # Interactive figure build
 interactive/node_modules/
 figures/*.html
+
+# Generated tables (from make tables)
+data/tables/*.md
 
 # OS
 .DS_Store
