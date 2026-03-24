@@ -17,6 +17,9 @@ figures/*.html
 # Generated tables (from make tables)
 data/tables/*.md
 
+# Build outputs
+submission_folder/
+submission_anon/
+
 # OS
 .DS_Store
-submission_folder/

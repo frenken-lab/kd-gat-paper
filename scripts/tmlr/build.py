@@ -52,13 +52,15 @@ def serialize(node: dict) -> str:
     if t == "thematicBreak":
         return "\n---\n"
 
-    # --- Citations ---
+    # --- Citations (Distill format) ---
     if t == "citeGroup":
-        refs = [f'@{c["identifier"]}' for c in children if c.get("type") == "cite"]
-        return "[" + "; ".join(refs) + "]"
+        cites = "".join(
+            f'<d-cite key="{c["identifier"]}"></d-cite>'
+            for c in children if c.get("type") == "cite"
+        )
+        return cites
     if t == "cite":
-        # Standalone cite (not inside citeGroup)
-        return f'[@{node["identifier"]}]'
+        return f'<d-cite key="{node["identifier"]}"></d-cite>'
 
     # --- Cross-references ---
     if t == "crossReference":
@@ -135,7 +137,13 @@ def serialize(node: dict) -> str:
         return _children(children)
     if t == "iframe":
         src = Path(node.get("src", "")).name
-        return f'<iframe src="assets/html/submission/{src}" width="100%" style="border:none; min-height:450px;"></iframe>'
+        asset_path = f"assets/html/submission/{src}"
+        return (
+            f'<iframe src="{{{{ \'{asset_path}\' | relative_url }}}}" '
+            f'width="100%" height="500" '
+            f'style="border:none; border-radius:12px; box-shadow:0 4px 10px rgba(0,0,0,0.1);" '
+            f'title="{Path(src).stem}"></iframe>'
+        )
 
     # --- Admonitions (algorithms, notes) ---
     if t == "admonition":
@@ -265,9 +273,16 @@ def main() -> None:
                 abstract_ast = json.loads(abstract_ast)
             abstract = _text_of(abstract_ast)
 
-    authors = ["Anonymous"] if args.anonymous else [
-        a.get("name", "") for a in proj.get("authors", [])
-    ]
+    if args.anonymous:
+        authors = [{"name": "Anonymous", "affiliations": {"name": "Anonymous"}}]
+    else:
+        authors = []
+        for a in proj.get("authors", []):
+            entry = {"name": a.get("name", "")}
+            affs = a.get("affiliations", [])
+            if affs:
+                entry["affiliations"] = {"name": affs[0] if isinstance(affs[0], str) else affs[0].get("name", "")}
+            authors.append(entry)
 
     tmlr_fm = yaml.dump({
         "layout": "distill",

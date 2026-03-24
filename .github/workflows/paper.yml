@@ -11,6 +11,10 @@ permissions:
   pages: write
   id-token: write
 
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -33,24 +37,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with: { name: figures, path: "figures/*.html" }
 
-  deploy-figures:
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: ubuntu-latest
-    needs: figures
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/download-artifact@v4
-        with: { name: figures, path: figures/ }
-      - uses: actions/configure-pages@v4
-      - uses: actions/upload-pages-artifact@v3
-        with: { path: figures/ }
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
     needs: figures
     steps:
@@ -63,19 +50,63 @@ jobs:
         with: { name: figures, path: figures/ }
 
       - run: pip install pyyaml tabulate
-      - name: Build MyST site
-        run: npm install -g mystmd && myst build
 
-      - name: Convert TMLR
+      # Build MyST site AST (needed by TMLR serializer)
+      - name: Build MyST AST
+        run: npm install -g mystmd && myst build --site
+
+      # Build public site (with author names)
+      - name: Build site
+        run: python scripts/tmlr/build.py --output submission_folder/
+
+      # Merge into author kit for Jekyll
+      - name: Merge with TMLR author kit
+        run: |
+          cp submission_folder/submission.md tmlr_do_not_modify/_under_review/submission.md
+          cp -r submission_folder/assets/* tmlr_do_not_modify/assets/ 2>/dev/null || true
+
+      # Build anonymous submission artifact
+      - name: Build anonymous submission
         if: github.ref == 'refs/heads/main'
-        run: python scripts/tmlr/build.py --output submission_folder/ --anonymous
+        run: python scripts/tmlr/build.py --output submission_anon/ --anonymous
 
       - uses: actions/upload-artifact@v4
         if: github.ref == 'refs/heads/main'
-        with: { name: tmlr-submission, path: submission_folder/ }
+        with: { name: tmlr-submission, path: submission_anon/ }
 
-      - name: Deploy to curve.space
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        env:
-          CURVENOTE_TOKEN: ${{ secrets.CURVENOTE_TOKEN }}
-        run: npx -y curvenote deploy --yes
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: figures, path: figures/ }
+
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install pyyaml tabulate
+
+      # Rebuild site (with author names)
+      - name: Build MyST AST
+        run: npm install -g mystmd && myst build --site
+      - name: Build site
+        run: python scripts/tmlr/build.py --output submission_folder/
+
+      # Merge into author kit
+      - name: Merge with TMLR author kit
+        run: |
+          cp submission_folder/submission.md tmlr_do_not_modify/_under_review/submission.md
+          cp -r submission_folder/assets/* tmlr_do_not_modify/assets/ 2>/dev/null || true
+
+      - uses: actions/configure-pages@v4
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: tmlr_do_not_modify/ }
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
