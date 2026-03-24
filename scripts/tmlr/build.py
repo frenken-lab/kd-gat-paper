@@ -52,15 +52,15 @@ def serialize(node: dict) -> str:
     if t == "thematicBreak":
         return "\n---\n"
 
-    # --- Citations (Distill format) ---
+    # --- Citations (Distill format, use label to preserve BibTeX key casing) ---
     if t == "citeGroup":
         cites = "".join(
-            f'<d-cite key="{c["identifier"]}"></d-cite>'
+            f'<d-cite key="{c.get("label", c["identifier"])}"></d-cite>'
             for c in children if c.get("type") == "cite"
         )
         return cites
     if t == "cite":
-        return f'<d-cite key="{node["identifier"]}"></d-cite>'
+        return f'<d-cite key="{node.get("label", node["identifier"])}"></d-cite>'
 
     # --- Cross-references ---
     if t == "crossReference":

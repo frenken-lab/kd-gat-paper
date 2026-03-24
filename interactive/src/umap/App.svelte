@@ -20,7 +20,7 @@
       {/each}
     </div>
     <Plot x={{ label: 'UMAP 1' }} y={{ label: 'UMAP 2' }} color={{ legend: true }} height={500}>
-      <Dot data={filtered} cx="x" cy="y" fill="attack_type" r={2.5} opacity={0.6} />
+      <Dot data={filtered} x="x" y="y" fill="attack_type" r={2.5} opacity={0.6} />
     </Plot>
   {/if}
 </Figure>
