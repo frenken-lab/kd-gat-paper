@@ -52,7 +52,13 @@ jobs:
         if: github.ref == 'refs/heads/main'
         with: { name: tmlr-submission, path: submission_folder/ }
 
-      - name: Deploy to Curvenote
+      - name: Push to Curvenote editor
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        env:
+          CURVENOTE_TOKEN: ${{ secrets.CURVENOTE_TOKEN }}
+        run: npx -y @curvenote/cli push --yes
+
+      - name: Deploy to curve.space
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         env:
           CURVENOTE_TOKEN: ${{ secrets.CURVENOTE_TOKEN }}

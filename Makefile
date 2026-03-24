@@ -1,4 +1,4 @@
-.PHONY: data validate figures diagrams tables site dev tmlr tmlr-anon deploy bib all clean
+.PHONY: data validate figures diagrams tables site dev tmlr tmlr-anon deploy push sync bib all clean
 
 data:
 	python scripts/pull_data.py
@@ -27,8 +27,15 @@ tmlr: figures
 tmlr-anon: figures
 	python scripts/tmlr/build.py --output submission_folder/ --anonymous
 
-deploy: site
+push:
+	npx curvenote push --yes
+
+deploy: site push
 	npx curvenote deploy --yes
+
+sync:
+	npx curvenote pull
+	@echo "Review changes with: git diff"
 
 bib:
 	python scripts/validate_bib.py
