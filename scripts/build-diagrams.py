@@ -21,14 +21,6 @@ DIAGRAMS = Path(__file__).resolve().parent.parent / "diagrams"
 FIGURES = Path(__file__).resolve().parent.parent / "figures"
 
 
-def _infer_prog(spec: dict) -> str:
-    """Infer Graphviz layout engine from spec structure."""
-    comps = spec.get("components", [])
-    if len(comps) == 1 and comps[0].get("params", {}).get("layout") == "organic":
-        return "neato"
-    return "dot"
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("names", nargs="*")
@@ -45,7 +37,7 @@ def main():
         G = build_from_spec(spec)
 
         out = FIGURES / f"{path.stem}.{args.fmt}"
-        prog = spec.get("prog", _infer_prog(spec))
+        prog = spec.get("prog", "dot")
         G.draw(str(out), prog=prog)
         print(f"  {path.name} → {out.name}")
 

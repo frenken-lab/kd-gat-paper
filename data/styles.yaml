@@ -26,6 +26,7 @@ roles:
   data:    teal       # Input/output data
   normal:  blue       # Normal traffic class
   attack:  red        # Attack traffic class
+  attention: purple   # Attention mechanism (scores, weights)
 
 # Light fills (for node backgrounds in diagrams)
 # 15% opacity of the base color over white

@@ -1,17 +1,155 @@
-# KD-GAT: GAT teacher/student knowledge distillation pair
-figsize: [12, 10]
-direction: horizontal
+# KD-GAT: Teacher (3-layer) / Student (2-layer) knowledge distillation
+# neato layout: teacher at x_offset=0, student at x_offset=+8.0
+prog: neato
+
+# Position anchors
+# sparse_5 base: 0=(1.86,1.25) 1=(1.85,0.25) 2=(0.94,0.67) 3=(0.38,1.6) 4=(1.29,2.17)
+# sparse_3 base: 0=(0.38,1.11) 1=(1.38,1.12) 2=(0.88,0.25)
+# Teacher: sparse_5, x_offset=0
+# Student: sparse_3, x_offset=+8.0
 
 components:
-  - type: gat
-    params: {n_layers: 3, n: 5, id: teacher}
-  - type: gat
-    params: {n_layers: 2, n: 3, id: student}
+  # ===== TEACHER (left side, x_offset = 0) =====
+
+  # --- Teacher Layer 0 (y_offset = 0) ---
+  - type: graph
+    params:
+      id: t_L0
+      n: 5
+      edges: sparse
+      color: gat
+      directed: true
+      labels: ["v\u2081", "v\u2082", "v\u2083", "v\u2084", "v\u2085"]
+      size: small
+      positions: &t_sparse5_y0
+        - [1.86, 1.25]
+        - [1.85, 0.25]
+        - [0.94, 0.67]
+        - [0.38, 1.60]
+        - [1.29, 2.17]
+
+  # --- Teacher Layer 1 (y_offset = +3.0) ---
+  - type: graph
+    params:
+      id: t_L1
+      n: 5
+      edges: sparse
+      color: gat
+      directed: true
+      labels: ["v\u2081", "v\u2082", "v\u2083", "v\u2084", "v\u2085"]
+      size: small
+      positions: &t_sparse5_y3
+        - [1.86, 4.25]
+        - [1.85, 3.25]
+        - [0.94, 3.67]
+        - [0.38, 4.60]
+        - [1.29, 5.17]
+
+  # --- Teacher Layer 2 (y_offset = +6.0) ---
+  - type: graph
+    params:
+      id: t_L2
+      n: 5
+      edges: sparse
+      color: gat
+      directed: true
+      labels: ["v\u2081", "v\u2082", "v\u2083", "v\u2084", "v\u2085"]
+      size: small
+      positions: &t_sparse5_y6
+        - [1.86, 7.25]
+        - [1.85, 6.25]
+        - [0.94, 6.67]
+        - [0.38, 7.60]
+        - [1.29, 8.17]
+
+  # --- Teacher JK Concat (unpinned) ---
+  - type: box
+    params:
+      id: t_jk
+      label: "JK Concat"
+      color: gat
+
+  # --- Teacher FC (unpinned) ---
+  - type: box
+    params:
+      id: t_fc
+      label: "FC \u2192 class"
+      color: gat
+
+  # ===== STUDENT (right side, x_offset = +8.0) =====
+
+  # --- Student Layer 0 (y_offset = 0, x_offset = +8.0) ---
+  - type: graph
+    params:
+      id: s_L0
+      n: 3
+      edges: sparse
+      color: gat
+      directed: true
+      labels: ["v\u2081", "v\u2082", "v\u2083"]
+      size: small
+      positions: &s_sparse3_y0
+        - [8.38, 1.11]
+        - [9.38, 1.12]
+        - [8.88, 0.25]
+
+  # --- Student Layer 1 (y_offset = +3.0, x_offset = +8.0) ---
+  - type: graph
+    params:
+      id: s_L1
+      n: 3
+      edges: sparse
+      color: gat
+      directed: true
+      labels: ["v\u2081", "v\u2082", "v\u2083"]
+      size: small
+      positions: &s_sparse3_y3
+        - [8.38, 4.11]
+        - [9.38, 4.12]
+        - [8.88, 3.25]
+
+  # --- Student JK Concat (unpinned) ---
+  - type: box
+    params:
+      id: s_jk
+      label: "JK Concat"
+      color: gat
+
+  # --- Student FC (unpinned) ---
+  - type: box
+    params:
+      id: s_fc
+      label: "FC \u2192 class"
+      color: gat
 
 edges:
-  - from: teacher.output
-    to: student.output
-    color: "#E15759"
+  # === Teacher inter-layer (dashed, rightmost → leftmost) ===
+  - {from: "t_L0.v\u2081", to: "t_L1.v\u2084", style: dashed, color: gat}
+  - {from: "t_L1.v\u2081", to: "t_L2.v\u2084", style: dashed, color: gat}
+
+  # === Teacher layer outputs → JK (dashed) ===
+  - {from: "t_L0.v\u2085", to: t_jk, style: dashed, color: gat}
+  - {from: "t_L1.v\u2085", to: t_jk, style: dashed, color: gat}
+  - {from: "t_L2.v\u2085", to: t_jk, style: dashed, color: gat}
+
+  # === Teacher JK → FC (solid) ===
+  - {from: t_jk, to: t_fc, color: gat}
+
+  # === Student inter-layer (dashed, rightmost → leftmost) ===
+  # sparse_3 node 1 (x=9.38, rightmost) → node 0 (x=8.38, leftmost)
+  - {from: "s_L0.v\u2082", to: "s_L1.v\u2081", style: dashed, color: gat}
+
+  # === Student layer outputs → JK (dashed) ===
+  - {from: "s_L0.v\u2083", to: s_jk, style: dashed, color: gat}
+  - {from: "s_L1.v\u2083", to: s_jk, style: dashed, color: gat}
+
+  # === Student JK → FC (solid) ===
+  - {from: s_jk, to: s_fc, color: gat}
+
+  # === Knowledge Distillation edge (teacher FC → student FC) ===
+  - from: t_fc
+    to: s_fc
     style: dashed
+    color: kd
     width: 2.0
     label: KD

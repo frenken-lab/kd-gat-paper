@@ -1,9 +1,6 @@
 # Full KD-GAT pipeline: Input → VGAE (KD) → GAT (KD) → DQN → Output
-# Uses simplified box components for the overview diagram.
-# Detailed component internals are in vgae.yaml, gat.yaml, etc.
-direction: horizontal
-ranksep: 1.5
-nodesep: 0.8
+# neato layout: positions define horizontal pipeline, students below teachers
+prog: neato
 bgcolor: white
 
 components:
@@ -11,105 +8,46 @@ components:
   - type: graph
     params:
       n: 5
-      layout: organic
       edges: sparse
       color: data
       labels: ["0x1A0", "0x2B3", "0x3C1", "0x4D5", "0x5E2"]
+      size: medium
       id: input
+      positions:
+        - [1.86, 2.25]
+        - [1.85, 1.25]
+        - [0.94, 1.67]
+        - [0.38, 2.60]
+        - [1.29, 3.17]
 
-  # VGAE teacher
+  # Pipeline boxes — horizontal row at y=2.0
   - type: box
-    params:
-      id: vgae_t
-      label: "VGAE Teacher"
-      color: vgae
+    params: {id: vgae_t, label: "VGAE Teacher", color: vgae}
+  - type: box
+    params: {id: gat_t, label: "GAT Teacher", color: gat}
+  - type: box
+    params: {id: dqn, label: "DQN Fusion", color: dqn}
+  - type: box
+    params: {id: output, label: "Anomaly Score", color: data}
 
-  # GAT teacher
+  # Student boxes — below teachers at y=4.5
   - type: box
-    params:
-      id: gat_t
-      label: "GAT Teacher"
-      color: gat
-
-  # DQN fusion
+    params: {id: vgae_s, label: "VGAE Student", color: vgae}
   - type: box
-    params:
-      id: dqn
-      label: "DQN Fusion"
-      color: dqn
-
-  # Output
-  - type: box
-    params:
-      id: output
-      label: "Anomaly Score"
-      color: data
-
-  # VGAE student
-  - type: box
-    params:
-      id: vgae_s
-      label: "VGAE Student"
-      color: vgae
-    place:
-      below: vgae_t
-
-  # GAT student
-  - type: box
-    params:
-      id: gat_s
-      label: "GAT Student"
-      color: gat
-    place:
-      below: gat_t
+    params: {id: gat_s, label: "GAT Student", color: gat}
 
 edges:
-  # Main pipeline
-  - from: input.output
-    to: vgae_t.input
-    color: "#BAB0AC"
+  # Main pipeline (left to right)
+  - {from: input.output, to: vgae_t, color: "#BAB0AC"}
+  - {from: vgae_t, to: gat_t, color: "#BAB0AC", label: "hard samples"}
+  - {from: vgae_t, to: dqn, color: "#BAB0AC", label: "recon error"}
+  - {from: gat_t, to: dqn, color: "#BAB0AC", label: "classification"}
+  - {from: dqn, to: output, color: "#BAB0AC"}
 
-  - from: vgae_t.output
-    to: gat_t.input
-    color: "#BAB0AC"
-    label: "hard samples"
+  # Knowledge distillation (dashed, red)
+  - {from: vgae_t, to: vgae_s, style: dashed, color: "#E15759", label: "KD"}
+  - {from: gat_t, to: gat_s, style: dashed, color: "#E15759", label: "KD"}
 
-  - from: vgae_t.output
-    to: dqn.input
-    color: "#BAB0AC"
-    label: "recon error"
-
-  - from: gat_t.output
-    to: dqn.input
-    color: "#BAB0AC"
-    label: "classification"
-
-  - from: dqn.output
-    to: output.input
-    color: "#BAB0AC"
-
-  # Knowledge distillation arrows (dashed, red)
-  - from: vgae_t.output
-    to: vgae_s.input
-    style: dashed
-    color: "#E15759"
-    label: "KD"
-    constraint: false
-
-  - from: gat_t.output
-    to: gat_s.input
-    style: dashed
-    color: "#E15759"
-    label: "KD"
-    constraint: false
-
-  # Student outputs feed into DQN too
-  - from: vgae_s.output
-    to: dqn.input
-    color: "#BAB0AC"
-    style: dashed
-
-  - from: gat_s.output
-    to: dqn.input
-    color: "#BAB0AC"
-    style: dashed
+  # Student outputs feed into DQN
+  - {from: vgae_s, to: dqn, color: "#BAB0AC", style: dashed}
+  - {from: gat_s, to: dqn, color: "#BAB0AC", style: dashed}

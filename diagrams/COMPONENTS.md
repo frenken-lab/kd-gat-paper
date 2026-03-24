@@ -25,18 +25,17 @@ python scripts/build-diagrams.py --fmt png     # output PNG
 
 ### Primitives
 
-#### `graph(G, n, layout, edges, color, labels, size, directed, id)`
+#### `graph(G, n, edges, color, labels, size, directed, id)`
 
-Adds n nodes + edges to the graph. Returns anchors dict.
+Adds n nodes + edges to the graph. Returns anchors dict. Use top-level `prog: neato` in the YAML spec for force-directed layout.
 
 | Param | Options | Default |
 |-------|---------|---------|
 | `n` | int | 5 |
-| `layout` | `organic` (triggers `neato` engine) | `organic` |
 | `edges` | `full`, `ring`, `path`, `star`, `sparse`, `none`, or explicit `"0-1,1-2"` | `sparse` |
 | `color` | palette name (`blue`), role name (`vgae`, `gat`, `dqn`), or hex | `blue` |
 | `labels` | `auto` (v₁..), `none`, or list of strings | `auto` |
-| `size` | `small`, `medium`, `large`, or number | `medium` |
+| `size` | `small`, `medium`, `large` | `medium` |
 | `directed` | bool | `false` |
 | `id` | string prefix for node IDs | `g` |
 
@@ -50,15 +49,33 @@ Single process/operation node. Rounded box shape.
 
 ### Model Components (composed from primitives)
 
-#### `gat(G, n_layers, n, edges, color, size, id, gap)`
+#### `gat(G, n_layers, n, edges, color, size, id, align)`
 
-GAT classifier: N attention layers → JK Concat → FC. Each layer is a `rank=same` subgraph for horizontal alignment.
+GAT classifier: N attention layers → JK Concat → FC. Each layer is a `rank=same` subgraph for horizontal alignment. `align` (default true) adds invisible weighted edges between layers for vertical registration.
 
 **Anchors:** `input`, `output`, `jk`, `fc`, `layer0`, `layer1`, ...
 
-#### `vgae(G, enc_layers, color, latent_n, size, id, gap)`
+#### `gat_layer(G, n, edges, color, size, id, heads, weights, align)`
 
-VGAE autoencoder: GCN encoder (narrowing) → μ/σ (rank=same, side by side) → z → zᵀz → reconstructed.
+GAT attention layer internals: input graph → attention-weighted directed graph → output graph. Shows the three visual stages of a single attention layer. Attention edges use dual encoding (penwidth + opacity) for weight magnitude.
+
+| Param | Default | Notes |
+|-------|---------|-------|
+| `heads` | null | If set, adds "K=N heads" annotation |
+| `weights` | null | Dict `"i-j"` → float, or null for schematic |
+| `align` | true | Invisible alignment edges between stages |
+
+**Anchors:** `input`, `output`, `stage_input`, `stage_attn`, `stage_output`
+
+#### `latent(G, n, size, id)`
+
+VAE latent block: μ row, σ row → z sampling row. Used by `vgae()` internally and available standalone.
+
+**Anchors:** `input`, `output`, `mu`, `sigma`, `z`
+
+#### `vgae(G, enc_layers, color, latent_n, size, id, align)`
+
+VGAE autoencoder: GCN encoder (narrowing) → latent() → zᵀz decoder → reconstructed. `align` (default true) adds invisible weighted edges between encoder layers.
 
 **Anchors:** `input`, `output`, `mu`, `sigma`, `z`, `decoder`, `reconstructed`
 
@@ -73,7 +90,7 @@ prog: dot               # layout engine (default: auto-inferred)
 
 components:
   - type: graph         # or box, gat, vgae
-    params: {n: 5, layout: organic, color: vgae, id: input}
+    params: {n: 5, color: vgae, id: input}
     container: {label: "Input Graph", color: vgae, style: dashed}  # optional cluster box
     place: {below: other_id}  # optional: place below another component
 
@@ -92,7 +109,7 @@ edges:
 | Engine | When used | Best for |
 |--------|-----------|----------|
 | `dot` | Default for multi-component diagrams | Hierarchical DAGs, pipelines |
-| `neato` | Auto-inferred for single `graph` with `layout: organic` | Force-directed, organic graphs |
+| `neato` | Set via top-level `prog: neato` in YAML spec | Force-directed, organic graphs |
 
 Override with `prog: neato` (or `dot`, `fdp`, `circo`) at spec top level.
 
