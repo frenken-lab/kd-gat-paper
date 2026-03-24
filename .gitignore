@@ -11,6 +11,8 @@ __pycache__/
 
 # Interactive figure build (committed outputs go to figures/)
 interactive/node_modules/
+figures/*.html
+_static/figures/
 
 # OS
 .DS_Store
