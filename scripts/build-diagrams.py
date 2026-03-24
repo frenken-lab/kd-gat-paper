@@ -5,7 +5,6 @@ Usage:
     python scripts/build-diagrams.py              # build all
     python scripts/build-diagrams.py vgae          # build one
     python scripts/build-diagrams.py --fmt pdf
-    python scripts/build-diagrams.py --positions
 """
 from __future__ import annotations
 
@@ -17,17 +16,23 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import yaml
 from components import build_from_spec
-from renderers import render_matplotlib, export_positions
 
 DIAGRAMS = Path(__file__).resolve().parent.parent / "diagrams"
 FIGURES = Path(__file__).resolve().parent.parent / "figures"
+
+
+def _infer_prog(spec: dict) -> str:
+    """Infer Graphviz layout engine from spec structure."""
+    comps = spec.get("components", [])
+    if len(comps) == 1 and comps[0].get("params", {}).get("layout") == "organic":
+        return "neato"
+    return "dot"
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("names", nargs="*")
     parser.add_argument("--fmt", default="svg")
-    parser.add_argument("--positions", action="store_true")
     args = parser.parse_args()
     FIGURES.mkdir(exist_ok=True)
 
@@ -37,18 +42,12 @@ def main():
 
     for path in specs:
         spec = yaml.safe_load(path.read_text())
-        G, pos, containers = build_from_spec(spec)
+        G = build_from_spec(spec)
 
         out = FIGURES / f"{path.stem}.{args.fmt}"
-        render_matplotlib(G, pos, out,
-                          figsize=tuple(spec.get("figsize", [12, 4])),
-                          title=spec.get("title", ""),
-                          containers=containers)
+        prog = spec.get("prog", _infer_prog(spec))
+        G.draw(str(out), prog=prog)
         print(f"  {path.name} → {out.name}")
-
-        if args.positions:
-            pout = export_positions(pos, FIGURES / f"{path.stem}.positions.json")
-            print(f"    + {pout.name}")
 
 
 if __name__ == "__main__":

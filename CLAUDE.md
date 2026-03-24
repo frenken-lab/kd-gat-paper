@@ -8,7 +8,7 @@ MyST paper: "Adaptive Fusion of Graph-Based Ensembles for Automotive IDS". Deplo
 |-------|------|-----|
 | Paper authoring | **MyST Markdown** | Cross-references, math, citations, builds to HTML |
 | Interactive figures | **SveltePlot 0.12** (grammar-of-graphics) | Spec-driven: `<Cell>`, `<RectY>`, `<Line>`, `<Dot>`, `<Arrow>`. SVG output, Svelte-native |
-| Architecture diagrams | **NetworkX + matplotlib** | YAML specs → composable graph components → SVG. Styles from `data/styles.yaml` (Observable 10 palette, shared with Svelte figures) |
+| Architecture diagrams | **pygraphviz** (Graphviz `dot`/`neato`) | YAML specs → composable graph components → SVG. Styles from `data/styles.yaml` (Observable 10 palette, shared with Svelte figures) |
 | Build | **Vite 6** + `vite-plugin-singlefile` | Each figure → self-contained HTML (JS+CSS+data inlined) |
 | Tables | **spec.yaml** + `scripts/tables/build.py` | Declarative table specs, booktabs-style, literature baselines |
 | Validation schemas | **`data/schemas.yaml`** | Single source of truth for both export and pull validation |
@@ -82,9 +82,9 @@ curve.space is an SPA that can't serve static HTML files. Figures require iframe
 - **Shared styles**: All colors/sizes from `data/styles.yaml` (Observable 10 palette, same as Svelte)
 - **Anchors**: Components expose `input`/`output` ports + named label anchors for edge wiring
 - **Containers**: `container: {label, color, style}` on any component draws a bounding box
-- **Rendering**: NetworkX graph data → matplotlib SVG. Supports per-node/edge colors, shapes, styles.
-- **Edge features**: `connectionstyle` (curved edges), `arrowstyle` (head shapes), `style` (dashed/solid)
-- **Label layer**: `--positions` exports node coords as JSON for future Typst math overlay
+- **Rendering**: pygraphviz `AGraph` → Graphviz `dot`/`neato` → SVG. Auto-layout, per-node/edge colors, shapes, styles.
+- **Clusters**: Components auto-cluster in multi-component diagrams. `container:` adds labeled bounding boxes via Graphviz `cluster_` subgraphs.
+- **Layout engines**: `dot` (hierarchical, default) for pipelines, `neato` (force-directed) for organic graphs. Set `prog:` in YAML or auto-inferred.
 - See `diagrams/COMPONENTS.md` for full reference.
 
 ## What NOT To Do
