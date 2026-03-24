@@ -33,7 +33,7 @@ project:
         - file: content/conclusion.md
     - title: Appendix
       children:
-        - file: appendix/architecture.md
+        - file: content/appendix/architecture.md
 
 site:
   template: article-theme
