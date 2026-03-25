@@ -321,8 +321,7 @@ def main() -> None:
     (out / "submission.md").write_text(f"---\n{tmlr_fm}---\n\n{content}")
 
     # 5. Copy assets
-    for d in ["img", "gif", "html"]:
-        (out / "assets" / d / "submission").mkdir(parents=True, exist_ok=True)
+    (out / "assets" / "html" / "submission").mkdir(parents=True, exist_ok=True)
     (out / "assets" / "bibliography").mkdir(parents=True, exist_ok=True)
 
     # Concatenate all bib files into a single submission.bib
@@ -334,13 +333,12 @@ def main() -> None:
     elif (ROOT / "references.bib").exists():
         shutil.copy2(ROOT / "references.bib", out / "assets" / "bibliography" / "submission.bib")
 
-    for src in [ROOT / "figures", ROOT / "interactive" / "dist"]:
-        if src.exists():
-            for f in src.iterdir():
-                if f.suffix in (".png", ".jpg", ".svg", ".pdf"):
-                    shutil.copy2(f, out / "assets" / "img" / "submission" / f.name)
-                elif f.suffix == ".html":
-                    shutil.copy2(f, out / "assets" / "html" / "submission" / f.name)
+    # Copy built HTML figures (interactive + diagram figures)
+    figures_dir = ROOT / "figures"
+    if figures_dir.exists():
+        for f in figures_dir.iterdir():
+            if f.suffix == ".html":
+                shutil.copy2(f, out / "assets" / "html" / "submission" / f.name)
 
     print(f"Done: {out / 'submission.md'}")
 
