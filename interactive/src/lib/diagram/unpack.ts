@@ -132,18 +132,31 @@ export function unpack(g: Graph): UnpackedData {
   const containers: UnpackedContainer[] = [];
 
   for (const spec of boxSpecs) {
+    const attrs = g.getNodeAttributes(spec.id);
     const positions = groupPositions.get(spec.group);
-    if (!positions || positions.xs.length === 0) continue;
+    const hasExplicit = attrs.x != null && attrs.y != null;
 
-    const x1 = Math.min(...positions.xs) - CONTAINER_PADDING;
-    const y1 = Math.min(...positions.ys) - CONTAINER_PADDING;
-    const x2 = Math.max(...positions.xs) + CONTAINER_PADDING;
-    const y2 = Math.max(...positions.ys) + CONTAINER_PADDING;
-    const cx = (x1 + x2) / 2;
-    const cy = (y1 + y2) / 2;
+    if (!hasExplicit && (!positions || positions.xs.length === 0)) continue;
 
-    // Write position back into the graph so edges can resolve to this node
-    g.mergeNodeAttributes(spec.id, { x: cx, y: cy });
+    let cx: number, cy: number, x1: number, y1: number, x2: number, y2: number;
+
+    if (hasExplicit) {
+      // Standalone box with explicit coordinates
+      cx = attrs.x; cy = attrs.y;
+      const hw = attrs.width ? attrs.width / 2 : 45;
+      const hh = attrs.height ? attrs.height / 2 : 16;
+      x1 = cx - hw; y1 = cy - hh; x2 = cx + hw; y2 = cy + hh;
+    } else {
+      // Group-derived box: center on group bounds
+      x1 = Math.min(...positions!.xs) - CONTAINER_PADDING;
+      y1 = Math.min(...positions!.ys) - CONTAINER_PADDING;
+      x2 = Math.max(...positions!.xs) + CONTAINER_PADDING;
+      y2 = Math.max(...positions!.ys) + CONTAINER_PADDING;
+      cx = (x1 + x2) / 2;
+      cy = (y1 + y2) / 2;
+      // Write position back into the graph so edges can resolve to this node
+      g.mergeNodeAttributes(spec.id, { x: cx, y: cy });
+    }
 
     const { stroke, fill } = resolve(spec.color);
     boxes.push({

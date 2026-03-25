@@ -78,7 +78,7 @@ export function addLayer(
     // Advance cursor past this group
     cursor = maxX + dx + gap;
 
-    // Import into diagram (nodes, edges, container nodes all come through)
-    diagram.import(g);
+    // Import into parent (nodes, edges, container nodes all come through)
+    graph.import(g);
   }
 }
