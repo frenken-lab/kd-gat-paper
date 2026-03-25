@@ -22,7 +22,7 @@
     </div>
 
     <h4>Component Distributions</h4>
-    <Plot height={280} x={{ label: 'Error Value' }} y={{ label: 'Count' }} color={{ legend: true }} fy={{ label: '' }}>
+    <Plot height={280} x={{ label: 'Error Value' }} y={{ label: 'Count' }} color={{ domain: ['Node Recon', 'CAN ID', 'Neighbor', 'KL'], range: ['#4E79A7', '#F28E2B', '#59A14F', '#E15759'], legend: true }} fy={{ label: '' }}>
       <RectY {...binX({ data: kde, x: 'value', fill: 'component', fy: 'class' }, { y: 'count' })} opacity={0.7} />
       <RuleY data={[0]} />
     </Plot>
@@ -33,7 +33,7 @@
     </Plot>
 
     <h4>Per-Component ROC</h4>
-    <Plot height={300} x={{ label: 'FPR', domain: [0, 1] }} y={{ label: 'TPR', domain: [0, 1] }} color={{ legend: true }}>
+    <Plot height={300} x={{ label: 'FPR', domain: [0, 1] }} y={{ label: 'TPR', domain: [0, 1] }} color={{ domain: ['Node Recon', 'CAN ID', 'Neighbor', 'KL'], range: ['#4E79A7', '#F28E2B', '#59A14F', '#E15759'], legend: true }}>
       <Line data={roc} x="fpr" y="tpr" stroke="component" strokeWidth={2} />
     </Plot>
   {/if}

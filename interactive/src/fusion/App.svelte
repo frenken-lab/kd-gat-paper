@@ -19,7 +19,7 @@
         <button class="toggle" class:active={visible[t]} class:inactive={!visible[t]} onclick={() => toggle(t)}>{t}</button>
       {/each}
     </div>
-    <Plot x={{ label: 'Fusion Weight \u03b1 (0 = VGAE, 1 = GAT)' }} y={{ label: 'Count' }} color={{ legend: true }}>
+    <Plot x={{ label: 'Fusion Weight \u03b1 (0 = VGAE, 1 = GAT)' }} y={{ label: 'Count' }} color={{ domain: ['Normal', 'Attack'], range: ['#4E79A7', '#E15759'], legend: true }}>
       <RectY {...binX({ data: filtered, x: 'alpha', fill: 'attack_type' }, { y: 'count' })} />
       <RuleY data={[0]} />
     </Plot>

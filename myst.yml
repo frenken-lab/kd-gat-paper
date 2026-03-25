@@ -17,7 +17,18 @@ project:
     - Ensemble Learning
     - Intrusion Detection
   bibliography:
-    - references.bib
+    - references/own.bib
+    - references/can_ids.bib
+    - references/gnn.bib
+    - references/kd.bib
+    - references/rl.bib
+    - references/vgae.bib
+    - references/datasets.bib
+    - references/curriculum.bib
+    - references/cross_domain.bib
+    - references/infrastructure.bib
+    - references/background.bib
+    - references/loss.bib
   toc:
     - file: index.md
     - title: Main Paper

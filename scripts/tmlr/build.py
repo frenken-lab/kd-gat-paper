@@ -87,6 +87,9 @@ def serialize(node: dict) -> str:
         return f'*{_children(children)}*'
     if t == "link":
         url = node.get("url", "")
+        # Convert internal MyST route links to section anchors
+        if url.startswith("/") and "." not in url:
+            url = f"#{url.strip('/')}"
         return f'[{_children(children)}]({url})'
 
     # --- Lists ---
@@ -130,8 +133,8 @@ def serialize(node: dict) -> str:
     if t == "caption":
         return f'\n<figcaption>{_children(children)}</figcaption>'
     if t == "captionNumber":
-        # Render "Table 1:" etc. — children contain the text
-        return _children(children)
+        # Render "Table 1:" etc. — children contain the text; add trailing space
+        return _children(children) + " "
     if t == "legend":
         # Table containers store {include} content in legend nodes
         return _children(children)
@@ -147,6 +150,7 @@ def serialize(node: dict) -> str:
 
     # --- Admonitions (algorithms, notes) ---
     if t == "admonition":
+        cls = node.get("class", "")
         title = ""
         body_parts = []
         for c in children:
@@ -154,6 +158,26 @@ def serialize(node: dict) -> str:
                 title = _children(c.get("children", []))
             else:
                 body_parts.append(serialize(c).strip())
+        body_md = "\n\n".join(body_parts)
+
+        # Algorithm blocks get a styled container instead of a blockquote
+        # markdown="1" tells kramdown to process markdown inside the HTML block
+        if "algorithm" in cls:
+            style = (
+                "border:1px solid #ccc; border-radius:6px; padding:16px 20px; "
+                "margin:16px 0; background:#fafafa;"
+            )
+            caption_style = (
+                "font-weight:600; font-size:14px; margin:0 0 12px; "
+                "padding-bottom:8px; border-bottom:1px solid #ddd;"
+            )
+            return (
+                f'\n<div class="algorithm" style="{style}" markdown="1">\n'
+                f'<p style="{caption_style}">{title}</p>\n\n'
+                f'{body_md}\n\n</div>\n'
+            )
+
+        # Other admonitions → blockquote
         body = "\n".join(f"> {line}" if line else ">" for part in body_parts for line in part.split("\n"))
         if title:
             return f'\n> **{title}**\n>\n{body}\n'
@@ -301,7 +325,13 @@ def main() -> None:
         (out / "assets" / d / "submission").mkdir(parents=True, exist_ok=True)
     (out / "assets" / "bibliography").mkdir(parents=True, exist_ok=True)
 
-    if (ROOT / "references.bib").exists():
+    # Concatenate all bib files into a single submission.bib
+    bib_dir = ROOT / "references"
+    if bib_dir.is_dir():
+        with open(out / "assets" / "bibliography" / "submission.bib", "w") as dest:
+            for bib in sorted(bib_dir.glob("*.bib")):
+                dest.write(bib.read_text() + "\n")
+    elif (ROOT / "references.bib").exists():
         shutil.copy2(ROOT / "references.bib", out / "assets" / "bibliography" / "submission.bib")
 
     for src in [ROOT / "figures", ROOT / "interactive" / "dist"]:

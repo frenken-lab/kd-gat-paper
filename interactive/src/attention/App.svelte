@@ -34,6 +34,7 @@
 
     <Plot height={450} x={{ axis: false }} y={{ axis: false }} inset={10}>
       <Arrow data={edges} x1={e => nodes[e.source]?.x ?? 0} y1={e => nodes[e.source]?.y ?? 0} x2={e => nodes[e.target]?.x ?? 0} y2={e => nodes[e.target]?.y ?? 0} stroke="#666" strokeOpacity={e => 0.15 + e.attention * 0.85} strokeWidth={e => 0.5 + e.attention * 4} />
+      <!-- colors from styles.yaml: roles.attack (#E15759) / roles.normal (#4E79A7) -->
       <Dot data={nodes} x="x" y="y" r={8} fill={graph.label === 1 ? '#E15759' : '#4E79A7'} stroke="white" strokeWidth={1.5} />
       <Text data={nodes} x="x" y="y" text="can_id" fontSize={8} fill="currentColor" textAnchor="middle" dy={-12} />
     </Plot>

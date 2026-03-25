@@ -51,7 +51,7 @@ The attention function computes a scalar weight for each neighbor of node $v_i$,
 
 where $\sigma$ is the activation function, normally ELU or ReLU.
 
-The Jumping Knowledge (JK) module [@JumpingKnowledge] enhances GATs by aggregating intermediate layer representations. In this work, we adopt the concatenation strategy, where each node's final representation is formed by directly concatenating its embeddings from all GAT layers. Let $h_v^{(l)}$ denote the representation of node $v$ at layer $l \in \{1, \dots, L\}$. The final output is computed as:
+The Jumping Knowledge (JK) module [@xu2018jk] enhances GATs by aggregating intermediate layer representations. In this work, we adopt the concatenation strategy, where each node's final representation is formed by directly concatenating its embeddings from all GAT layers. Let $h_v^{(l)}$ denote the representation of node $v$ at layer $l \in \{1, \dots, L\}$. The final output is computed as:
 
 ```{math}
 :label: eq-jk-concat

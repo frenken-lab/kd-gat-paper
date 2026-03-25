@@ -27,7 +27,7 @@ make dev           # myst start (live reload)
 make tmlr          # Convert to TMLR Beyond PDF submission
 make deploy        # Deploy to rob.curve.space (depends on site)
 make sync          # Pull Curvenote editor changes into repo
-make bib           # Validate references.bib
+make bib           # Validate references/*.bib
 make diagrams      # YAML specs → NetworkX/matplotlib → SVG (no texlive needed)
 make all           # data → figures → diagrams → tables → site
 ```

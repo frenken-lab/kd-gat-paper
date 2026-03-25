@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate references.bib for missing fields, duplicates, and empty values.
+"""Validate references/*.bib for missing fields, duplicates, and empty values.
 
 Usage:
     python scripts/validate_bib.py
@@ -13,7 +13,10 @@ from pathlib import Path
 
 import bibtexparser
 
-BIB_PATH = Path(__file__).resolve().parent.parent / "references.bib"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+BIB_DIR = PROJECT_ROOT / "references"
+# Support both split references/ directory and legacy single file
+BIB_PATHS = sorted(BIB_DIR.glob("*.bib")) if BIB_DIR.is_dir() else [PROJECT_ROOT / "references.bib"]
 
 REQUIRED_FIELDS: dict[str, list[str]] = {
     "article": ["author", "title", "journal", "year"],
@@ -30,8 +33,15 @@ REQUIRED_FIELDS: dict[str, list[str]] = {
 def main() -> None:
     strict = "--strict" in sys.argv
 
-    library = bibtexparser.parse_file(BIB_PATH)
-    print(f"Parsed {len(library.entries)} entries")
+    library = bibtexparser.Library()
+    for bib_path in BIB_PATHS:
+        lib = bibtexparser.parse_file(bib_path)
+        for entry in lib.entries:
+            library.add(entry)
+        if lib.failed_blocks:
+            for block in lib.failed_blocks:
+                library.add(block)
+    print(f"Parsed {len(library.entries)} entries from {len(BIB_PATHS)} file(s)")
 
     if library.failed_blocks:
         print(f"WARNING: {len(library.failed_blocks)} block(s) failed to parse")
