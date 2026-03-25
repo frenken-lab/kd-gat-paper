@@ -1,0 +1,17 @@
+{
+  "nodes": [
+    { "id": 0, "label": "0x1A0", "x": 186, "y": 125 },
+    { "id": 1, "label": "0x2B3", "x": 185, "y": 25 },
+    { "id": 2, "label": "0x3C1", "x": 94, "y": 67 },
+    { "id": 3, "label": "0x4D5", "x": 38, "y": 160 },
+    { "id": 4, "label": "0x5E2", "x": 129, "y": 217 }
+  ],
+  "edges": [
+    { "source": 0, "target": 1 },
+    { "source": 1, "target": 2 },
+    { "source": 2, "target": 3 },
+    { "source": 3, "target": 4 },
+    { "source": 4, "target": 0 },
+    { "source": 0, "target": 2 }
+  ]
+}

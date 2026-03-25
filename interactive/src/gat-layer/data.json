@@ -1,0 +1,74 @@
+{
+  "stages": [
+    {
+      "id": "input",
+      "label": "Input: hᵥ",
+      "color": "gat",
+      "nodes": [
+        { "id": 0, "label": "h₁", "x": 186, "y": 125 },
+        { "id": 1, "label": "h₂", "x": 185, "y": 25 },
+        { "id": 2, "label": "h₃", "x": 94, "y": 68 },
+        { "id": 3, "label": "h₄", "x": 38, "y": 160 },
+        { "id": 4, "label": "h₅", "x": 129, "y": 217 }
+      ],
+      "edges": [
+        { "source": 0, "target": 1 },
+        { "source": 1, "target": 2 },
+        { "source": 2, "target": 3 },
+        { "source": 3, "target": 4 },
+        { "source": 4, "target": 0 },
+        { "source": 0, "target": 2 }
+      ]
+    },
+    {
+      "id": "attn",
+      "label": "Attention: αᵥᵤ",
+      "color": "attention",
+      "nodes": [
+        { "id": 0, "label": "Wh₁", "x": 486, "y": 125 },
+        { "id": 1, "label": "Wh₂", "x": 485, "y": 25 },
+        { "id": 2, "label": "Wh₃", "x": 394, "y": 68 },
+        { "id": 3, "label": "Wh₄", "x": 338, "y": 160 },
+        { "id": 4, "label": "Wh₅", "x": 429, "y": 217 }
+      ],
+      "edges": [
+        { "source": 0, "target": 1, "weight": 1.5 },
+        { "source": 0, "target": 2, "weight": 1.6 },
+        { "source": 0, "target": 4, "weight": 1.8 },
+        { "source": 1, "target": 0, "weight": 1.6 },
+        { "source": 1, "target": 2, "weight": 1.1 },
+        { "source": 2, "target": 0, "weight": 1.2 },
+        { "source": 2, "target": 1, "weight": 2.5 },
+        { "source": 2, "target": 3, "weight": 1.5 },
+        { "source": 3, "target": 2, "weight": 1.8 },
+        { "source": 3, "target": 4, "weight": 2.2 },
+        { "source": 4, "target": 0, "weight": 1.7 },
+        { "source": 4, "target": 3, "weight": 2.5 }
+      ]
+    },
+    {
+      "id": "output",
+      "label": "Output: h'ᵥ",
+      "color": "gat",
+      "nodes": [
+        { "id": 0, "label": "h'₁", "x": 786, "y": 125 },
+        { "id": 1, "label": "h'₂", "x": 785, "y": 25 },
+        { "id": 2, "label": "h'₃", "x": 694, "y": 68 },
+        { "id": 3, "label": "h'₄", "x": 638, "y": 160 },
+        { "id": 4, "label": "h'₅", "x": 729, "y": 217 }
+      ],
+      "edges": [
+        { "source": 0, "target": 1 },
+        { "source": 1, "target": 2 },
+        { "source": 2, "target": 3 },
+        { "source": 3, "target": 4 },
+        { "source": 4, "target": 0 },
+        { "source": 0, "target": 2 }
+      ]
+    }
+  ],
+  "annotations": [
+    { "x1": 186, "y1": 125, "x2": 338, "y2": 160, "label": "W, a" },
+    { "x1": 486, "y1": 125, "x2": 638, "y2": 160, "label": "σ(Σα·Wh)" }
+  ]
+}
