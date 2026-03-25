@@ -1,23 +1,35 @@
 <script>
-  import { Graph, Nodes, Edges } from '../lib/diagram';
-  import { createGraph } from '../lib/diagram/models/index.ts';
+  import { buildGraph, unpack } from '../lib/diagram';
+  import { Plot, Dot, Text, Link } from 'svelteplot';
 
-  const HEX_LABELS = ['0x1A0', '0x2B3', '0x3C1', '0x4D5', '0x5E2'];
-
-  const { nodes, edges } = createGraph({
+  const g = buildGraph({
     n: 5,
     topology: 'sparse',
     color: 'vgae',
-    labels: HEX_LABELS,
+    labels: ['0x1A0', '0x2B3', '0x3C1', '0x4D5', '0x5E2'],
     prefix: 'n',
   });
-  const data = { nodes, edges, boxes: [], containers: [] };
+
+  const data = unpack(g);
+
+  // Auto domain from node positions + padding
+  const pad = 40;
+  const xs = data.nodes.map(n => n.x);
+  const ys = data.nodes.map(n => n.y);
+  const xDomain = [Math.min(...xs) - pad, Math.max(...xs) + pad];
+  const yDomain = [Math.min(...ys) - pad, Math.max(...ys) + pad];
 </script>
 
 <div class="figure">
   <h3>CAN Bus Graph</h3>
-  <Graph {data} width={280} height={280} padding={25}>
-    <Edges type="structural" strokeOpacity={0.5} />
-    <Nodes r={18} fontSize={8} fontFamily="CMU Typewriter Text, monospace" />
-  </Graph>
+  <Plot width={280} height={280} grid={false} axes={false} frame={false}
+    x={{ domain: xDomain }} y={{ domain: yDomain }} inset={20}>
+    <Link data={data.edges.structural} x1="x1" y1="y1" x2="x2" y2="y2"
+      stroke="stroke" strokeOpacity={0.5} strokeWidth={1.5} />
+    <Dot data={data.nodes} x="x" y="y" r={18}
+      fill="fill" stroke="stroke" strokeWidth={1.5} />
+    <Text data={data.nodes} x="x" y="y" text="label"
+      fontSize={8} fill="#333" textAnchor="middle" dy={1}
+      fontFamily="CMU Typewriter Text, monospace" />
+  </Plot>
 </div>
