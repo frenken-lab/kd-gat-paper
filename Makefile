@@ -1,4 +1,4 @@
-.PHONY: data validate figures diagrams tables site dev tmlr tmlr-anon preview deploy sync bib all clean
+.PHONY: data validate figures tables site dev tmlr tmlr-anon preview deploy sync bib all clean
 
 SYNC := python ~/KD-GAT/scripts/data/paper_sync.py
 
@@ -11,13 +11,10 @@ validate:
 figures: data
 	cd interactive && npm run build
 
-diagrams:
-	python scripts/build-diagrams.py
-
 tables: data
 	python scripts/tables/build.py
 
-site: figures diagrams tables
+site: figures tables
 	myst build --site
 
 dev:
