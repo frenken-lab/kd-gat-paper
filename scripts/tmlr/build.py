@@ -169,7 +169,7 @@ HANDLERS: dict[str, callable] = {
 
 def serialize(node: dict) -> str:
     """Recursively serialize an MDAST node to Distill-compatible markdown."""
-    return HANDLERS.get(node.get("type", ""), _h_passthrough)(node)
+    return HANDLERS.get(node.get("type", ""), _C)(node)
 
 
 # ---------------------------------------------------------------------------
