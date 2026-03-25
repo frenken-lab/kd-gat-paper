@@ -16,7 +16,7 @@ _PALETTE = _STYLES.get("palette", {})
 _FILLS = _STYLES.get("fills", {})
 _FONT = _STYLES.get("fonts", {}).get("serif", "serif")
 _GAP = _STYLES.get("layout", {}).get("gap", 1.5)
-_SIZES = {"small": "0.30", "medium": "0.60", "large": "1.20"}
+_SIZES = {k: str(v) for k, v in _STYLES.get("sizes", {}).items()}
 
 
 def _color(name: str) -> str:

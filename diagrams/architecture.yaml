@@ -38,16 +38,16 @@ components:
 
 edges:
   # Main pipeline (left to right)
-  - {from: input.output, to: vgae_t, color: "#BAB0AC"}
-  - {from: vgae_t, to: gat_t, color: "#BAB0AC", label: "hard samples"}
-  - {from: vgae_t, to: dqn, color: "#BAB0AC", label: "recon error"}
-  - {from: gat_t, to: dqn, color: "#BAB0AC", label: "classification"}
-  - {from: dqn, to: output, color: "#BAB0AC"}
+  - {from: input.output, to: vgae_t, color: grey}
+  - {from: vgae_t, to: gat_t, color: grey, label: "hard samples"}
+  - {from: vgae_t, to: dqn, color: grey, label: "recon error"}
+  - {from: gat_t, to: dqn, color: grey, label: "classification"}
+  - {from: dqn, to: output, color: grey}
 
   # Knowledge distillation (dashed, red)
-  - {from: vgae_t, to: vgae_s, style: dashed, color: "#E15759", label: "KD"}
-  - {from: gat_t, to: gat_s, style: dashed, color: "#E15759", label: "KD"}
+  - {from: vgae_t, to: vgae_s, style: dashed, color: kd, label: "KD"}
+  - {from: gat_t, to: gat_s, style: dashed, color: kd, label: "KD"}
 
   # Student outputs feed into DQN
-  - {from: vgae_s, to: dqn, color: "#BAB0AC", style: dashed}
-  - {from: gat_s, to: dqn, color: "#BAB0AC", style: dashed}
+  - {from: vgae_s, to: dqn, color: grey, style: dashed}
+  - {from: gat_s, to: dqn, color: grey, style: dashed}

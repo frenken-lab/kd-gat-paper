@@ -1,4 +1,4 @@
-# GAT attention layer — pure YAML, fdp layout, pinned positions
+# GAT attention layer — pure YAML, neato layout, pinned positions
 # Same organic shape in all three clusters, horizontally aligned
 prog: neato
 # neato doesn't support compound cluster clipping — use border nodes instead

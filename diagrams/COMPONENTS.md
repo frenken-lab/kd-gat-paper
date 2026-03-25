@@ -3,10 +3,10 @@
 ## Architecture
 
 ```
-data/styles.yaml          → shared palette (Observable 10), sizes, fonts, roles
+data/styles.yaml          → shared palette (Observable 10), fills, fonts, roles
 diagrams/*.yaml           → diagram specs (declarative composition)
 scripts/
-  components.py           → graph(), box(), gat(), vgae(), build_from_spec()
+  components.py           → graph(), box(), build_from_spec()
   build-diagrams.py       → CLI: reads YAML specs, calls components + Graphviz
 figures/*.svg             → generated output
 diagrams/ref/             → Typst reference diagrams from janosh/diagrams
@@ -47,38 +47,6 @@ Single process/operation node. Rounded box shape.
 
 **Anchors:** `self`, `input`, `output` (all the same node).
 
-### Model Components (composed from primitives)
-
-#### `gat(G, n_layers, n, edges, color, size, id, align)`
-
-GAT classifier: N attention layers → JK Concat → FC. Each layer is a `rank=same` subgraph for horizontal alignment. `align` (default true) adds invisible weighted edges between layers for vertical registration.
-
-**Anchors:** `input`, `output`, `jk`, `fc`, `layer0`, `layer1`, ...
-
-#### `gat_layer(G, n, edges, color, size, id, heads, weights, align)`
-
-GAT attention layer internals: input graph → attention-weighted directed graph → output graph. Shows the three visual stages of a single attention layer. Attention edges use dual encoding (penwidth + opacity) for weight magnitude.
-
-| Param | Default | Notes |
-|-------|---------|-------|
-| `heads` | null | If set, adds "K=N heads" annotation |
-| `weights` | null | Dict `"i-j"` → float, or null for schematic |
-| `align` | true | Invisible alignment edges between stages |
-
-**Anchors:** `input`, `output`, `stage_input`, `stage_attn`, `stage_output`
-
-#### `latent(G, n, size, id)`
-
-VAE latent block: μ row, σ row → z sampling row. Used by `vgae()` internally and available standalone.
-
-**Anchors:** `input`, `output`, `mu`, `sigma`, `z`
-
-#### `vgae(G, enc_layers, color, latent_n, size, id, align)`
-
-VGAE autoencoder: GCN encoder (narrowing) → latent() → zᵀz decoder → reconstructed. `align` (default true) adds invisible weighted edges between encoder layers.
-
-**Anchors:** `input`, `output`, `mu`, `sigma`, `z`, `decoder`, `reconstructed`
-
 ## YAML Spec Format
 
 ```yaml
@@ -89,10 +57,9 @@ bgcolor: white          # background color (default: transparent)
 prog: dot               # layout engine (default: auto-inferred)
 
 components:
-  - type: graph         # or box, gat, vgae
+  - type: graph         # or box
     params: {n: 5, color: vgae, id: input}
     container: {label: "Input Graph", color: vgae, style: dashed}  # optional cluster box
-    place: {below: other_id}  # optional: place below another component
 
 edges:
   - from: input.output        # component_id.anchor
@@ -126,8 +93,8 @@ All colors resolve from `data/styles.yaml`:
 |------|------|----------------|
 | `graph-base.yaml` | CAN bus input graph | `graph(organic, sparse, CAN hex labels)` |
 | `graph-gat.yaml` | GAT attention graph | `graph(organic, sparse, auto labels)` |
-| `vgae.yaml` | VGAE autoencoder | `vgae(enc_layers=[5,3])` + container |
-| `gat.yaml` | GAT classifier | `gat(n_layers=3, n=5)` + container |
-| `kd-vgae.yaml` | VGAE teacher/student | `vgae()` × 2 + KD edge |
-| `kd-gat.yaml` | GAT teacher/student | `gat()` × 2 + KD edge |
+| `vgae.yaml` | VGAE autoencoder | `graph` × 5 + `box` + containers |
+| `gat.yaml` | GAT classifier | `graph` × 3 + `box` × 2 + container |
+| `kd-vgae.yaml` | VGAE teacher/student | `graph` × 10 + `box` × 2 + KD edge |
+| `kd-gat.yaml` | GAT teacher/student | `graph` × 6 + `box` × 4 + KD edge |
 | `architecture.yaml` | Full pipeline overview | `graph` + `box` × 6 + edges |
