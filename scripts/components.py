@@ -1,8 +1,5 @@
-"""Diagram component builders — pygraphviz-based.
-
-Two primitives: graph() and box(). All diagram structure is declared
-in YAML specs. Layout via neato with pinned positions.
-"""
+"""YAML spec → pygraphviz AGraph. Two primitives: graph() and box().
+Layout via neato with pinned positions. Styles from data/styles.yaml."""
 from __future__ import annotations
 
 import itertools
@@ -14,23 +11,19 @@ import yaml
 _STYLES = yaml.safe_load(
     (Path(__file__).resolve().parent.parent / "data" / "styles.yaml").read_text()
 )
-
-# Pre-resolve all lookups into flat dicts.
-_ROLES = _STYLES.get("roles", {})       # "vgae" → "blue"
-_PALETTE = _STYLES.get("palette", {})    # "blue" → "#4E79A7"
-_FILLS = _STYLES.get("fills", {})        # "blue" → "#DAE3EF"
+_ROLES = _STYLES.get("roles", {})
+_PALETTE = _STYLES.get("palette", {})
+_FILLS = _STYLES.get("fills", {})
 _FONT = _STYLES.get("fonts", {}).get("serif", "serif")
 _GAP = _STYLES.get("layout", {}).get("gap", 1.5)
 _SIZES = {"small": "0.30", "medium": "0.60", "large": "1.20"}
 
 
 def _color(name: str) -> str:
-    """Role/palette name → stroke hex. One dict hop."""
     return _PALETTE.get(_ROLES.get(name, name), name)
 
 
 def _fill(name: str) -> str:
-    """Role/palette name → fill hex. One dict hop."""
     return _FILLS.get(_ROLES.get(name, name), name)
 
 
@@ -53,20 +46,11 @@ def _edges(n: int, spec: str) -> list[tuple[int, int]]:
     return []
 
 
-# ---- Components ----
-
-def graph(
-    G: pgv.AGraph,
-    n: int = 5,
-    edges: str = "sparse",
-    color: str = "blue",
-    labels: list[str] | str = "auto",
-    size: str = "medium",
-    directed: bool = False,
-    id: str = "g",
-    positions: list[list[float]] | None = None,
-) -> dict:
-    """Add a graph component (n nodes + edge pattern) to G."""
+def graph(G: pgv.AGraph, n: int = 5, edges: str = "sparse", color: str = "blue",
+          labels: list[str] | str = "auto", size: str = "medium",
+          directed: bool = False, id: str = "g",
+          positions: list[list[float]] | None = None) -> dict:
+    """Add n nodes + edge pattern to G. Returns anchor dict."""
     fill, stroke = _fill(color), _color(color)
     w = _SIZES.get(size, "0.60")
 
@@ -92,8 +76,7 @@ def graph(
         G.add_edge(nids[s], nids[d], color=f"{stroke}80",
                    dir="forward" if directed else "none")
 
-    anchors: dict = {"input": nids[0], "output": nids[-1], "all": nids,
-                     "_all_nids": list(nids)}
+    anchors: dict = {"input": nids[0], "output": nids[-1], "all": nids}
     if named:
         for lab, nid in zip(labels, nids):
             anchors[lab] = nid
@@ -105,28 +88,10 @@ def box(G: pgv.AGraph, id: str, label: str = "", color: str = "grey") -> dict:
     G.add_node(id, label=label, shape="box", style="filled,rounded",
                fillcolor=_fill(color), color=_color(color),
                fontsize="9", fixedsize="false")
-    return {"self": id, "input": id, "output": id, "_all_nids": [id]}
+    return {"self": id, "input": id, "output": id}
 
-
-# ---- Composition ----
 
 _BUILDERS = {"graph": graph, "box": box}
-
-
-def _resolve_anchor(ref: str, registry: dict[str, dict]) -> str | list[str]:
-    """Resolve 'comp.anchor' or 'comp.sub.anchor' → node ID(s)."""
-    if "." not in ref:
-        return ref
-    comp_id, anchor_path = ref.split(".", 1)
-    if comp_id not in registry:
-        raise KeyError(f"Unknown component '{comp_id}'. Known: {list(registry.keys())}")
-    result = registry[comp_id]
-    for key in anchor_path.split("."):
-        if isinstance(result, dict) and key in result:
-            result = result[key]
-        else:
-            raise KeyError(f"Unknown anchor '{anchor_path}' for '{comp_id}'")
-    return result
 
 
 def build_from_spec(spec: dict) -> pgv.AGraph:
@@ -136,22 +101,20 @@ def build_from_spec(spec: dict) -> pgv.AGraph:
         rankdir="LR" if spec.get("direction") == "horizontal" else "TB",
         ranksep=str(spec.get("ranksep", _GAP)),
         nodesep=str(spec.get("nodesep", "0.4")),
-        fontname=_FONT,
-        bgcolor=spec.get("bgcolor", "transparent"),
+        fontname=_FONT, bgcolor=spec.get("bgcolor", "transparent"),
         margin="0.2", compound="true", newrank="true",
     )
     G.node_attr.update(fontname=_FONT, fontsize="8", fontcolor="#333333",
                        shape="circle", style="filled", fixedsize="true")
     G.edge_attr.update(fontname=_FONT, fontsize="6", color="grey", arrowsize="0.5")
 
-    anchor_registry: dict[str, dict] = {}
+    registry: dict[str, dict] = {}
 
     for comp in spec.get("components", []):
         ctype = comp["type"]
         params = dict(comp.get("params", {}))
         comp_id = params.get("id", ctype)
 
-        # Cluster subgraph from explicit container spec
         if "container" in comp:
             c = comp["container"]
             cc = _color(c.get("color", "grey"))
@@ -164,33 +127,36 @@ def build_from_spec(spec: dict) -> pgv.AGraph:
         else:
             target = G
 
-        anchors = _BUILDERS[ctype](target, **params)
+        registry[comp_id] = _BUILDERS[ctype](target, **params)
 
-        anchors.pop("_all_nids", None)
-        anchor_registry[comp_id] = anchors
+    def resolve(ref: str) -> str | list[str]:
+        if "." not in ref:
+            return ref
+        comp_id, path = ref.split(".", 1)
+        result = registry[comp_id]
+        for key in path.split("."):
+            result = result[key]
+        return result
 
-    # Inter-component edges from spec
     for edge in spec.get("edges", []):
         e = dict(edge)
-        src = _resolve_anchor(e.pop("from"), anchor_registry)
-        dst = _resolve_anchor(e.pop("to"), anchor_registry)
-        srcs = src if isinstance(src, list) else [src]
-        dsts = dst if isinstance(dst, list) else [dst]
+        src = resolve(e.pop("from"))
+        dst = resolve(e.pop("to"))
 
         gv: dict[str, str] = {}
         if "color" in e:
             raw = e["color"]
             gv["color"] = raw if raw.startswith("#") else _color(raw)
-        for k, gk in [("style", "style"), ("width", "penwidth"), ("constraint", "constraint"),
-                      ("ltail", "ltail"), ("lhead", "lhead")]:
+        for k, gk in [("style", "style"), ("width", "penwidth"),
+                      ("constraint", "constraint"), ("ltail", "ltail"), ("lhead", "lhead")]:
             if k in e:
                 gv[gk] = str(e[k]).lower() if k == "constraint" else str(e[k])
         if "label" in e:
             gv["label"] = e["label"]
             gv["fontcolor"] = "grey"
 
-        for s in srcs:
-            for d in dsts:
+        for s in (src if isinstance(src, list) else [src]):
+            for d in (dst if isinstance(dst, list) else [dst]):
                 G.add_edge(s, d, **gv)
 
     return G
