@@ -1,6 +1,7 @@
 <script>
-  import { buildGraph, unpack } from '../lib/diagram';
+  import { buildGraph, unpack } from '../../lib/diagram';
   import { Plot, Dot, Text, Link } from 'svelteplot';
+  import Figure from '../../lib/FigureDefaults.svelte';
 
   const n = 5;
 
@@ -22,8 +23,7 @@
   const yDomain = [Math.min(...ys) - pad, Math.max(...ys) + pad];
 </script>
 
-<div class="figure">
-  <h3>CAN Bus Graph</h3>
+<Figure title="CAN Bus Graph">
   <Plot width={280} height={280} grid={false} axes={false} frame={false}
     x={{ domain: xDomain }} y={{ domain: yDomain }} inset={20}>
     <Link data={data.edges.structural} x1="x1" y1="y1" x2="x2" y2="y2"
@@ -34,4 +34,4 @@
       fontSize={8} fill="#333" textAnchor="middle" dy={1}
       fontFamily="CMU Typewriter Text, monospace" />
   </Plot>
-</div>
+</Figure>

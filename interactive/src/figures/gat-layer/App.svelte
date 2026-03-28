@@ -1,7 +1,8 @@
 <script>
   import Graph from 'graphology';
   import { Plot, Dot, Text, Link, Arrow, Rect } from 'svelteplot';
-  import { buildGraph, addLayer, unpack, connectContainers, boundingBox } from '../lib/diagram';
+  import { buildGraph, addLayer, unpack, connectContainers, boundingBox } from '../../lib/diagram';
+  import Figure from '../../lib/FigureDefaults.svelte';
 
   const n = 5;
 
@@ -85,7 +86,7 @@
   $: headLabel = selectedHead === 'h1' ? 'Head 1' : selectedHead === 'h2' ? 'Head 2' : 'Head 3';
 </script>
 
-<div class="figure">
+<Figure title="GAT Attention Layer">
   <!-- Overview: 3 attention heads -->
   <Plot width={700} height={280} grid={false} axes={false} frame={false}
     x={{ domain: xDomain }} y={{ domain: yDomain }} inset={10}>
@@ -155,4 +156,4 @@
       </Plot>
     </div>
   {/if}
-</div>
+</Figure>

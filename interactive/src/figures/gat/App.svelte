@@ -2,7 +2,8 @@
   import Graph from 'graphology';
   import { path } from 'graphology-generators/classic';
   import { Plot, Dot, Text, Link, Arrow, Rect } from 'svelteplot';
-  import { resolve } from '../lib/diagram/palette.ts';
+  import { resolve } from '../../lib/diagram/palette.ts';
+  import Figure from '../../lib/FigureDefaults.svelte';
 
   // --- Build graph data ---
   const SPARSE_5 = [[186,125],[185,25],[94,67],[38,160],[129,217]];
@@ -55,8 +56,7 @@
   const { stroke, fill } = resolve('gat');
 </script>
 
-<div class="figure">
-  <h3>GAT Classifier</h3>
+<Figure title="GAT Classifier">
   <Plot width={280} height={1080} grid={false} axes={false} frame={false}
     x={{ domain: [-10, 240] }} y={{ domain: [-10, 1060] }} inset={20}>
     <Link data={structural} x1="x1" y1="y1" x2="x2" y2="y2"
@@ -72,4 +72,4 @@
     <Text data={nodes} x="x" y="y" text="label"
       fontSize={7} fill="#333" textAnchor="middle" dy={1} />
   </Plot>
-</div>
+</Figure>

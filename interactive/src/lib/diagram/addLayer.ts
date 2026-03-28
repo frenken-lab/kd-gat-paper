@@ -1,12 +1,12 @@
-import type Graph from 'graphology';
-import { rotation } from 'graphology-layout';
+import type Graph from "graphology";
+import { rotation } from "graphology-layout";
 
 export interface AddLayerOptions {
   x?: number;
   y?: number;
   gap?: number;
   scale?: number;
-  rotate?: number;  // degrees
+  rotate?: number; // degrees
 }
 
 /**
@@ -31,14 +31,19 @@ export function addLayer(
 
     // Optional scale (relative to group center)
     if (scale !== undefined && scale !== 1) {
-      let cx = 0, cy = 0, count = 0;
+      let cx = 0,
+        cy = 0,
+        count = 0;
       g.forEachNode((_, a) => {
-        if (a.nodeType === 'container' || a.nodeType === 'box') return;
-        cx += a.x; cy += a.y; count++;
+        if (a.nodeType === "container" || a.nodeType === "box") return;
+        cx += a.x;
+        cy += a.y;
+        count++;
       });
-      cx /= count; cy /= count;
+      cx /= count;
+      cy /= count;
       g.forEachNode((k, a) => {
-        if (a.nodeType === 'container' || a.nodeType === 'box') return;
+        if (a.nodeType === "container" || a.nodeType === "box") return;
         g.mergeNodeAttributes(k, {
           x: cx + (a.x - cx) * scale,
           y: cy + (a.y - cy) * scale,
@@ -50,17 +55,23 @@ export function addLayer(
     if (rotate) {
       const positions = rotation(g, rotate, { degrees: true });
       g.forEachNode((k, a) => {
-        if (!a.nodeType === 'container' || a.nodeType === 'box' && positions[k]) {
+        if (
+          a.nodeType !== "container" &&
+          a.nodeType !== "box" &&
+          positions[k]
+        ) {
           g.mergeNodeAttributes(k, positions[k]);
         }
       });
     }
 
     // Compute bounds (excluding container nodes)
-    let minX = Infinity, maxX = -Infinity;
-    let minY = Infinity, maxY = -Infinity;
+    let minX = Infinity,
+      maxX = -Infinity;
+    let minY = Infinity,
+      maxY = -Infinity;
     g.forEachNode((_, a) => {
-      if (a.nodeType === 'container' || a.nodeType === 'box') return;
+      if (a.nodeType === "container" || a.nodeType === "box") return;
       if (a.x < minX) minX = a.x;
       if (a.x > maxX) maxX = a.x;
       if (a.y < minY) minY = a.y;
@@ -71,7 +82,7 @@ export function addLayer(
     const dx = cursor - minX;
     const dy = y - minY;
     g.forEachNode((k, a) => {
-      if (a.nodeType === 'container' || a.nodeType === 'box') return;
+      if (a.nodeType === "container" || a.nodeType === "box") return;
       g.mergeNodeAttributes(k, { x: a.x + dx, y: a.y + dy });
     });
 

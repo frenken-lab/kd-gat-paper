@@ -4,29 +4,29 @@
   color: #333;
 }
 
-.figure {
+figure {
   max-width: 760px;
   padding: 8px;
 }
 
-.figure h3 {
+figure h3 {
   margin: 0 0 8px;
   font-size: 14px;
   color: #333;
 }
 
-.figure h4 {
+figure h4 {
   margin: 16px 0 4px;
   font-size: 12px;
   color: #666;
 }
 
-.figure .empty {
+figure .empty {
   color: #999;
   font-size: 12px;
 }
 
-.figure .controls {
+figure .controls {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
@@ -35,7 +35,7 @@
   align-items: center;
 }
 
-.figure .toggle {
+figure .toggle {
   padding: 2px 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
@@ -44,24 +44,24 @@
   background: #f5f5f5;
 }
 
-.figure .toggle.active {
+figure .toggle.active {
   background: #eef;
   opacity: 1;
 }
 
-.figure .toggle.inactive {
+figure .toggle.inactive {
   opacity: 0.4;
 }
 
-.figure .toggle.selected {
+figure .toggle.selected {
   background: #4E79A7;
   color: white;
 }
 
-.figure select {
+figure select {
   font-size: 12px;
 }
 
-.figure .meta {
+figure .meta {
   color: #666;
 }

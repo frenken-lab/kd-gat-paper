@@ -241,7 +241,7 @@ def copy_assets(out: Path) -> None:
                 dest.write(bib.read_text() + "\n")
 
     # Copy built HTML figures
-    figures_dir = ROOT / "figures"
+    figures_dir = ROOT / "_figures"
     if figures_dir.exists():
         for f in figures_dir.iterdir():
             if f.suffix == ".html":

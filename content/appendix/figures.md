@@ -4,43 +4,43 @@ title: "Figure Gallery"
 
 ## Diagrams
 
-:::{iframe} ../../figures/graph-base.html
+:::{iframe} https://robertfrenken.github.io/kd-gat-paper/assets/html/submission/graph-base.html
 :label: fig-graph-base
 :width: 100%
 CAN bus graph representation. Nodes are arbitration IDs, edges are temporal co-occurrence.
 :::
 
-:::{iframe} ../../figures/gat-layer.html
+:::{iframe} https://robertfrenken.github.io/kd-gat-paper/assets/html/submission/gat-layer.html
 :label: fig-gat-layer
 :width: 100%
 GAT attention layer with multi-head structure. Click a head to inspect its internal mechanism.
 :::
 
-:::{iframe} ../../figures/gat.html
+:::{iframe} https://robertfrenken.github.io/kd-gat-paper/assets/html/submission/gat.html
 :label: fig-gat
 :width: 100%
 GAT classifier architecture.
 :::
 
-:::{iframe} ../../figures/vgae.html
+:::{iframe} https://robertfrenken.github.io/kd-gat-paper/assets/html/submission/vgae.html
 :label: fig-vgae
 :width: 100%
 VGAE anomaly detector.
 :::
 
-:::{iframe} ../../figures/kd-vgae.html
+:::{iframe} https://robertfrenken.github.io/kd-gat-paper/assets/html/submission/kd-vgae.html
 :label: fig-kd-vgae
 :width: 100%
 VGAE knowledge distillation.
 :::
 
-:::{iframe} ../../figures/kd-gat.html
+:::{iframe} https://robertfrenken.github.io/kd-gat-paper/assets/html/submission/kd-gat.html
 :label: fig-kd-gat
 :width: 100%
 GAT knowledge distillation.
 :::
 
-:::{iframe} ../../figures/architecture.html
+:::{iframe} https://robertfrenken.github.io/kd-gat-paper/assets/html/submission/architecture.html
 :label: fig-architecture
 :width: 100%
 Full KD-GAT pipeline: input graph, teacher ensemble, student distillation, bandit fusion.
@@ -48,31 +48,31 @@ Full KD-GAT pipeline: input graph, teacher ensemble, student distillation, bandi
 
 ## Data Figures
 
-:::{iframe} ../../figures/umap.html
+:::{iframe} https://robertfrenken.github.io/kd-gat-paper/assets/html/submission/umap.html
 :label: fig-gallery-umap
 :width: 100%
 UMAP embedding of GAT graph-level representations.
 :::
 
-:::{iframe} ../../figures/reconstruction.html
+:::{iframe} https://robertfrenken.github.io/kd-gat-paper/assets/html/submission/reconstruction.html
 :label: fig-gallery-reconstruction
 :width: 100%
 VGAE reconstruction error decomposition.
 :::
 
-:::{iframe} ../../figures/fusion.html
+:::{iframe} https://robertfrenken.github.io/kd-gat-paper/assets/html/submission/fusion.html
 :label: fig-gallery-fusion
 :width: 100%
 Bandit fusion weight distribution.
 :::
 
-:::{iframe} ../../figures/attention.html
+:::{iframe} https://robertfrenken.github.io/kd-gat-paper/assets/html/submission/attention.html
 :label: fig-gallery-attention
 :width: 100%
 GAT attention graph visualization.
 :::
 
-:::{iframe} ../../figures/cka.html
+:::{iframe} https://robertfrenken.github.io/kd-gat-paper/assets/html/submission/cka.html
 :label: fig-gallery-cka
 :width: 100%
 CKA similarity between teacher and student layers.

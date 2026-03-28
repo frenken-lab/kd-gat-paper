@@ -35,7 +35,7 @@ jobs:
         with: { node-version: "22" }
       - run: cd interactive && npm ci && npm run build
       - uses: actions/upload-artifact@v4
-        with: { name: figures, path: "figures/*.html" }
+        with: { name: figures, path: "_figures/*.html" }
 
   build:
     runs-on: ubuntu-latest
@@ -47,7 +47,7 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - uses: actions/download-artifact@v4
-        with: { name: figures, path: figures/ }
+        with: { name: figures, path: _figures/ }
 
       - run: pip install pyyaml tabulate
 
@@ -84,7 +84,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
-        with: { name: figures, path: figures/ }
+        with: { name: figures, path: _figures/ }
 
       - uses: actions/setup-node@v4
         with: { node-version: "22" }
