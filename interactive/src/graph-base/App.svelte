@@ -2,11 +2,13 @@
   import { buildGraph, unpack } from '../lib/diagram';
   import { Plot, Dot, Text, Link } from 'svelteplot';
 
+  const n = 5;
+
   const g = buildGraph({
-    n: 5,
+    n,
     topology: 'sparse',
     color: 'vgae',
-    labels: ['0x1A0', '0x2B3', '0x3C1', '0x4D5', '0x5E2'],
+    labels: 'auto',
     prefix: 'n',
   });
 

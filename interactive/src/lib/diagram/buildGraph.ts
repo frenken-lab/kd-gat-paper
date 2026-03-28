@@ -5,6 +5,9 @@ import { mergeClique, mergeCycle } from 'graphology-utils';
 export type Topology = 'sparse' | 'full' | 'none';
 export type Labels = string[] | 'auto' | 'none';
 
+/** Custom edge: [sourceIndex, targetIndex, optional attributes]. */
+export type EdgeSpec = [number, number, Record<string, unknown>?];
+
 export interface BuildGraphOptions {
   n: number;
   topology: Topology;
@@ -13,6 +16,7 @@ export interface BuildGraphOptions {
   labels?: Labels;
   directed?: boolean;
   positions?: [number, number][];
+  edges?: EdgeSpec[];
   group?: string;
   scale?: number;
   container?: { label: string; color: string };
@@ -36,6 +40,7 @@ export function buildGraph(opts: BuildGraphOptions): Graph {
     labels: labelOpt,
     directed = false,
     positions,
+    edges: edgeSpecs,
     group = prefix,
     scale = 80,
     container,
@@ -61,6 +66,14 @@ export function buildGraph(opts: BuildGraphOptions): Graph {
   }
   // 'none': no edges
 
+  // 2b. Add custom edges (in addition to or instead of topology)
+  if (edgeSpecs) {
+    for (const [i, j, attrs] of edgeSpecs) {
+      const method = directed ? 'addDirectedEdge' : 'mergeEdge';
+      g[method](keys[i], keys[j], { type: 'structural', color, ...attrs });
+    }
+  }
+
   // 3. Position nodes
   if (positions) {
     keys.forEach((key, i) => {
@@ -70,9 +83,10 @@ export function buildGraph(opts: BuildGraphOptions): Graph {
     circular.assign(g, { scale });
   }
 
-  // 4. Tag edges with type and color
-  g.forEachEdge((edge) => {
-    g.mergeEdgeAttributes(edge, { type: 'structural', color });
+  // 4. Tag edges with type and color (defaults only — don't overwrite custom attrs)
+  g.forEachEdge((edge, attrs) => {
+    if (!attrs.type) g.setEdgeAttribute(edge, 'type', 'structural');
+    if (!attrs.color) g.setEdgeAttribute(edge, 'color', color);
   });
 
   // 5. Container node — added AFTER layout so circular doesn't position it

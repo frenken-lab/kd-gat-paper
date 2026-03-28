@@ -45,6 +45,7 @@ project:
     - title: Appendix
       children:
         - file: content/appendix/architecture.md
+        - file: content/appendix/figures.md
 
 site:
   template: article-theme
