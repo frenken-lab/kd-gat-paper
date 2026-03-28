@@ -23,8 +23,8 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - run: pip install pyyaml "bibtexparser>=2.0.0b7"
-      - run: python scripts/validate_data.py
-      - run: python scripts/validate_bib.py
+      - run: python data/validate.py
+      - run: python references/validate.py
 
   figures:
     runs-on: ubuntu-latest
@@ -57,7 +57,7 @@ jobs:
 
       # Build public site (with author names)
       - name: Build site
-        run: python scripts/tmlr/build.py --output submission_folder/
+        run: python export/tmlr/build.py --output submission_folder/
 
       # Merge into author kit for Jekyll
       - name: Merge with TMLR author kit
@@ -68,7 +68,7 @@ jobs:
       # Build anonymous submission artifact
       - name: Build anonymous submission
         if: github.ref == 'refs/heads/main'
-        run: python scripts/tmlr/build.py --output submission_anon/ --anonymous
+        run: python export/tmlr/build.py --output submission_anon/ --anonymous
 
       - uses: actions/upload-artifact@v4
         if: github.ref == 'refs/heads/main'
@@ -96,7 +96,7 @@ jobs:
       - name: Build MyST AST
         run: npm install -g mystmd && myst build --site
       - name: Build Distill site
-        run: python scripts/tmlr/build.py --output submission_folder/
+        run: python export/tmlr/build.py --output submission_folder/
 
       # Merge into author kit
       - name: Merge with TMLR author kit

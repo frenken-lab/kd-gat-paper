@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# scripts/dev-session.sh — Bootstrap paper development environment
+# dev-session.sh — Bootstrap paper development environment
 #
 # Run from VS Code terminal or SSH:
-#   bash scripts/dev-session.sh
+#   bash dev-session.sh
 #
 # Creates a tmux session "paper" with 3 windows:
 #   1. myst start (paper preview on :3000)
@@ -13,7 +13,7 @@
 set -euo pipefail
 
 SESSION="paper"
-REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
 
 # Ensure node modules are installed
 if [ ! -d "$REPO_ROOT/interactive/node_modules" ]; then

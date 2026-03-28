@@ -13,6 +13,7 @@ __pycache__/
 # Interactive figure build
 interactive/node_modules/
 figures/*.html
+figures/src/
 
 # Generated tables (from make tables)
 data/tables/*.md

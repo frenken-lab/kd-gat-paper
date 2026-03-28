@@ -10,9 +10,9 @@ MyST paper: "Adaptive Fusion of Graph-Based Ensembles for Automotive IDS". Deplo
 | Interactive figures | **SveltePlot 0.12** (grammar-of-graphics) | Spec-driven: `<Cell>`, `<RectY>`, `<Line>`, `<Dot>`, `<Arrow>`. SVG output, Svelte-native |
 | Architecture diagrams | **SveltePlot** + **graphology** | `buildGraph` → `addLayer` → `unpack` → SveltePlot marks. Library in `interactive/src/lib/diagram/` |
 | Build | **Vite 6** + `vite-plugin-singlefile` | Each figure → self-contained HTML (JS+CSS+data inlined) |
-| Tables | **spec.yaml** + `scripts/tables/build.py` | Declarative table specs, booktabs-style, literature baselines |
+| Tables | **spec.yaml** + `data/tables/build.py` | Declarative table specs, booktabs-style, literature baselines |
 | Validation schemas | **`data/schemas.yaml`** | Single source of truth for both export and pull validation |
-| TMLR export | **AST serializer** (`scripts/tmlr/build.py`) | Walks MyST AST JSON → Distill-layout markdown |
+| TMLR export | **AST serializer** (`export/tmlr/build.py`) | Walks MyST AST JSON → Distill-layout markdown |
 | CI/CD | **GitHub Actions** | validate → figures → deploy-figures (Pages) + build-and-deploy (curve.space) |
 
 ## Key Commands
@@ -40,7 +40,7 @@ KD-GAT eval artifacts
   → npm run build → figures/*.html
   → myst build → _build/ → curvenote deploy → rob.curve.space
                           → GitHub Pages (figures only) → robertfrenken.github.io/kd-gat-paper/
-  → scripts/tmlr/build.py (reads _build/site/ AST) → submission_folder/ (self-contained)
+  → export/tmlr/build.py (reads _build/site/ AST) → submission_folder/ (self-contained)
 ```
 
 ## Deployment
@@ -49,7 +49,7 @@ KD-GAT eval artifacts
 |--------|------|-----|
 | **rob.curve.space** | Paper content (MyST SPA) | `curvenote deploy` in CI |
 | **GitHub Pages** | Interactive figures (iframe src) | `deploy-pages` in CI |
-| **TMLR submission** | Self-contained folder (anonymous) | `scripts/tmlr/build.py` in CI, uploaded as artifact |
+| **TMLR submission** | Self-contained folder (anonymous) | `export/tmlr/build.py` in CI, uploaded as artifact |
 | **Curvenote editor** | Edit on web → `make sync` to pull changes | Manual (`curvenote pull`) |
 
 curve.space is an SPA that can't serve static HTML files. Figures require iframe isolation (Svelte apps need `<script>` execution). GitHub Pages hosts the figure HTML files; iframes in the paper point there. The TMLR build rewrites all iframe paths to `assets/html/submission/` — no external URLs leak into the anonymous submission.
@@ -62,7 +62,7 @@ curve.space is an SPA that can't serve static HTML files. Figures require iframe
 
 - `data/tables/spec.yaml` defines table specs: source CSV, columns, formatting, sort order, literature baselines
 - `data/csv/literature_baselines.csv` holds comparison metrics with citation keys
-- `scripts/tables/build.py` renders to `data/tables/*.md` — baselines first, user models **bolded** at bottom
+- `data/tables/build.py` renders to `data/tables/*.md` — baselines first, user models **bolded** at bottom
 - Content files use `{include}` directives to pull in generated tables
 
 ## Interactive Figure Convention

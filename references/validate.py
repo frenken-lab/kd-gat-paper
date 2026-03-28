@@ -2,8 +2,8 @@
 """Validate references/*.bib for missing fields, duplicates, and empty values.
 
 Usage:
-    python scripts/validate_bib.py
-    python scripts/validate_bib.py --strict  # Treat warnings as errors
+    python references/validate.py
+    python references/validate.py --strict  # Treat warnings as errors
 """
 
 from __future__ import annotations
@@ -15,8 +15,7 @@ import bibtexparser
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 BIB_DIR = PROJECT_ROOT / "references"
-# Support both split references/ directory and legacy single file
-BIB_PATHS = sorted(BIB_DIR.glob("*.bib")) if BIB_DIR.is_dir() else [PROJECT_ROOT / "references.bib"]
+BIB_PATHS = sorted(BIB_DIR.glob("*.bib"))
 
 REQUIRED_FIELDS: dict[str, list[str]] = {
     "article": ["author", "title", "journal", "year"],

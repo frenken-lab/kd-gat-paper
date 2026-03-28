@@ -12,7 +12,7 @@ figures: data
 	cd interactive && npm run build
 
 tables: data
-	python scripts/tables/build.py
+	python data/tables/build.py
 
 site: figures tables
 	myst build --site
@@ -21,10 +21,10 @@ dev:
 	myst start
 
 tmlr: site
-	python scripts/tmlr/build.py --output submission_folder/
+	python export/tmlr/build.py --output submission_folder/
 
 tmlr-anon: site
-	python scripts/tmlr/build.py --output submission_folder/ --anonymous
+	python export/tmlr/build.py --output submission_folder/ --anonymous
 
 # Merge submission into TMLR author kit and preview with Docker
 preview: tmlr
@@ -42,7 +42,7 @@ sync:
 	@echo "Review changes with: git diff"
 
 bib:
-	python scripts/validate_bib.py
+	python references/validate.py
 
 all: site
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate committed data files against data/schemas.yaml."""
+"""Validate committed data files against schemas.yaml."""
 
 import csv
 import json

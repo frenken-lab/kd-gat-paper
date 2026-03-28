@@ -8,7 +8,7 @@ Output uses booktabs-style pipe tables: clean header separation,
 no vertical rules in spirit (pipe tables require |), professional alignment.
 
 Usage:
-    python scripts/tables/build.py
+    python data/tables/build.py
 """
 
 from __future__ import annotations
