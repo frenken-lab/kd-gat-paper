@@ -2,7 +2,7 @@
   import Graph from 'graphology';
   import { Plot, Dot, Text, Link, Arrow, Rect } from 'svelteplot';
   import { buildGraph, addLayer, unpack, connectContainers, boundingBox } from '../../lib/diagram';
-  import Figure from '../../lib/FigureDefaults.svelte';
+  import Figure from '../../lib/Figure.svelte';
 
   const n = 5;
 

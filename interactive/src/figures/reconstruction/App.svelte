@@ -1,7 +1,8 @@
 <script>
-  import Figure from '../../lib/FigureDefaults.svelte';
+  import Figure from '../../lib/Figure.svelte';
   import { Plot, RectY, Line, Cell, RuleY, binX } from 'svelteplot';
   import { useToggleFilter } from '../../lib/useToggleFilter.svelte.js';
+  import { resolve } from '../../lib/diagram/palette.ts';
   import data from "./data.json";
 
   const isEmpty = !data?.kde;
@@ -11,6 +12,13 @@
     d => d.component,
   );
   const filteredRoc = $derived(isEmpty ? [] : data.roc.filter(d => visible[d.component]));
+
+  const componentColors = [
+    resolve('vgae').stroke,     // Node Recon
+    resolve('gat').stroke,      // CAN ID
+    resolve('dqn').stroke,      // Neighbor
+    resolve('kd').stroke,       // KL
+  ];
 </script>
 
 <Figure title="VGAE Reconstruction Error Decomposition">
@@ -28,7 +36,7 @@
       x={{ label: 'Error Value' }} y={{ label: 'Count' }}
       color={{
         domain: ['Node Recon', 'CAN ID', 'Neighbor', 'KL'],
-        range: ['#4E79A7', '#F28E2B', '#59A14F', '#E15759'],
+        range: componentColors,
         legend: true,
       }}
       fy={{ label: '' }}>
@@ -49,7 +57,7 @@
       x={{ label: 'FPR', domain: [0, 1] }} y={{ label: 'TPR', domain: [0, 1] }}
       color={{
         domain: ['Node Recon', 'CAN ID', 'Neighbor', 'KL'],
-        range: ['#4E79A7', '#F28E2B', '#59A14F', '#E15759'],
+        range: componentColors,
         legend: true,
       }}>
       <Line data={filteredRoc} x="fpr" y="tpr" stroke="component" strokeWidth={2} />

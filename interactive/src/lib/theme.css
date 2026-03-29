@@ -1,6 +1,8 @@
 /* Shared figure styles — imported by each figure's main.js */
+/* CSS custom properties injected via virtual:theme-vars.css (imported from Figure.svelte) */
+
 :root {
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
   color: #333;
 }
 
@@ -41,25 +43,35 @@ figure .toggle {
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
-  background: #f5f5f5;
+  background: transparent;
 }
 
 figure .toggle.active {
-  background: #eef;
-  opacity: 1;
+  background: var(--color-blue);
+  color: white;
+  border-radius: 25px;
+}
+
+figure .toggle.active::before {
+  content: "✓ ";
 }
 
 figure .toggle.inactive {
-  opacity: 0.4;
+  background: transparent;
+  border-radius: 25px;
 }
 
 figure .toggle.selected {
-  background: #4E79A7;
+  background: var(--color-blue);
+  border: 1px solid var(--fill-blue);
   color: white;
 }
 
 figure select {
   font-size: 12px;
+  background: transparent;
+  border: 1px solid #ccc;
+  border-radius: 4px;
 }
 
 figure .meta {

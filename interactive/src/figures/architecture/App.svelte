@@ -2,7 +2,7 @@
   import Graph from 'graphology';
   import { Plot, Dot, Text, Link, Arrow, Rect } from 'svelteplot';
   import { buildGraph, unpack } from '../../lib/diagram';
-  import Figure from '../../lib/FigureDefaults.svelte';
+  import Figure from '../../lib/Figure.svelte';
 
   // --- Input CAN bus graph ---
   const input = buildGraph({

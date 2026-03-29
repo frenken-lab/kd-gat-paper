@@ -30,5 +30,14 @@ export function useToggleFilter(getData, getKey) {
     Array.isArray(getData()) ? getData().filter((d) => visible[getKey(d)]) : [],
   );
 
-  return { visible, toggle, types, filtered };
+  return {
+    visible,
+    toggle,
+    get types() {
+      return types;
+    },
+    get filtered() {
+      return filtered;
+    },
+  };
 }

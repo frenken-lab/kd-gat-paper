@@ -1,5 +1,5 @@
 <script>
-  import Figure from '../../lib/FigureDefaults.svelte';
+  import Figure from '../../lib/Figure.svelte';
 </script>
 
 <Figure title="KD-GAT: Knowledge Distillation">

@@ -1,5 +1,5 @@
 <script>
-  import Figure from '../../lib/FigureDefaults.svelte';
+  import Figure from '../../lib/Figure.svelte';
   import { Plot, Cell, Text } from 'svelteplot';
   import data from "./data.json";
 

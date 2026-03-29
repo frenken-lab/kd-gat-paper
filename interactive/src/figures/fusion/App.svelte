@@ -1,7 +1,8 @@
 <script>
-  import Figure from '../../lib/FigureDefaults.svelte';
+  import Figure from '../../lib/Figure.svelte';
   import { Plot, RectY, RuleY, binX } from 'svelteplot';
   import { useToggleFilter } from '../../lib/useToggleFilter.svelte.js';
+  import { resolve } from '../../lib/diagram/palette.ts';
   import data from "./data.json";
 
   const isEmpty = !Array.isArray(data) || data.length === 0;
@@ -10,6 +11,9 @@
     () => isEmpty ? [] : data,
     d => d.attack_type,
   );
+
+  const normalColor = resolve('normal').stroke;
+  const attackColor = resolve('attack').stroke;
 </script>
 
 <Figure title="Bandit Fusion Weight Analysis">
@@ -24,7 +28,7 @@
     <Plot
       x={{ label: 'Fusion Weight α (0 = VGAE, 1 = GAT)' }}
       y={{ label: 'Count' }}
-      color={{ domain: ['Normal', 'Attack'], range: ['#4E79A7', '#E15759'], legend: true }}>
+      color={{ domain: ['Normal', 'Attack'], range: [normalColor, attackColor], legend: true }}>
       <RectY {...binX({ data: filtered, x: 'alpha', fill: 'attack_type' }, { y: 'count' })} />
       <RuleY data={[0]} />
     </Plot>

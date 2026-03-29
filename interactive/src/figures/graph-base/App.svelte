@@ -1,7 +1,7 @@
 <script>
   import { buildGraph, unpack } from '../../lib/diagram';
   import { Plot, Dot, Text, Link } from 'svelteplot';
-  import Figure from '../../lib/FigureDefaults.svelte';
+  import Figure from '../../lib/Figure.svelte';
 
   const n = 5;
 

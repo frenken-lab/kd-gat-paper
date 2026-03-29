@@ -1,6 +1,7 @@
 <script>
   import { setContext } from 'svelte';
   import './theme.css';
+  import 'virtual:theme-vars.css';
 
   // Global SveltePlot defaults — all figures inherit these.
   // Override per-figure by passing props to <Plot> where needed.
@@ -14,7 +15,7 @@
   let { title = '', children } = $props();
 </script>
 
-<div class="figure">
+<figure class="figure">
   {#if title}<h3>{title}</h3>{/if}
   {@render children()}
-</div>
+</figure>

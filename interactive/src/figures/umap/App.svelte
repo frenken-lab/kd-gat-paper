@@ -1,7 +1,8 @@
 <script>
-  import Figure from '../../lib/FigureDefaults.svelte';
+  import Figure from '../../lib/Figure.svelte';
   import { Plot, Dot } from 'svelteplot';
   import { useToggleFilter } from '../../lib/useToggleFilter.svelte.js';
+  import { resolve } from '../../lib/diagram/palette.ts';
   import data from "./data.json";
 
   const isEmpty = !Array.isArray(data) || data.length === 0;
@@ -10,6 +11,17 @@
     () => isEmpty ? [] : data,
     d => d.attack_type,
   );
+
+  // Map attack type labels to palette colors
+  const attackTypeColors = [
+    resolve('normal').stroke,   // Benign
+    resolve('attack').stroke,   // Dos
+    resolve('gat').stroke,      // Fuzzy
+    resolve('dqn').stroke,      // Gear
+    resolve('data').stroke,     // Rpm
+    resolve('attention').stroke, // Flooding
+    resolve('brown').stroke,    // Malfunction
+  ];
 </script>
 
 <Figure title="UMAP Projections of GAT Embeddings">
@@ -25,7 +37,7 @@
       x={{ label: 'UMAP 1' }} y={{ label: 'UMAP 2' }}
       color={{
         domain: ['Benign', 'Dos', 'Fuzzy', 'Gear', 'Rpm', 'Flooding', 'Malfunction'],
-        range: ['#4E79A7', '#E15759', '#F28E2B', '#59A14F', '#76B7B2', '#B07AA1', '#9C755F'],
+        range: attackTypeColors,
         legend: true,
       }}
       height={500}>

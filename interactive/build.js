@@ -7,14 +7,7 @@
  * index.html and main.js are generated from templates if not present,
  * so each figure only needs an App.svelte (and optional data.json).
  */
-import {
-  readdirSync,
-  existsSync,
-  renameSync,
-  rmSync,
-  writeFileSync,
-  readFileSync,
-} from "fs";
+import { readdirSync, existsSync, renameSync, rmSync, writeFileSync } from "fs";
 import { resolve } from "path";
 import { execSync } from "child_process";
 

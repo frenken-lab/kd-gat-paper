@@ -22,5 +22,8 @@ data/tables/*.md
 submission_folder/
 submission_anon/
 
+# Env files
+interactive/.env
+
 # OS
 .DS_Store

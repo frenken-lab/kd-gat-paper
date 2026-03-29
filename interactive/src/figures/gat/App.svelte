@@ -3,7 +3,7 @@
   import { path } from 'graphology-generators/classic';
   import { Plot, Dot, Text, Link, Arrow, Rect } from 'svelteplot';
   import { resolve } from '../../lib/diagram/palette.ts';
-  import Figure from '../../lib/FigureDefaults.svelte';
+  import Figure from '../../lib/Figure.svelte';
 
   // --- Build graph data ---
   const SPARSE_5 = [[186,125],[185,25],[94,67],[38,160],[129,217]];

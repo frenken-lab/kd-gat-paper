@@ -7,3 +7,8 @@ declare module "virtual:styles" {
   const styles: Styles;
   export default styles;
 }
+
+declare module "virtual:theme-vars.css" {
+  const css: string;
+  export default css;
+}

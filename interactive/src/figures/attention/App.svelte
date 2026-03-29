@@ -1,12 +1,11 @@
 <script>
-  import Figure from '../../lib/FigureDefaults.svelte';
+  import Figure from '../../lib/Figure.svelte';
   import { Plot, Arrow, Dot, Text } from 'svelteplot';
   import { useToggleFilter } from '../../lib/useToggleFilter.svelte.js';
-  import styles from 'virtual:styles';
+  import { resolve } from '../../lib/diagram/palette.ts';
   import data from "./data.json";
 
   const isEmpty = !Array.isArray(data) || data.length === 0;
-  const { palette, roles } = styles;
 
   const { visible, toggle, types, filtered } = useToggleFilter(
     () => isEmpty ? [] : data,
@@ -25,8 +24,8 @@
   const nodes = $derived(graph?.nodes || []);
   const edges = $derived((graph?.edges || []).map(e => ({ ...e, attention: e[attnKey] || 0 })));
 
-  const attackColor = palette[roles.attack];
-  const normalColor = palette[roles.normal];
+  const attackColor = resolve('attack').stroke;
+  const normalColor = resolve('normal').stroke;
 </script>
 
 <Figure title="GAT Attention Weights">
