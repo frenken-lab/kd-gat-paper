@@ -46,17 +46,26 @@ figure .toggle {
   background: transparent;
 }
 
-figure .toggle.active {
+figure .chip {
+  padding: 2px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  background: transparent;
+}
+
+figure .chip.active {
   background: var(--color-blue);
   color: white;
   border-radius: 25px;
 }
 
-figure .toggle.active::before {
+figure .chip.active::before {
   content: "✓ ";
 }
 
-figure .toggle.inactive {
+figure .chip.inactive {
   background: transparent;
   border-radius: 25px;
 }
