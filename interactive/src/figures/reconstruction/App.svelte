@@ -1,6 +1,17 @@
 <script>
   import Figure from "../../lib/Figure.svelte";
-  import { Plot, RectY, Line, Cell, RuleY, binX } from "svelteplot";
+  import {
+    Plot,
+    RectY,
+    Line,
+    Cell,
+    RuleX,
+    RuleY,
+    binX,
+    Pointer,
+    AxisX,
+    AxisY,
+  } from "svelteplot";
   import { useToggleFilter } from "../../lib/useToggleFilter.svelte.js";
   import { resolve } from "../../lib/diagram/palette.ts";
   import data from "./data.json";
@@ -35,7 +46,7 @@
     <div class="controls">
       {#each types as c}
         <button
-          class="chip"
+          class="toggle"
           class:active={visible[c]}
           class:inactive={!visible[c]}
           onclick={() => toggle(c)}>{c}</button
@@ -86,6 +97,7 @@
     <h4>Per-Component ROC</h4>
     <Plot
       height={300}
+      marginLeft={30}
       x={{ label: "FPR", domain: [0, 1] }}
       y={{ label: "TPR", domain: [0, 1] }}
       color={{
@@ -94,6 +106,8 @@
         legend: true,
       }}
     >
+      <AxisX />
+      <AxisY />
       <Line
         data={filteredRoc}
         x="fpr"
@@ -101,6 +115,14 @@
         stroke="component"
         strokeWidth={2}
       />
+      <Pointer data={filteredRoc} x="fpr" y="tpr" maxDistance={30}>
+        {#snippet children({ data })}
+          <RuleX {data} x="fpr" opacity="0.3" />
+          <RuleY {data} y="tpr" opacity="0.3" />
+          <AxisX data={data.map((d) => d.fpr)} tickFormat={(d) => d} />
+          <AxisY data={data.map((d) => d.tpr)} tickFormat={(d) => d} />
+        {/snippet}
+      </Pointer>
     </Plot>
   {/if}
 </Figure>

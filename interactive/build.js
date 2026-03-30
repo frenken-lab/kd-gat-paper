@@ -68,20 +68,23 @@ for (const fig of figures) {
   ensureIndexHtml(figDir, fig);
   ensureMainJs(figDir, fig);
 
+  // Remove stale output so the new build isn't merged with old content
+  rmSync(resolve(outDir, `${fig}.html`), { force: true });
+
   console.log(`  ${fig}...`);
   execSync(`npx vite build`, {
     cwd: import.meta.dirname,
     env: { ...process.env, FIGURE: fig },
     stdio: "inherit",
   });
-  // Vite outputs _figures/src/<name>/index.html — flatten to _figures/<name>.html
-  const nested = resolve(outDir, "src", "figures", fig, "index.html");
-  if (existsSync(nested)) {
-    renameSync(nested, resolve(outDir, `${fig}.html`));
+  // Vite writes to _figures/index.html (root-relative outDir) — rename to _figures/<name>.html
+  const rootIndexHtml = resolve(outDir, "index.html");
+  if (existsSync(rootIndexHtml)) {
+    renameSync(rootIndexHtml, resolve(outDir, `${fig}.html`));
   }
 }
 
-// Clean up empty nested dirs
-rmSync(resolve(outDir, "src"), { recursive: true, force: true });
+// Clean up any stray root index.html
+rmSync(resolve(outDir, "index.html"), { force: true });
 
 console.log("Done.");

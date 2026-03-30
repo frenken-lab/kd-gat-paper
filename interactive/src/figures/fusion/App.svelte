@@ -23,7 +23,7 @@
     <div class="controls">
       {#each types as t}
         <button
-          class="chip"
+          class="toggle"
           class:active={visible[t]}
           class:inactive={!visible[t]}
           onclick={() => toggle(t)}>{t}</button
