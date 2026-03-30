@@ -49,8 +49,8 @@ file_map:
   csv/main_results.csv: data/csv/main_results.csv
   csv/test_results.csv: data/csv/test_results.csv
   csv/vgae_threshold.csv: data/csv/vgae_threshold.csv
-  figures/umap/data.json: interactive/src/umap/data.json
-  figures/reconstruction/data.json: interactive/src/reconstruction/data.json
-  figures/fusion/data.json: interactive/src/fusion/data.json
-  figures/cka/data.json: interactive/src/cka/data.json
-  figures/attention/data.json: interactive/src/attention/data.json
+  figures/umap/data.json: interactive/src/figures/umap/data.json
+  figures/reconstruction/data.json: interactive/src/figures/reconstruction/data.json
+  figures/fusion/data.json: interactive/src/figures/fusion/data.json
+  figures/cka/data.json: interactive/src/figures/cka/data.json
+  figures/attention/data.json: interactive/src/figures/attention/data.json
