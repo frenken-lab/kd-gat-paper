@@ -12,8 +12,8 @@ __pycache__/
 
 # Interactive figure build
 interactive/node_modules/
-figures/*.html
-figures/src/
+_figures/*.html
+_figures/src/
 
 # Generated tables (from make tables)
 data/tables/*.md
@@ -21,6 +21,9 @@ data/tables/*.md
 # Build outputs
 submission_folder/
 submission_anon/
+
+# Env files
+interactive/.env
 
 # OS
 .DS_Store

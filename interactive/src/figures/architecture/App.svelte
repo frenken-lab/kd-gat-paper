@@ -1,7 +1,8 @@
 <script>
   import Graph from 'graphology';
   import { Plot, Dot, Text, Link, Arrow, Rect } from 'svelteplot';
-  import { buildGraph, unpack } from '../lib/diagram';
+  import { buildGraph, unpack } from '../../lib/diagram';
+  import Figure from '../../lib/Figure.svelte';
 
   // --- Input CAN bus graph ---
   const input = buildGraph({
@@ -61,7 +62,7 @@
   const labeledFlow = data.edges.flow.filter(e => e.label);
 </script>
 
-<div class="figure">
+<Figure>
   <Plot width={880} height={420} grid={false} axes={false} frame={false}
     x={{ domain: xDomain }} y={{ domain: yDomain }} inset={10}>
     <!-- Layer 1: Structural edges (input graph) -->
@@ -93,4 +94,4 @@
       fontSize={6} fill="#333" textAnchor="middle" dy={1}
       fontFamily="CMU Typewriter Text, monospace" />
   </Plot>
-</div>
+</Figure>

@@ -3,34 +3,88 @@
  * Build each figure as a separate vite invocation.
  * vite-plugin-singlefile requires inlineDynamicImports which is
  * incompatible with multiple rollup entry points in a single pass.
+ *
+ * index.html and main.js are generated from templates if not present,
+ * so each figure only needs an App.svelte (and optional data.json).
  */
-import { readdirSync, existsSync, renameSync, rmSync } from "fs";
+import { readdirSync, existsSync, renameSync, rmSync, writeFileSync } from "fs";
 import { resolve } from "path";
 import { execSync } from "child_process";
 
-const srcDir = resolve(import.meta.dirname, "src");
-const outDir = resolve(import.meta.dirname, "..", "figures");
+const srcDir = resolve(import.meta.dirname, "src/figures");
+const outDir = resolve(import.meta.dirname, "..", "_figures");
+
+/** Generate index.html for a figure if it doesn't already exist. */
+function ensureIndexHtml(figDir, name) {
+  const dest = resolve(figDir, "index.html");
+  if (existsSync(dest)) return;
+  // Derive a human-readable title from the directory name
+  const title = name
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+  writeFileSync(
+    dest,
+    `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>${title}</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
+`,
+  );
+  console.log(`  generated index.html for ${name}`);
+}
+
+/** Generate main.js for a figure if it doesn't already exist. */
+function ensureMainJs(figDir, name) {
+  const dest = resolve(figDir, "main.js");
+  if (existsSync(dest)) return;
+  writeFileSync(
+    dest,
+    `import { mount } from 'svelte';
+import App from './App.svelte';
+mount(App, { target: document.getElementById('app') });
+`,
+  );
+  console.log(`  generated main.js for ${name}`);
+}
+
 const figures = readdirSync(srcDir, { withFileTypes: true })
-  .filter(d => d.isDirectory() && existsSync(resolve(srcDir, d.name, "index.html")))
-  .map(d => d.name);
+  .filter(
+    (d) => d.isDirectory() && existsSync(resolve(srcDir, d.name, "App.svelte")),
+  )
+  .map((d) => d.name);
 
 console.log(`Building ${figures.length} figures: ${figures.join(", ")}`);
 
 for (const fig of figures) {
+  const figDir = resolve(srcDir, fig);
+  ensureIndexHtml(figDir, fig);
+  ensureMainJs(figDir, fig);
+
+  // Remove stale output so the new build isn't merged with old content
+  rmSync(resolve(outDir, `${fig}.html`), { force: true });
+
   console.log(`  ${fig}...`);
   execSync(`npx vite build`, {
     cwd: import.meta.dirname,
     env: { ...process.env, FIGURE: fig },
     stdio: "inherit",
   });
-  // Vite outputs figures/src/<name>/index.html — flatten to figures/<name>.html
-  const nested = resolve(outDir, "src", fig, "index.html");
-  if (existsSync(nested)) {
-    renameSync(nested, resolve(outDir, `${fig}.html`));
+  // Vite writes to _figures/index.html (root-relative outDir) — rename to _figures/<name>.html
+  const rootIndexHtml = resolve(outDir, "index.html");
+  if (existsSync(rootIndexHtml)) {
+    renameSync(rootIndexHtml, resolve(outDir, `${fig}.html`));
   }
 }
 
-// Clean up empty nested dirs
-rmSync(resolve(outDir, "src"), { recursive: true, force: true });
+// Clean up any stray root index.html
+rmSync(resolve(outDir, "index.html"), { force: true });
 
 console.log("Done.");

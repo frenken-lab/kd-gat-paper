@@ -1,7 +1,9 @@
 /* Shared figure styles — imported by each figure's main.js */
+/* CSS custom properties injected via virtual:theme-vars.css (imported from Figure.svelte) */
+
 :root {
-  font-family: system-ui, -apple-system, sans-serif;
-  color: #333;
+  font-family: var(--font-sans);
+  color: var(--utility-on-light);
 }
 
 .figure {
@@ -12,7 +14,7 @@
 .figure h3 {
   margin: 0 0 8px;
   font-size: 14px;
-  color: #333;
+  color: var(--utility-on-light);
 }
 
 .figure h4 {
@@ -41,27 +43,51 @@
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
-  background: #f5f5f5;
-}
-
-.figure .toggle.active {
-  background: #eef;
-  opacity: 1;
-}
-
-.figure .toggle.inactive {
-  opacity: 0.4;
+  background: transparent;
 }
 
 .figure .toggle.selected {
-  background: #4E79A7;
-  color: white;
+  background: var(--color-blue);
+  border: 1px solid #ccc;
+  color: var(--utility-on-dark);
+}
+
+.figure .toggle.active {
+  background: var(--color-blue);
+  color: var(--utility-on-dark);
+  border-radius: 25px;
+}
+
+.figure .toggle.active::before {
+  content: "✓ ";
+}
+
+.figure .toggle.inactive {
+  background: transparent;
+  border-radius: 25px;
 }
 
 .figure select {
   font-size: 12px;
+  background: transparent;
+  border: 1px solid #ccc;
+  border-radius: 4px;
 }
 
 .figure .meta {
   color: #666;
 }
+
+.figure .tooltip {
+  background: white;
+  background: var(--utility-surface-light);
+  border: 1px solid #ccc;
+  font-size: 12px;
+  padding: 1ex 1em;
+  border-radius: 3px;
+  line-height: 1.2;
+  box-shadow:
+    rgba(50, 50, 93, 0.25) 0px 2px 5px -1px,
+    rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
+}
+

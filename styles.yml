@@ -1,0 +1,61 @@
+# Shared style definitions for all figures (Svelte, TikZ, Graphviz)
+# Source of truth for colors, fonts, and semantic role mapping.
+#
+# Palette: Observable 10 (Tableau-derived, colorblind-friendly)
+# https://observablehq.com/@d3/color-schemes
+
+palette:
+  # Full Observable 10 palette
+  blue: "#4E79A7"
+  orange: "#F28E2B"
+  green: "#59A14F"
+  red: "#E15759"
+  teal: "#76B7B2"
+  purple: "#B07AA1"
+  pink: "#FF9DA7"
+  brown: "#9C755F"
+  yellow: "#EDC948"
+  grey: "#BAB0AC"
+
+# Semantic roles → palette colors
+roles:
+  vgae: blue # Stage 1: VGAE / unsupervised
+  gat: orange # Stage 2: GAT / supervised
+  dqn: green # Stage 3: DQN fusion
+  kd: red # Knowledge distillation
+  data: teal # Input/output data
+  normal: blue # Normal traffic class
+  attack: red # Attack traffic class
+  attention: purple # Attention mechanism (scores, weights)
+
+# Light fills (for node backgrounds in diagrams)
+# 15% opacity of the base color over white
+fills:
+  blue: "#DAE3EF"
+  orange: "#FDE8D0"
+  green: "#D7E8D3"
+  red: "#F8D3D4"
+  teal: "#D9EDEB"
+  purple: "#E6D9E1"
+
+fonts:
+  serif: "CMU Serif" # Graphviz / PDF diagrams
+  sans: "system-ui, -apple-system, sans-serif" # Svelte / web figures
+  mono: "CMU Typewriter Text"
+
+# Node sizes (Graphviz inches)
+sizes:
+  small: 0.30
+  medium: 0.60
+  large: 1.20
+
+# Default gap between components in composition
+layout:
+  gap: 1.5 # horizontal gap between components
+
+# Utility colors
+utility:
+  surface-light: "#FFFFFF"
+  on-light: "#333333"
+  surface-dark: "#666666"
+  on-dark: "#FFFFFF"
