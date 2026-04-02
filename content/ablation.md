@@ -17,7 +17,7 @@ _Awaiting data export for Knowledge Distillation ablation table._
 
 To further characterize how knowledge transfers between teacher and student networks, we compute Centered Kernel Alignment (CKA) between all pairs of teacher and student layers. High CKA values indicate that corresponding layers learn similar representations despite the $20\times$ parameter reduction.
 
-:::{iframe} https://robertfrenken.github.io/kd-gat-paper/assets/html/submission/cka.html
+:::{iframe} https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/cka.html
 :label: fig-cka
 :width: 100%
 CKA similarity between teacher and student GAT layers. Hover for exact values.

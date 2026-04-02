@@ -46,7 +46,7 @@ KD-GAT eval artifacts
   → validate_data.py (checks schemas.yaml) → data/csv/ + interactive/src/*/data.json
   → npm run build → _build/figures/*.html
   → myst build → _build/ → curvenote deploy → rob.curve.space
-                          → GitHub Pages (figures only) → robertfrenken.github.io/kd-gat-paper/
+                          → GitHub Pages (figures only) → frenken-lab.github.io/kd-gat-paper/
   → export/tmlr/build.py (reads _build/site/ AST) → _build/submission/ (self-contained)
 ```
 
