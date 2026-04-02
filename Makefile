@@ -1,12 +1,10 @@
 .PHONY: data validate figures figures-static tables site dev candidacy-site candidacy-dev candidacy-pdf tmlr tmlr-anon preview deploy sync bib all clean
 
-SYNC := python ~/KD-GAT/scripts/data/paper_sync.py
-
 data:
-	$(SYNC) pull --schema data/schemas.yaml
+	uv run --with huggingface_hub --with pandas --with pyarrow --with pyyaml python data/pull_data.py
 
 validate:
-	$(SYNC) validate --schema data/schemas.yaml
+	python data/validate.py
 
 figures: data
 	cd interactive && npm run build

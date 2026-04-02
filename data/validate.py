@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Validate committed data files against schemas.yaml."""
+"""Validate committed data files against schemas.yaml.
+
+Usage:
+    python data/validate.py
+"""
 
 import csv
 import json
@@ -10,6 +14,11 @@ import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 SCHEMA_PATH = ROOT / "data" / "schemas.yaml"
+
+
+def load_schemas() -> dict:
+    with open(SCHEMA_PATH) as f:
+        return yaml.safe_load(f)
 
 
 def validate_csv(name: str, spec: dict) -> list[str]:
@@ -29,9 +38,9 @@ def validate_csv(name: str, spec: dict) -> list[str]:
     return errors
 
 
-def validate_json(name: str, spec: dict) -> list[str]:
+def validate_json(name: str, spec: dict, schemas: dict) -> list[str]:
     file_map = schemas.get("file_map", {})
-    rel = file_map.get(f"figures/{name}/data.json", f"interactive/src/{name}/data.json")
+    rel = file_map.get(f"figures/{name}/data.json", f"interactive/src/figures/{name}/data.json")
     path = ROOT / rel
     if not path.exists():
         return [f"JSON {name}: file not found at {rel}"]
@@ -57,21 +66,22 @@ def validate_json(name: str, spec: dict) -> list[str]:
     return errors
 
 
-if __name__ == "__main__":
-    if not SCHEMA_PATH.exists():
-        print(f"Schema file not found: {SCHEMA_PATH}")
-        sys.exit(1)
-
-    with open(SCHEMA_PATH) as f:
-        schemas = yaml.safe_load(f)
+def validate_all(schemas: dict | None = None) -> list[str]:
+    """Validate all data files against schemas.yaml. Returns list of errors."""
+    if schemas is None:
+        schemas = load_schemas()
 
     errors: list[str] = []
-
     for name, spec in schemas.get("csv", {}).items():
         errors.extend(validate_csv(name, spec))
-
     for name, spec in schemas.get("json", {}).items():
-        errors.extend(validate_json(name, spec))
+        errors.extend(validate_json(name, spec, schemas))
+    return errors
+
+
+if __name__ == "__main__":
+    schemas = load_schemas()
+    errors = validate_all(schemas)
 
     if errors:
         for e in errors:

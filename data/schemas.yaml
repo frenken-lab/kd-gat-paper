@@ -45,6 +45,16 @@ json:
     min_items: 1
     # nodes have pre-computed x, y from force layout
 
+# Input schema — expected columns in HF parquet files (buckeyeguy/GraphIDS).
+# Read by: pull_data.py (this repo) for input validation at pull time.
+input:
+  metrics.parquet:
+    columns: [run_id, model, accuracy, precision, recall, f1, auc, specificity, mcc]
+  embeddings.parquet:
+    columns: [run_id, model, x, y, label]
+  cka_similarity.parquet:
+    columns: [run_id, teacher_layer, student_layer, similarity]
+
 file_map:
   csv/main_results.csv: data/csv/main_results.csv
   csv/test_results.csv: data/csv/test_results.csv

@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      - run: pip install pyyaml "bibtexparser>=2.0.0b7"
+      - run: pip install pyyaml bibtexparser==2.0.0b9
       - run: python data/validate.py
       - run: python references/validate.py
 
@@ -50,9 +50,11 @@ jobs:
       - uses: actions/download-artifact@v4
         with: { name: figures, path: _build/figures/ }
 
-      - run: pip install pyyaml tabulate
+      - run: pip install pyyaml tabulate pandas
+      - name: Build tables
+        run: python data/tables/build.py
       - name: Build MyST AST
-        run: npm install -g mystmd && myst build --site
+        run: npm install -g mystmd@1.8.3 && myst build --site
       - name: Build TMLR submission (public)
         run: python export/tmlr/build.py --output _build/submission/
       - name: Merge with TMLR author kit
@@ -106,11 +108,16 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: "22" }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
       - uses: actions/download-artifact@v4
         with: { name: figures, path: _build/figures/ }
+      - run: pip install pyyaml tabulate pandas
       - uses: typst-community/setup-typst@v4
       - name: Build candidacy PDF
-        run: npm install -g mystmd && myst build --pdf --config myst.candidacy.yml
+        run: |
+          python data/tables/build.py
+          npm install -g mystmd@1.8.3 && myst build --pdf --config myst.candidacy.yml
       - uses: actions/upload-artifact@v4
         with: { name: candidacy-pdf, path: _build/exports/candidacy-report.pdf }
 
@@ -124,6 +131,9 @@ jobs:
         with: { node-version: "22" }
       - uses: actions/download-artifact@v4
         with: { name: figures, path: _build/figures/ }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install pyyaml tabulate pandas
       - uses: typst-community/setup-typst@v4
       - name: Deploy candidacy to curve.space
         env:
@@ -131,7 +141,8 @@ jobs:
         run: |
           cp myst.yml myst.yml.paper
           cp myst.candidacy.yml myst.yml
-          npm install -g mystmd
+          trap 'mv myst.yml.paper myst.yml' EXIT
+          python data/tables/build.py
+          npm install -g mystmd@1.8.3
           myst build --pdf
-          npx -y curvenote deploy --yes
-          mv myst.yml.paper myst.yml
+          npx -y curvenote@0.14.3 deploy --yes
