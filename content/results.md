@@ -13,14 +13,14 @@ Our approach demonstrates consistent improvements across all datasets, with part
 :::{table} Test Performance on HCRL Car-Hacking Dataset
 :label: tbl-main-results
 
-```{include} ../data/tables/main_results.md
+```{include} ../_build/tables/main_results.md
 ```
 :::
 
 :::{table} Cross-Scenario Test Results
 :label: tbl-test-scenarios
 
-```{include} ../data/tables/test_scenarios.md
+```{include} ../_build/tables/test_scenarios.md
 ```
 :::
 

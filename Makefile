@@ -1,4 +1,4 @@
-.PHONY: data validate figures tables site dev tmlr tmlr-anon preview deploy sync bib all clean
+.PHONY: data validate figures figures-static tables site dev tmlr tmlr-anon preview deploy sync bib all clean
 
 SYNC := python ~/KD-GAT/scripts/data/paper_sync.py
 
@@ -11,6 +11,9 @@ validate:
 figures: data
 	cd interactive && npm run build
 
+figures-static: figures
+	node export/pdf/extract-svg.js
+
 tables: data
 	python data/tables/build.py
 
@@ -21,20 +24,20 @@ dev:
 	myst start
 
 tmlr: site
-	python export/tmlr/build.py --output submission_folder/
+	python export/tmlr/build.py --output _build/submission/
 
 tmlr-anon: site
-	python export/tmlr/build.py --output submission_folder/ --anonymous
+	python export/tmlr/build.py --output _build/submission/ --anonymous
 
 # Merge submission into TMLR author kit and preview with Docker
 preview: tmlr
-	cp submission_folder/submission.md tmlr_do_not_modify/_under_review/submission.md
-	cp -r submission_folder/assets/* tmlr_do_not_modify/assets/ 2>/dev/null || true
+	cp _build/submission/submission.md tmlr_do_not_modify/_under_review/submission.md
+	cp -r _build/submission/assets/* tmlr_do_not_modify/assets/ 2>/dev/null || true
 	cd tmlr_do_not_modify && bash ./bin/docker_run.sh
 
 deploy: tmlr
-	cp submission_folder/submission.md tmlr_do_not_modify/_under_review/submission.md
-	cp -r submission_folder/assets/* tmlr_do_not_modify/assets/ 2>/dev/null || true
+	cp _build/submission/submission.md tmlr_do_not_modify/_under_review/submission.md
+	cp -r _build/submission/assets/* tmlr_do_not_modify/assets/ 2>/dev/null || true
 	@echo "Push to main to deploy via GitHub Pages"
 
 sync:
@@ -47,5 +50,4 @@ bib:
 all: site
 
 clean:
-	rm -rf _build submission_folder submission_anon figures/*.html
-	find data/tables -name '*.md' -delete 2>/dev/null || true
+	rm -rf _build

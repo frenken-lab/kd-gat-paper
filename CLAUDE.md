@@ -20,7 +20,7 @@ MyST paper: "Adaptive Fusion of Graph-Based Ensembles for Automotive IDS". Deplo
 ```bash
 make data          # Pull from ESS + validate against schemas.yaml
 make validate      # Validate committed data only (no ESS, used in CI)
-make figures       # cd interactive && npm run build → _figures/*.html
+make figures       # cd interactive && npm run build → _build/figures/*.html
 make tables        # Build markdown tables from CSV + spec.yaml
 make site          # myst build (depends on figures + tables)
 make dev           # myst start (live reload)
@@ -37,10 +37,10 @@ make all           # data → figures → tables → site
 KD-GAT eval artifacts
   → export_paper_data.py → ESS exports/paper/ (_manifest.json + _provenance.json)
   → validate_data.py (checks schemas.yaml) → data/csv/ + interactive/src/*/data.json
-  → npm run build → _figures/*.html
+  → npm run build → _build/figures/*.html
   → myst build → _build/ → curvenote deploy → rob.curve.space
                           → GitHub Pages (figures only) → robertfrenken.github.io/kd-gat-paper/
-  → export/tmlr/build.py (reads _build/site/ AST) → submission_folder/ (self-contained)
+  → export/tmlr/build.py (reads _build/site/ AST) → _build/submission/ (self-contained)
 ```
 
 ## Deployment
@@ -62,7 +62,7 @@ curve.space is an SPA that can't serve static HTML files. Figures require iframe
 
 - `data/tables/spec.yaml` defines table specs: source CSV, columns, formatting, sort order, literature baselines
 - `data/csv/literature_baselines.csv` holds comparison metrics with citation keys
-- `data/tables/build.py` renders to `data/tables/*.md` — baselines first, user models **bolded** at bottom
+- `data/tables/build.py` renders to `_build/tables/*.md` — baselines first, user models **bolded** at bottom
 - Content files use `{include}` directives to pull in generated tables
 
 ## Interactive Figure Convention
@@ -89,7 +89,7 @@ curve.space is an SPA that can't serve static HTML files. Figures require iframe
 
 - Don't compute derived data in figure components. Move transforms to the export script.
 - Don't import D3 or other chart libraries. SveltePlot only for interactive figures.
-- Don't edit `_build/`, `_figures/*.html`, or `data/tables/*.md` — generated output.
+- Don't edit `_build/` — all generated output (figures, tables, submission) lives there.
 - Don't hardcode schemas — validation reads `data/schemas.yaml`.
 - Don't hardcode colors in diagrams — use role names (`vgae`, `gat`, `kd`) that resolve via `resolve()` from the palette.
 - Don't put `<script>` tags in MyST page content — curve.space's SPA strips them.

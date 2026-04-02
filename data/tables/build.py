@@ -21,7 +21,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 SPEC_PATH = ROOT / "data" / "tables" / "spec.yaml"
-OUT_DIR = ROOT / "data" / "tables"
+OUT_DIR = ROOT / "_build" / "tables"
 
 
 def load_csv(path: Path) -> list[dict]:
@@ -145,6 +145,7 @@ def build_table(name: str, spec: dict) -> None:
 
 
 def main() -> None:
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
     spec = yaml.safe_load(SPEC_PATH.read_text())
     print("Building tables from spec...")
     for name, table_spec in spec.items():

@@ -35,7 +35,7 @@ jobs:
         with: { node-version: "22" }
       - run: cd interactive && npm ci && npm run build
       - uses: actions/upload-artifact@v4
-        with: { name: figures, path: "_figures/*.html" }
+        with: { name: figures, path: "_build/figures/*.html" }
 
   build:
     runs-on: ubuntu-latest
@@ -47,7 +47,7 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - uses: actions/download-artifact@v4
-        with: { name: figures, path: _figures/ }
+        with: { name: figures, path: _build/figures/ }
 
       - run: pip install pyyaml tabulate
 
@@ -57,22 +57,22 @@ jobs:
 
       # Build public site (with author names)
       - name: Build site
-        run: python export/tmlr/build.py --output submission_folder/
+        run: python export/tmlr/build.py --output _build/submission/
 
       # Merge into author kit for Jekyll
       - name: Merge with TMLR author kit
         run: |
-          cp submission_folder/submission.md tmlr_do_not_modify/_under_review/submission.md
-          cp -r submission_folder/assets/* tmlr_do_not_modify/assets/ 2>/dev/null || true
+          cp _build/submission/submission.md tmlr_do_not_modify/_under_review/submission.md
+          cp -r _build/submission/assets/* tmlr_do_not_modify/assets/ 2>/dev/null || true
 
       # Build anonymous submission artifact
       - name: Build anonymous submission
         if: github.ref == 'refs/heads/main'
-        run: python export/tmlr/build.py --output submission_anon/ --anonymous
+        run: python export/tmlr/build.py --output _build/submission_anon/ --anonymous
 
       - uses: actions/upload-artifact@v4
         if: github.ref == 'refs/heads/main'
-        with: { name: tmlr-submission, path: submission_anon/ }
+        with: { name: tmlr-submission, path: _build/submission_anon/ }
 
   deploy:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -84,7 +84,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
-        with: { name: figures, path: _figures/ }
+        with: { name: figures, path: _build/figures/ }
 
       - uses: actions/setup-node@v4
         with: { node-version: "22" }
@@ -96,13 +96,13 @@ jobs:
       - name: Build MyST AST
         run: npm install -g mystmd && myst build --site
       - name: Build Distill site
-        run: python export/tmlr/build.py --output submission_folder/
+        run: python export/tmlr/build.py --output _build/submission/
 
       # Merge into author kit
       - name: Merge with TMLR author kit
         run: |
-          cp submission_folder/submission.md tmlr_do_not_modify/_under_review/submission.md
-          cp -r submission_folder/assets/* tmlr_do_not_modify/assets/ 2>/dev/null || true
+          cp _build/submission/submission.md tmlr_do_not_modify/_under_review/submission.md
+          cp -r _build/submission/assets/* tmlr_do_not_modify/assets/ 2>/dev/null || true
 
       # Build Jekyll
       - uses: ruby/setup-ruby@v1

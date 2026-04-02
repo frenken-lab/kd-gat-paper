@@ -64,7 +64,7 @@ export default defineConfig(({ command, mode }) => {
     ],
     root: figure ? resolve(__dirname, "src", "figures", figure) : __dirname,
     build: {
-      outDir: resolve(__dirname, "../_figures"),
+      outDir: resolve(__dirname, "../_build/figures"),
       emptyOutDir: false,
       rollupOptions: {
         input: resolve(__dirname, "src", "figures", figure, "index.html"),

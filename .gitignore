@@ -10,17 +10,8 @@ __pycache__/
 .ipynb_checkpoints/
 .ruff_cache/
 
-# Interactive figure build
+# Node (interactive figures)
 interactive/node_modules/
-_figures/*.html
-_figures/src/
-
-# Generated tables (from make tables)
-data/tables/*.md
-
-# Build outputs
-submission_folder/
-submission_anon/
 
 # Env files
 interactive/.env

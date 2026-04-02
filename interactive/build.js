@@ -12,7 +12,7 @@ import { resolve } from "path";
 import { execSync } from "child_process";
 
 const srcDir = resolve(import.meta.dirname, "src/figures");
-const outDir = resolve(import.meta.dirname, "..", "_figures");
+const outDir = resolve(import.meta.dirname, "..", "_build", "figures");
 
 /** Generate index.html for a figure if it doesn't already exist. */
 function ensureIndexHtml(figDir, name) {

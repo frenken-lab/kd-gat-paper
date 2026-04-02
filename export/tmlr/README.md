@@ -23,12 +23,12 @@ make tmlr-anon     # Build anonymous submission
 4. Builds TOC from `##`/`###` headers
 5. Reads abstract/authors/title from AST frontmatter (not source files)
 6. Generates TMLR frontmatter (`layout: distill`, `htmlwidgets: true`)
-7. Copies assets: `_figures/*.html` → `assets/html/submission/`, `references/*.bib` (concatenated) → `assets/bibliography/submission.bib`
+7. Copies assets: `_build/figures/*.html` → `assets/html/submission/`, `references/*.bib` (concatenated) → `assets/bibliography/submission.bib`
 
 ## Output Structure
 
 ```
-submission_folder/
+_build/submission/
 ├── submission.md
 └── assets/
     ├── img/submission/

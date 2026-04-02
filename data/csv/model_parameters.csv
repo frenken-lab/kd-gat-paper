@@ -1,0 +1,6 @@
+parameter,autoencoder_teacher,autoencoder_student,classifier_teacher,classifier_student
+Layers,3,2,5,2
+Attn. heads,4,2,8,4
+Hidden ch.,32,16,32,16
+Loss fn.,BCE,KL Div.,BCE,KL Div.
+Tot. param.,184K,87K,3.56M,55K
