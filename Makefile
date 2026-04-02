@@ -23,6 +23,12 @@ site: figures tables
 dev:
 	myst start
 
+candidacy-site: figures tables
+	myst build --site --config myst.candidacy.yml
+
+candidacy-dev:
+	myst start --config myst.candidacy.yml
+
 tmlr: site
 	python export/tmlr/build.py --output _build/submission/
 

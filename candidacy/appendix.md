@@ -2,6 +2,7 @@
 title: "Appendix"
 ---
 
+(app:pinn-physics)=
 ## Appendix: Physics Constraints
 
 **Vehicle Dynamics Model:**

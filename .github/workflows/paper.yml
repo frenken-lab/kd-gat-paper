@@ -119,3 +119,12 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Deploy candidacy to curve.space
+        env:
+          CURVENOTE_TOKEN: ${{ secrets.CURVENOTE_TOKEN }}
+        run: |
+          cp myst.yml myst.yml.paper
+          cp myst.candidacy.yml myst.yml
+          npx -y curvenote deploy --yes
+          mv myst.yml.paper myst.yml

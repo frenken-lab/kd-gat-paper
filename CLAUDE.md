@@ -1,6 +1,11 @@
 # kd-gat-paper
 
-MyST paper: "Adaptive Fusion of Graph-Based Ensembles for Automotive IDS". Deployed to rob.curve.space.
+MyST paper: "Adaptive Fusion of Graph-Based Ensembles for Automotive IDS". Two build targets from the same source tree:
+
+- **Paper** (`myst.yml`): TMLR submission → GitHub Pages via Jekyll
+- **Candidacy** (`myst.candidacy.yml`): Superset report → rob.curve.space via `curvenote deploy`
+
+The candidacy TOC includes all paper content plus `candidacy/` extensions (merged introduction, CWD background, proposed research, broader impact, PINN appendix). Both builds share figures, tables, and references.
 
 ## Tech Stack
 
@@ -26,6 +31,8 @@ make site          # myst build (depends on figures + tables)
 make dev           # myst start (live reload)
 make tmlr          # Convert to TMLR Beyond PDF submission
 make deploy        # Deploy to rob.curve.space (depends on site)
+make candidacy-site # myst build --config myst.candidacy.yml (superset)
+make candidacy-dev  # myst start --config myst.candidacy.yml (live reload)
 make sync          # Pull Curvenote editor changes into repo
 make bib           # Validate references/*.bib
 make all           # data → figures → tables → site
@@ -47,12 +54,12 @@ KD-GAT eval artifacts
 
 | Target               | What                                      | How                                                |
 | -------------------- | ----------------------------------------- | -------------------------------------------------- |
-| **rob.curve.space**  | Paper content (MyST SPA)                  | `curvenote deploy` in CI                           |
-| **GitHub Pages**     | Interactive figures (iframe src)          | `deploy-pages` in CI                               |
+| **rob.curve.space**  | Candidacy report (MyST SPA, superset)     | `curvenote deploy` in CI (config-swap to `myst.candidacy.yml`) |
+| **GitHub Pages**     | TMLR Distill site + figures (iframe src)  | Jekyll build + `deploy-pages` in CI                |
 | **TMLR submission**  | Self-contained folder (anonymous)         | `export/tmlr/build.py` in CI, uploaded as artifact |
 | **Curvenote editor** | Edit on web → `make sync` to pull changes | Manual (`curvenote pull`)                          |
 
-curve.space is an SPA that can't serve static HTML files. Figures require iframe isolation (Svelte apps need `<script>` execution). GitHub Pages hosts the figure HTML files; iframes in the paper point there. The TMLR build rewrites all iframe paths to `assets/html/submission/` — no external URLs leak into the anonymous submission.
+curve.space is an SPA that can't serve static HTML files. Figures require iframe isolation (Svelte apps need `<script>` execution). Content files use absolute GitHub Pages URLs for iframes; the TMLR build rewrites all iframe paths to `assets/html/submission/` via `_h_iframe` (extracts filename, rebuilds as relative) — no external URLs leak into the anonymous submission. `curvenote deploy` doesn't support `--config`, so CI swaps `myst.candidacy.yml` into `myst.yml` before deploying to curve.space.
 
 ## Schema Convention
 
