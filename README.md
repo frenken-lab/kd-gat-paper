@@ -1,12 +1,21 @@
 # Adaptive Fusion of Graph-Based Ensembles for Automotive IDS
 
-MyST Markdown paper with interactive SveltePlot figures. Deployed to [rob.curve.space](https://rob.curve.space).
+MyST Markdown paper with interactive SveltePlot figures. Three build targets from the same source tree:
+
+| Target | Config | Output | Deployed to |
+|--------|--------|--------|-------------|
+| **Paper** | `myst.yml` | TMLR Distill-layout site | [GitHub Pages](https://frenken-lab.github.io/kd-gat-paper/) |
+| **Candidacy** | `myst.candidacy.yml` | Superset report (web) | [rob.curve.space](https://rob.curve.space) |
+| **Candidacy PDF** | `myst.candidacy.yml` | Typst book (US letter) | CI artifact download |
+
+The candidacy build includes all paper content plus extended sections (introduction, CWD background, proposed research, broader impact, physics appendix).
 
 ## Repository Structure
 
 ```
 kd-gat-paper/
-  content/             Paper sections (MyST Markdown)
+  content/             Shared paper sections (MyST Markdown, used by both builds)
+  candidacy/           Candidacy-only content + combined page wrappers
   interactive/         Svelte figure source code + diagram library
   data/                Source CSVs, validation schemas, table build script
   references/          BibTeX files (topic-split) + validation
@@ -16,6 +25,7 @@ kd-gat-paper/
   _build/              All generated output (gitignored)
     figures/              Built HTML figures (one per interactive)
     tables/               Rendered markdown tables
+    exports/              PDF exports (candidacy-report.pdf)
     submission/           TMLR submission (submission.md + assets)
     site/                 MyST site AST and HTML
 ```
@@ -36,11 +46,18 @@ references/   data/csv/   interactive/src/
            v
        myst build --> _build/site/
            |
-           v
-       export/tmlr/build.py --> _build/submission/
-           |
-           v
-       tmlr_do_not_modify/ (receives submission for Jekyll build)
+      +----+----+
+      |         |
+      v         v
+  export/   myst build --pdf
+  tmlr/        --> _build/exports/candidacy-report.pdf
+  build.py
+      |
+      v
+  _build/submission/
+      |
+      v
+  tmlr_do_not_modify/ (receives submission for Jekyll build)
 ```
 
 ## Quick Start
@@ -54,17 +71,29 @@ pip install pyyaml tabulate    # Python build deps
 ## Commands
 
 ```bash
-make data       # Pull data from KD-GAT exports + validate
-make validate   # Validate committed data only (no pull, used in CI)
-make figures    # Build interactive figures --> _build/figures/*.html
-make tables     # Build markdown tables    --> _build/tables/*.md
-make site       # Build MyST site (depends on figures + tables)
-make dev        # Live-reload dev server
-make tmlr       # Build TMLR Beyond PDF submission
-make deploy     # Merge submission into TMLR author kit
-make bib        # Validate bibliography
-make all        # data --> figures --> tables --> site
-make clean      # rm -rf _build
+# Paper build
+make site           # Build MyST paper site (depends on figures + tables)
+make dev            # Live-reload dev server
+make tmlr           # Build TMLR Beyond PDF submission
+make tmlr-anon      # Build anonymous TMLR submission
+
+# Candidacy build
+make candidacy-site # Build candidacy report site
+make candidacy-dev  # Live-reload candidacy dev server
+make candidacy-pdf  # Build Typst PDF --> _build/exports/candidacy-report.pdf
+
+# Data + assets
+make data           # Pull data from KD-GAT exports + validate
+make validate       # Validate committed data only (no pull, used in CI)
+make figures        # Build interactive figures --> _build/figures/*.html
+make tables         # Build markdown tables --> _build/tables/*.md
+make bib            # Validate bibliography
+
+# Meta
+make all            # data --> figures --> tables --> site
+make clean          # rm -rf _build
+make sync           # Pull Curvenote editor changes
+make deploy         # Merge submission into TMLR author kit
 ```
 
 ## Developing Interactive Figures
@@ -104,7 +133,7 @@ Each build produces a single self-contained HTML file (JS + CSS + data inlined v
 
 ## Data Pipeline
 
-Data flows from the [KD-GAT](https://github.com/robertfrenken/KD-GAT) evaluation artifacts:
+Data flows from the [KD-GAT](https://github.com/frenken-lab/KD-GAT) evaluation artifacts:
 
 1. `export_paper_data.py` (in KD-GAT) exports to ESS with provenance tracking
 2. `make data` pulls exports, validates against `data/schemas.yaml`, writes to `data/csv/` and `interactive/src/*/data.json`
@@ -118,8 +147,21 @@ Data flows from the [KD-GAT](https://github.com/robertfrenken/KD-GAT) evaluation
 
 | Target | What | How |
 |--------|------|-----|
-| [rob.curve.space](https://rob.curve.space) | Paper (MyST SPA) | `curvenote deploy` in CI |
-| GitHub Pages | Interactive figures (iframe src) | `deploy-pages` in CI |
+| [GitHub Pages](https://frenken-lab.github.io/kd-gat-paper/) | TMLR Distill site + figures (iframe src) | Jekyll build + `deploy-pages` in CI |
+| [rob.curve.space](https://rob.curve.space) | Candidacy report (MyST SPA) | `curvenote deploy` in CI |
 | TMLR submission | Anonymous self-contained folder | `export/tmlr/build.py`, uploaded as CI artifact |
+| Candidacy PDF | Typst book with page numbers | `myst build --pdf`, uploaded as CI artifact |
 
 Figures require iframe isolation (Svelte apps need `<script>` execution) and curve.space's SPA can't serve static HTML, so GitHub Pages hosts the figure files separately. The TMLR build rewrites all iframe paths to `assets/html/submission/` so no external URLs leak into the anonymous submission.
+
+## CI Pipeline
+
+```
+validate (schemas + bib)
+  └─ figures (Svelte build)
+       ├─ tmlr (MyST → Distill → Jekyll → GitHub Pages)
+       ├─ candidacy-pdf (MyST → Typst → artifact)
+       └─ candidacy-site (MyST → Curvenote → curve.space)
+```
+
+All jobs run on `ubuntu-latest`. Figures are shared across downstream jobs via artifacts.

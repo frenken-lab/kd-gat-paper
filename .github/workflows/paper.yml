@@ -32,11 +32,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: "22" }
+        with: { node-version: "22", cache: npm, cache-dependency-path: interactive/package-lock.json }
       - run: cd interactive && npm ci && npm run build
       - uses: actions/upload-artifact@v4
         with: { name: figures, path: "_build/figures/*.html" }
 
+  # Build MyST site AST + TMLR exports (shared by deploy-pages and tmlr-submission)
   build:
     runs-on: ubuntu-latest
     needs: figures
@@ -45,36 +46,35 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: "22" }
       - uses: actions/setup-python@v5
-        with: { python-version: "3.12" }
+        with: { python-version: "3.12", cache: pip }
       - uses: actions/download-artifact@v4
         with: { name: figures, path: _build/figures/ }
 
       - run: pip install pyyaml tabulate
-
-      # Build MyST site AST (needed by TMLR serializer)
       - name: Build MyST AST
         run: npm install -g mystmd && myst build --site
-
-      # Build public site (with author names)
-      - name: Build site
+      - name: Build TMLR submission (public)
         run: python export/tmlr/build.py --output _build/submission/
-
-      # Merge into author kit for Jekyll
       - name: Merge with TMLR author kit
         run: |
           cp _build/submission/submission.md tmlr_do_not_modify/_under_review/submission.md
           cp -r _build/submission/assets/* tmlr_do_not_modify/assets/ 2>/dev/null || true
 
       # Build anonymous submission artifact
-      - name: Build anonymous submission
+      - name: Build TMLR submission (anonymous)
         if: github.ref == 'refs/heads/main'
         run: python export/tmlr/build.py --output _build/submission_anon/ --anonymous
-
       - uses: actions/upload-artifact@v4
         if: github.ref == 'refs/heads/main'
         with: { name: tmlr-submission, path: _build/submission_anon/ }
 
-  deploy:
+      # Upload merged author kit for deploy-pages
+      - uses: actions/upload-artifact@v4
+        with: { name: tmlr-site, path: tmlr_do_not_modify/ }
+
+  # ---- Deploy jobs (main branch only, run in parallel) ----
+
+  deploy-pages:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     needs: build
@@ -82,29 +82,8 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
-        with: { name: figures, path: _build/figures/ }
-
-      - uses: actions/setup-node@v4
-        with: { node-version: "22" }
-      - uses: actions/setup-python@v5
-        with: { python-version: "3.12" }
-      - run: pip install pyyaml tabulate
-
-      # Build MyST AST → Distill markdown
-      - name: Build MyST AST
-        run: npm install -g mystmd && myst build --site
-      - name: Build Distill site
-        run: python export/tmlr/build.py --output _build/submission/
-
-      # Merge into author kit
-      - name: Merge with TMLR author kit
-        run: |
-          cp _build/submission/submission.md tmlr_do_not_modify/_under_review/submission.md
-          cp -r _build/submission/assets/* tmlr_do_not_modify/assets/ 2>/dev/null || true
-
-      # Build Jekyll
+        with: { name: tmlr-site, path: tmlr_do_not_modify/ }
       - uses: ruby/setup-ruby@v1
         with: { ruby-version: "3.2" }
       - name: Build Jekyll site
@@ -112,7 +91,6 @@ jobs:
           cd tmlr_do_not_modify
           bundle install
           bundle exec jekyll build --baseurl "/kd-gat-paper"
-
       - uses: actions/configure-pages@v4
       - uses: actions/upload-pages-artifact@v3
         with: { path: tmlr_do_not_modify/_site/ }
@@ -120,16 +98,35 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
-      # Build candidacy PDF
+  candidacy-pdf:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    needs: figures
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - uses: actions/download-artifact@v4
+        with: { name: figures, path: _build/figures/ }
       - name: Install Typst
         run: |
           curl -fsSL https://typst.community/typst-install/install.sh | sh
           echo "$HOME/.local/bin" >> $GITHUB_PATH
       - name: Build candidacy PDF
-        run: myst build --pdf --config myst.candidacy.yml
+        run: npm install -g mystmd && myst build --pdf --config myst.candidacy.yml
       - uses: actions/upload-artifact@v4
         with: { name: candidacy-pdf, path: _build/exports/candidacy-report.pdf }
 
+  candidacy-site:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    needs: figures
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - uses: actions/download-artifact@v4
+        with: { name: figures, path: _build/figures/ }
       - name: Deploy candidacy to curve.space
         env:
           CURVENOTE_TOKEN: ${{ secrets.CURVENOTE_TOKEN }}
