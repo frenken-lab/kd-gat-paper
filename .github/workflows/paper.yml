@@ -120,6 +120,16 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
+      # Build candidacy PDF
+      - name: Install Typst
+        run: |
+          curl -fsSL https://typst.community/typst-install/install.sh | sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+      - name: Build candidacy PDF
+        run: myst build --pdf --config myst.candidacy.yml
+      - uses: actions/upload-artifact@v4
+        with: { name: candidacy-pdf, path: _build/exports/candidacy-report.pdf }
+
       - name: Deploy candidacy to curve.space
         env:
           CURVENOTE_TOKEN: ${{ secrets.CURVENOTE_TOKEN }}
