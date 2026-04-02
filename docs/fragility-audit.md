@@ -1,41 +1,42 @@
 # Fragility Audit — kd-gat-paper
 
-Audited: 2026-04-02
+Audited: 2026-04-02 (references updated 2026-04-02)
 
 ## Summary
 
 | Area | Rating | Status | Primary Risk |
 |---|---|---|---|
-| Data Pipeline | **HIGH** | broken | ESS data lake in flux; `~/KD-GAT` export path broken; HF bucket considered |
-| TMLR Export | **HIGH** | partially fixed | AST coupling fragile; `mystmd` now pinned |
+| Data Pipeline | **HIGH** | partially fixed | ESS decoupled via HF dataset `buckeyeguy/GraphIDS`; 5 data gaps remain |
+| TMLR Export | **LOW** | hardened | AST fallthrough warns; TOC recursive; iframe URL-parsed; `mystmd` pinned |
 | Candidacy Config Swap | **MEDIUM** | fixed | `trap` cleanup added; dual TOC/articles lists still diverge manually |
 | CI Pipeline | **LOW** | mostly fixed | `mystmd`/`curvenote` pinned; `bibtexparser` lower bound still loose |
 | Schema Validation | **LOW** | audit corrected | `literature_baselines.csv` was already validated |
-| References | **MEDIUM** | unfixed | ~140/164 entries lack DOIs; `--strict` can't enable until backfilled |
-| Figure Build | MEDIUM | unfixed | Fragile rename in `build.js`; silent empty output |
-| Diagram Library | MEDIUM | unfixed | Silent role-name typos; silent box drops |
+| References | **LOW** | mostly fixed | 140/164 (85%) have DOIs; 24 remaining lack DOIs legitimately (USENIX, books, software, standards, not-yet-indexed) |
+| Figure Build | **LOW** | hardened | try/catch per figure; missing output errors; stale cleanup; FIGURE guard |
+| Diagram Library | **LOW** | hardened | Role-name typos warn; box/container drops warn; sparse topology documented+tested |
 | Table Build | LOW | unfixed | Missing CSV is a warning not an error; bold list hardcoded |
 | Docs Freshness | LOW | unfixed | Minor edge cases |
 
 ## Detail
 
-### Data Pipeline — HIGH (broken)
+### Data Pipeline — HIGH (partially fixed)
 
-`make data` calls `~/KD-GAT/scripts/data/paper_sync.py`, a file in a separate repo not pinned or versioned here. KD-GAT exports to `fs/ess/PAS1266` but the data lake structure is in flux. If KD-GAT restructures, the entire figure pipeline breaks silently. Committed CSV/JSON files are the current source of truth.
+ESS dependency decoupled: `make data` now pulls from `buckeyeguy/GraphIDS` on Hugging Face (30+ files + schema contract README). 5 data gaps still need richer KD-GAT exports before all figures have real data.
 
 Schema contract (`data/schemas.yaml`) checks shape but not value ranges — all-zero metrics would pass.
 
-**Potential fix:** Push/pull from HF dataset (`buckeyeguy/kd-gat-paper`) to decouple from ESS.
+### TMLR Export — LOW (was HIGH)
 
-### TMLR Export — HIGH
+`export/tmlr/build.py` (~370 lines) walks MyST AST JSON to produce Distill-layout markdown.
 
-`export/tmlr/build.py` (~360 lines) walks MyST AST JSON to produce Distill-layout markdown.
+All five fragility points hardened (2026-04-02):
 
-- TOC traversal reads only one nesting level from `config.json` — if MyST changes serialization, pages silently disappear.
-- `mdast` handled as both dict and JSON string — dual-format suggests instability.
-- `HANDLERS` dispatch: unhandled AST node types silently fall through to `_C` (recurse children). No warning logged.
-- Abstract extraction is 4 levels deep with no error on missing keys.
-- `mystmd` now pinned to 1.8.3 (was unpinned).
+- ~~TOC traversal reads only one nesting level~~ → recursive `_collect_toc_files` handles arbitrary depth.
+- ~~`mdast` handled as both dict and JSON string~~ → `.get()` with `warnings.warn` on missing key (was unguarded `KeyError`).
+- ~~`HANDLERS` dispatch: unhandled AST node types silently fall through~~ → `warnings.warn` on first encounter of each unknown type.
+- ~~Abstract extraction is 4 levels deep with no error~~ → warns when abstract is missing from frontmatter.
+- ~~iframe `Path(url).name` breaks on query strings~~ → `urlparse` extracts path before taking filename.
+- `mystmd` pinned to 1.8.3.
 
 ### Candidacy Config Swap — MEDIUM (was HIGH)
 
@@ -48,17 +49,30 @@ CI physically overwrites `myst.yml` with candidacy config for curve.space deploy
 - `bibtexparser>=2.0.0b7` pre-release lower bound still loose.
 - `pyyaml`, `tabulate` unpinned (low risk, stable APIs).
 
-### References — MEDIUM
+### References — LOW (was MEDIUM)
 
-`references/validate.py` catches duplicates and missing required fields. `--strict` mode exists but can't be enabled — ~140 of 164 entries lack DOIs. Warnings accumulate silently in CI.
+DOI backfill complete: 140/164 entries (85.4%) now have DOIs. 117 DOIs added (74 CrossRef, 43 arXiv/fallback). 10 year corrections, 6 metadata fixes (incl. DenselyGuided-KD2019 fabricated authors). 24 entries legitimately lack DOIs (USENIX, books, software, standards, not-yet-indexed). `--strict` can now be enabled with an allow-list for the 24 known exceptions. Full log: `DOI_BACKFILL.md`.
 
-### Figure Build — MEDIUM
+### Figure Build — LOW (was MEDIUM)
 
-`build.js` runs sequential Vite builds with `execSync`. Fragile `index.html` → `<fig>.html` rename. When `FIGURE` env is unset during build, `vite.config.js` silently falls through. Auto-generated entry points mean a missing figure produces no error.
+`build.js` runs sequential Vite builds with `execSync`.
 
-### Diagram Library — MEDIUM
+Hardened (2026-04-02):
 
-`palette.ts` `resolve()` does `roles[name] || name` — typos like `'vage'` instead of `'vgae'` produce invalid CSS with no error. `unpack.ts` silently drops boxes missing group membership. `buildGraph` sparse topology has undocumented 3-node edge case.
+- ~~First Vite failure killed the entire loop~~ → try/catch per figure; failed figures logged and loop continues.
+- ~~Silent empty output (rename guard swallowed missing index.html)~~ → explicit error when Vite produces no output.
+- ~~No build summary~~ → pass/fail counts printed; `process.exit(1)` on any failure.
+- ~~Stale outputs from deleted figures persisted forever~~ → pre-build cleanup removes `.html` files whose stem is not in the current figure set.
+- ~~`FIGURE` unset in build mode silently resolved to `src/figures/undefined/`~~ → `vite.config.js` throws on missing `FIGURE` in both serve and build modes.
+
+### Diagram Library — LOW (was MEDIUM)
+
+Hardened (2026-04-02):
+
+- ~~Role-name typos silently produce invalid CSS~~ → `resolve()` warns on names that aren't a known role, palette key, or hex/rgb string.
+- ~~Boxes/containers silently dropped when group has no nodes~~ → `console.warn` with node ID and group name.
+- ~~Sparse topology n≤3 edge case undocumented~~ → inline comment explaining cycle-only behavior for n≤3; tests cover n=1, n=2, n=3, n=5.
+- Test suite: 34 tests across `buildGraph`, `addLayer`, `layout`, `unpack` (including warning assertions).
 
 ### Table Build — LOW
 

@@ -1,4 +1,4 @@
-import type { UnpackedContainer } from './unpack.ts';
+import type { FlatContainer } from './flatten.ts';
 
 interface FlowArrow {
   x1: number;
@@ -14,7 +14,7 @@ interface FlowArrow {
  * Optional labels array provides annotation text for each arrow.
  */
 export function connectContainers(
-  containers: UnpackedContainer[],
+  containers: FlatContainer[],
   opts: { stroke?: string; labels?: string[] } = {},
 ): FlowArrow[] {
   const { stroke = '#999', labels } = opts;
@@ -35,7 +35,7 @@ export function connectContainers(
 
 /** Compute a bounding box around all containers with optional padding. */
 export function boundingBox(
-  containers: UnpackedContainer[],
+  containers: FlatContainer[],
   padding = 15,
 ): { x1: number; y1: number; x2: number; y2: number } {
   const xs = containers.flatMap(c => [c.x1, c.x2]);

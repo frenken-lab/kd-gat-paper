@@ -14,7 +14,9 @@ import json
 import re
 import shutil
 import sys
+import warnings
 from pathlib import Path
+from urllib.parse import urlparse
 
 import yaml
 from tabulate import tabulate as _tabulate
@@ -97,7 +99,8 @@ def _h_container(n: dict) -> str:
 
 
 def _h_iframe(n: dict) -> str:
-    src = Path(n.get("src", "")).name
+    raw_src = n.get("src", "")
+    src = Path(urlparse(raw_src).path).name
     path = f"assets/html/submission/{src}"
     return (
         f'<iframe src="{{{{ \'{path}\' | relative_url }}}}" '
@@ -218,9 +221,19 @@ HANDLERS: dict[str, callable] = {
 }
 
 
+_warned_types: set[str] = set()
+
+
 def serialize(node: dict) -> str:
     """Recursively serialize an MDAST node to Distill-compatible markdown."""
-    return HANDLERS.get(node.get("type", ""), _C)(node)
+    ntype = node.get("type", "")
+    handler = HANDLERS.get(ntype)
+    if handler is None:
+        if ntype not in _warned_types:
+            warnings.warn(f"unhandled AST node type '{ntype}' — falling through to children")
+            _warned_types.add(ntype)
+        return _C(node)
+    return handler(node)
 
 
 # ---------------------------------------------------------------------------
@@ -241,6 +254,8 @@ def build_frontmatter(proj: dict, anonymous: bool) -> str:
             if isinstance(abstract_ast, str):
                 abstract_ast = json.loads(abstract_ast)
             abstract = _text_of(abstract_ast)
+        else:
+            warnings.warn("abstract not found in index.json frontmatter — description will be empty")
 
     # Authors
     if anonymous:
@@ -314,14 +329,16 @@ def main() -> None:
     proj = site_cfg.get("projects", [{}])[0]
 
     # Read TOC order and serialize each page
-    toc_files: list[str] = []
-    for entry in proj.get("toc", []):
-        if isinstance(entry, dict):
-            if "file" in entry:
-                toc_files.append(entry["file"])
-            for child in entry.get("children", []):
-                if isinstance(child, dict) and "file" in child:
-                    toc_files.append(child["file"])
+    def _collect_toc_files(entries: list) -> list[str]:
+        files: list[str] = []
+        for entry in entries:
+            if isinstance(entry, dict):
+                if "file" in entry:
+                    files.append(entry["file"])
+                files.extend(_collect_toc_files(entry.get("children", [])))
+        return files
+
+    toc_files = _collect_toc_files(proj.get("toc", []))
 
     parts: list[str] = []
     for rel in toc_files:
@@ -330,7 +347,10 @@ def main() -> None:
             print(f"  skip: {rel} (no AST)")
             continue
         data = json.loads(ast_path.read_text())
-        mdast = data["mdast"]
+        mdast = data.get("mdast")
+        if mdast is None:
+            warnings.warn(f"no 'mdast' key in {ast_path.name} — skipping")
+            continue
         if isinstance(mdast, str):
             mdast = json.loads(mdast)
         parts.append(serialize(mdast))

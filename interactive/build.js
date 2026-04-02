@@ -63,6 +63,20 @@ const figures = readdirSync(srcDir, { withFileTypes: true })
 
 console.log(`Building ${figures.length} figures: ${figures.join(", ")}`);
 
+// Remove stale outputs from figures no longer in src/
+if (existsSync(outDir)) {
+  const figSet = new Set(figures);
+  for (const f of readdirSync(outDir)) {
+    if (f.endsWith(".html") && f !== "index.html" && !figSet.has(f.replace(/\.html$/, ""))) {
+      console.log(`  removing stale output: ${f}`);
+      rmSync(resolve(outDir, f), { force: true });
+    }
+  }
+}
+
+const passed = [];
+const failed = [];
+
 for (const fig of figures) {
   const figDir = resolve(srcDir, fig);
   ensureIndexHtml(figDir, fig);
@@ -72,19 +86,33 @@ for (const fig of figures) {
   rmSync(resolve(outDir, `${fig}.html`), { force: true });
 
   console.log(`  ${fig}...`);
-  execSync(`npx vite build`, {
-    cwd: import.meta.dirname,
-    env: { ...process.env, FIGURE: fig },
-    stdio: "inherit",
-  });
-  // Vite writes to _figures/index.html (root-relative outDir) — rename to _figures/<name>.html
-  const rootIndexHtml = resolve(outDir, "index.html");
-  if (existsSync(rootIndexHtml)) {
-    renameSync(rootIndexHtml, resolve(outDir, `${fig}.html`));
+  try {
+    execSync(`npx vite build`, {
+      cwd: import.meta.dirname,
+      env: { ...process.env, FIGURE: fig },
+      stdio: "inherit",
+    });
+    // Vite writes to _figures/index.html (root-relative outDir) — rename to _figures/<name>.html
+    const rootIndexHtml = resolve(outDir, "index.html");
+    if (existsSync(rootIndexHtml)) {
+      renameSync(rootIndexHtml, resolve(outDir, `${fig}.html`));
+      passed.push(fig);
+    } else {
+      console.error(`  ERROR: ${fig} — vite produced no output (expected index.html)`);
+      failed.push(fig);
+    }
+  } catch (err) {
+    console.error(`  ERROR: ${fig} — build failed: ${err.message}`);
+    failed.push(fig);
   }
 }
 
 // Clean up any stray root index.html
 rmSync(resolve(outDir, "index.html"), { force: true });
 
-console.log("Done.");
+// Summary
+console.log(`\nBuild complete: ${passed.length} passed, ${failed.length} failed`);
+if (failed.length > 0) {
+  console.error(`Failed figures: ${failed.join(", ")}`);
+  process.exit(1);
+}

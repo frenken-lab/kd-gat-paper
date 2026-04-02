@@ -1,5 +1,5 @@
 export { buildGraph } from './buildGraph.ts';
-export { addLayer } from './addLayer.ts';
-export { unpack } from './unpack.ts';
+export { flatten } from './flatten.ts';
 export { resolve } from './palette.ts';
+export { bounds, translate, scale, rotate, hstack } from './transforms.ts';
 export { connectContainers, boundingBox } from './layout.ts';

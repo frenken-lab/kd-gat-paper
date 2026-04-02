@@ -1,26 +1,17 @@
 <script>
-  import { buildGraph, unpack } from "../../lib/diagram";
+  import { buildGraph, flatten } from "../../lib/diagram";
   import { Plot, Dot, Text, Link, HTMLTooltip } from "svelteplot";
   import Figure from "../../lib/Figure.svelte";
 
-  const n = 5;
-
   const g = buildGraph({
-    n,
+    n: 5,
     topology: "sparse",
     color: "vgae",
     labels: "auto",
     prefix: "n",
   });
 
-  const data = unpack(g);
-
-  // Auto domain from node positions + padding
-  const pad = 40;
-  const xs = data.nodes.map((n) => n.x);
-  const ys = data.nodes.map((n) => n.y);
-  const xDomain = [Math.min(...xs) - pad, Math.max(...xs) + pad];
-  const yDomain = [Math.min(...ys) - pad, Math.max(...ys) + pad];
+  const { nodes, edges, domain } = flatten(g);
 </script>
 
 <Figure title="CAN Bus Graph">
@@ -28,12 +19,12 @@
     grid={false}
     axes={false}
     frame={false}
-    x={{ domain: xDomain }}
-    y={{ domain: yDomain }}
+    x={{ domain: domain.x }}
+    y={{ domain: domain.y }}
     inset={10}
   >
     <Link
-      data={data.edges.structural}
+      data={edges}
       x1="x1"
       y1="y1"
       x2="x2"
@@ -43,7 +34,7 @@
       strokeWidth={1.5}
     />
     <Dot
-      data={data.nodes}
+      data={nodes}
       x="x"
       y="y"
       r={18}
@@ -52,7 +43,7 @@
       strokeWidth={1.5}
     />
     <Text
-      data={data.nodes}
+      data={nodes}
       x="x"
       y="y"
       text="label"
@@ -63,7 +54,7 @@
       fontFamily="CMU Typewriter Text, monospace"
     />
     {#snippet overlay()}
-      <HTMLTooltip data={data.nodes} x="x" y="y">
+      <HTMLTooltip data={nodes} x="x" y="y">
         {#snippet children({ datum })}
           <div class="tooltip">
             <div>X: {datum.x}</div>

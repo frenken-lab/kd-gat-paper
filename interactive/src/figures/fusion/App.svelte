@@ -12,8 +12,12 @@
     (d) => d.attack_type,
   );
 
-  const normalColor = resolve("normal").stroke;
-  const attackColor = resolve("attack").stroke;
+  // Derive color domain from data so it adapts to both binary and multi-class exports
+  const attackTypes = isEmpty ? [] : [...new Set(data.map((d) => d.attack_type))];
+  const paletteKeys = ["normal", "attack", "gat", "dqn", "data", "attention", "kd"];
+  const attackTypeColors = attackTypes.map(
+    (_, i) => resolve(paletteKeys[i % paletteKeys.length]).stroke,
+  );
 </script>
 
 <Figure title="Bandit Fusion Weight Analysis">
@@ -34,8 +38,8 @@
       x={{ label: "Fusion Weight α (0 = VGAE, 1 = GAT)" }}
       y={{ label: "Count" }}
       color={{
-        domain: ["Normal", "Attack"],
-        range: [normalColor, attackColor],
+        domain: attackTypes,
+        range: attackTypeColors,
         legend: true,
       }}
     >

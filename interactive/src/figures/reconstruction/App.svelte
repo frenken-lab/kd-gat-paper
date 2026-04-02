@@ -31,12 +31,12 @@
     isEmpty ? [] : data.roc.filter((d) => visible[d.component]),
   );
 
-  const componentColors = [
-    resolve("vgae").stroke, // Node Recon
-    resolve("gat").stroke, // CAN ID
-    resolve("dqn").stroke, // Neighbor
-    resolve("kd").stroke, // KL
-  ];
+  // Derive component list and colors from data
+  const components = isEmpty ? [] : [...new Set(data.kde.map((d) => d.component))];
+  const compPaletteKeys = ["vgae", "gat", "dqn", "kd", "data", "attention", "normal"];
+  const componentColors = components.map(
+    (_, i) => resolve(compPaletteKeys[i % compPaletteKeys.length]).stroke,
+  );
 </script>
 
 <Figure title="VGAE Reconstruction Error Decomposition">
@@ -60,7 +60,7 @@
       x={{ label: "Error Value" }}
       y={{ label: "Count" }}
       color={{
-        domain: ["Node Recon", "CAN ID", "Neighbor", "KL"],
+        domain: components,
         range: componentColors,
         legend: true,
       }}
@@ -101,7 +101,7 @@
       x={{ label: "FPR", domain: [0, 1] }}
       y={{ label: "TPR", domain: [0, 1] }}
       color={{
-        domain: ["Node Recon", "CAN ID", "Neighbor", "KL"],
+        domain: components,
         range: componentColors,
         legend: true,
       }}

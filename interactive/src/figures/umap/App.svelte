@@ -12,16 +12,12 @@
     (d) => d.attack_type,
   );
 
-  // Map attack type labels to palette colors
-  const attackTypeColors = [
-    resolve("normal").stroke, // Benign
-    resolve("attack").stroke, // Dos
-    resolve("gat").stroke, // Fuzzy
-    resolve("dqn").stroke, // Gear
-    resolve("data").stroke, // Rpm
-    resolve("attention").stroke, // Flooding
-    resolve("brown").stroke, // Malfunction
-  ];
+  // Derive color domain and range from the data itself
+  const attackTypes = isEmpty ? [] : [...new Set(data.map((d) => d.attack_type))];
+  const paletteKeys = ["normal", "attack", "gat", "dqn", "data", "attention", "kd"];
+  const attackTypeColors = attackTypes.map(
+    (_, i) => resolve(paletteKeys[i % paletteKeys.length]).stroke,
+  );
 </script>
 
 <Figure title="UMAP Projections of GAT Embeddings">
@@ -42,15 +38,7 @@
       x={{ label: "UMAP 1" }}
       y={{ label: "UMAP 2" }}
       color={{
-        domain: [
-          "Benign",
-          "Dos",
-          "Fuzzy",
-          "Gear",
-          "Rpm",
-          "Flooding",
-          "Malfunction",
-        ],
+        domain: attackTypes,
         range: attackTypeColors,
         legend: true,
       }}

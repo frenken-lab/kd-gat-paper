@@ -1,7 +1,7 @@
 <script>
   import Graph from "graphology";
   import { Plot, Dot, Text, Link, Arrow, Rect } from "svelteplot";
-  import { resolve } from "../../lib/diagram/palette.ts";
+  import { flatten } from "../../lib/diagram";
   import Figure from "../../lib/Figure.svelte";
 
   // --- Build graph data ---
@@ -17,7 +17,6 @@
   // 3 layers stacked vertically
   for (let L = 0; L < 3; L++) {
     const yOff = L * 300;
-    // Sparse ring: path + closing edge + chord
     for (let i = 0; i < 5; i++) {
       g.addNode(`L${L}_${i}`, {
         x: SPARSE_5[i][0],
@@ -27,72 +26,29 @@
       });
     }
     for (let i = 0; i < 4; i++)
-      g.addEdge(`L${L}_${i}`, `L${L}_${i + 1}`, { type: "structural" });
-    g.addEdge(`L${L}_4`, `L${L}_0`, { type: "structural" }); // close ring
-    g.addEdge(`L${L}_0`, `L${L}_2`, { type: "structural" }); // chord
+      g.addEdge(`L${L}_${i}`, `L${L}_${i + 1}`, { type: "structural", color: "gat" });
+    g.addEdge(`L${L}_4`, `L${L}_0`, { type: "structural", color: "gat" });
+    g.addEdge(`L${L}_0`, `L${L}_2`, { type: "structural", color: "gat" });
   }
 
-  // Inter-layer flow: rightmost(0) → leftmost(3) of next layer
+  // Inter-layer flow
   for (let L = 0; L < 2; L++) {
-    g.addEdge(`L${L}_0`, `L${L + 1}_3`, { type: "flow" });
+    g.addEdge(`L${L}_0`, `L${L + 1}_3`, { type: "flow", color: "gat" });
   }
 
   // Boxes
-  g.addNode("jk", {
-    x: 110,
-    y: 910,
-    color: "gat",
-    label: "JK Concat",
-    isBox: true,
-  });
-  g.addNode("fc", {
-    x: 110,
-    y: 1010,
-    color: "gat",
-    label: "FC \u2192 class",
-    isBox: true,
-  });
-  g.addEdge("jk", "fc", { type: "flow" });
+  g.addNode("jk", { nodeType: "box", x: 110, y: 910, color: "gat", label: "JK Concat" });
+  g.addNode("fc", { nodeType: "box", x: 110, y: 1010, color: "gat", label: "FC → class" });
+  g.addEdge("jk", "fc", { type: "flow", color: "gat" });
 
-  // Layer → JK edges (deferred until jk node exists)
   for (let L = 0; L < 3; L++) {
-    g.addEdge(`L${L}_4`, "jk", { type: "flow" });
+    g.addEdge(`L${L}_4`, "jk", { type: "flow", color: "gat" });
   }
 
-  // --- Export to flat arrays ---
-  const exported = g.export();
-  const nodeMap = new Map(exported.nodes.map((n) => [n.key, n.attributes]));
+  const { nodes, edges, boxes, domain } = flatten(g);
 
-  const nodes = exported.nodes
-    .filter((n) => !n.attributes.isBox)
-    .map((n) => n.attributes);
-  const boxes = exported.nodes
-    .filter((n) => n.attributes.isBox)
-    .map((n) => ({
-      ...n.attributes,
-      x1: n.attributes.x - 45,
-      y1: n.attributes.y - 16,
-      x2: n.attributes.x + 45,
-      y2: n.attributes.y + 16,
-    }));
-  const structural = exported.edges
-    .filter((e) => e.attributes.type === "structural")
-    .map((e) => ({
-      x1: nodeMap.get(e.source).x,
-      y1: nodeMap.get(e.source).y,
-      x2: nodeMap.get(e.target).x,
-      y2: nodeMap.get(e.target).y,
-    }));
-  const flow = exported.edges
-    .filter((e) => e.attributes.type === "flow")
-    .map((e) => ({
-      x1: nodeMap.get(e.source).x,
-      y1: nodeMap.get(e.source).y,
-      x2: nodeMap.get(e.target).x,
-      y2: nodeMap.get(e.target).y,
-    }));
-
-  const { stroke, fill } = resolve("gat");
+  const structuralEdges = edges.filter((e) => e.type === "structural");
+  const flowEdges = edges.filter((e) => e.type === "flow");
 </script>
 
 <Figure title="GAT Classifier">
@@ -100,27 +56,27 @@
     grid={false}
     axes={false}
     frame={false}
-    x={{ domain: [-10, 240] }}
-    y={{ domain: [-10, 1060] }}
+    x={{ domain: domain.x }}
+    y={{ domain: domain.y }}
     inset={10}
   >
     <Link
-      data={structural}
+      data={structuralEdges}
       x1="x1"
       y1="y1"
       x2="x2"
       y2="y2"
-      {stroke}
+      stroke="stroke"
       strokeOpacity={0.5}
       strokeWidth={1.5}
     />
     <Arrow
-      data={flow}
+      data={flowEdges}
       x1="x1"
       y1="y1"
       x2="x2"
       y2="y2"
-      {stroke}
+      stroke="stroke"
       strokeWidth={1}
       strokeDasharray="4 3"
     />
@@ -130,8 +86,8 @@
       y1="y1"
       x2="x2"
       y2="y2"
-      {fill}
-      {stroke}
+      fill="fill"
+      stroke="stroke"
       strokeWidth={1.5}
       rx={6}
     />
@@ -145,7 +101,7 @@
       textAnchor="middle"
       dy={1}
     />
-    <Dot data={nodes} x="x" y="y" r={10} {fill} {stroke} strokeWidth={1.5} />
+    <Dot data={nodes} x="x" y="y" r={10} fill="fill" stroke="stroke" strokeWidth={1.5} />
     <Text
       data={nodes}
       x="x"

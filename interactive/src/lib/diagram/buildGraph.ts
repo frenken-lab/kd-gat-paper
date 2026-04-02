@@ -58,13 +58,16 @@ export function buildGraph(opts: BuildGraphOptions): Graph {
   }
 
   // 2. Add topology edges via graphology-utils
+  //    - full:   complete graph, C(n,2) edges
+  //    - sparse: cycle + one chord [0→2] for n>3 (n=3 is already complete as a cycle,
+  //              n≤2 produces a simple cycle which degenerates to 1 edge or 0 edges)
+  //    - none:   no edges
   if (topology === 'full') {
     mergeClique(g, keys);
   } else if (topology === 'sparse') {
     mergeCycle(g, keys);
     if (n > 3) g.mergeEdge(keys[0], keys[2]);
   }
-  // 'none': no edges
 
   // 2b. Add custom edges (in addition to or instead of topology)
   if (edgeSpecs) {

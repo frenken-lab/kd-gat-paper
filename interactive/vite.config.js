@@ -46,14 +46,15 @@ export default defineConfig(({ command, mode }) => {
 
   const isServe = command === "serve";
 
+  if (!figure) {
+    throw new Error(
+      "FIGURE env var is required. Set it to a figure name (e.g. FIGURE=umap). " +
+        "Use `node build.js` to build all figures.",
+    );
+  }
+
   if (isServe) {
-    if (!figure) {
-      throw new Error(
-        "Figures can only be served one at a time. Set the FIGURE env var (e.g. FIGURE=umap) and try again.",
-      );
-    } else {
-      console.log(`Serving ${figure} figure`);
-    }
+    console.log(`Serving ${figure} figure`);
   }
 
   return {
