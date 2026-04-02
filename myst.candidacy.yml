@@ -36,6 +36,7 @@ project:
     - format: typst
       template: plain_typst_book
       output: _build/exports/candidacy-report.pdf
+      id: candidacy-pdf
       articles:
         - candidacy/index.md
         - candidacy/introduction.md
@@ -69,6 +70,9 @@ site:
   template: article-theme
   domains:
     - rob.curve.space
+  downloads:
+    - id: candidacy-pdf
+      title: Download PDF
   options:
     css:
       - _static/custom.css

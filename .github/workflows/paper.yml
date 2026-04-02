@@ -124,6 +124,7 @@ jobs:
         with: { node-version: "22" }
       - uses: actions/download-artifact@v4
         with: { name: figures, path: _build/figures/ }
+      - uses: typst-community/setup-typst@v4
       - name: Deploy candidacy to curve.space
         env:
           CURVENOTE_TOKEN: ${{ secrets.CURVENOTE_TOKEN }}
