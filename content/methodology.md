@@ -10,9 +10,9 @@ The proposed framework employs a three-stage pipeline for robust intrusion detec
 
 CAN messages are broadcast by Electronic Control Units (ECUs); CAN IDs identify message types and are not unique per packet---multiple ECUs can transmit the same ID, and any ECU can receive all messages. This broadcast model underpins the graph representation, capturing sequential dependencies within the CAN stream.
 
+(alg-graph-construction)=
 :::{admonition} Algorithm 1: Graph Construction from CAN Stream
 :class: algorithm
-:label: alg-graph-construction
 
 **Require:** CAN stream $M = \{m_t = (\text{ID}_t, \text{payload}_t)\}$, window size $W$
 **Ensure:** Graphs $\mathcal{G} = \{G_t = (V_t, E_t, X_t, y_t)\}$
@@ -38,16 +38,16 @@ Node features (31 dimensions) include: CAN ID, normalized payload bytes (mean ac
 
 #### Stage 1: VGAE Training and Hard Sample Selection
 
+(alg-hard-sample)=
 :::{admonition} Algorithm 2: VGAE-Based Hard Sample Selection
 :class: algorithm
-:label: alg-hard-sample
 
 **Require:** Trained VGAE model on normal graphs
 **Ensure:** Hard-selected training dataset for Stage 2
 
 1. Train VGAE on normal graphs until convergence
 2. **for each** normal graph $G_i$ **do**
-    a. $R_i \leftarrow \|A_i - \hat{A}_i\|_F^2 / |V_i|^2$ $\triangleright$ reconstruction error
+    a. $R_i \leftarrow \|\mathbf{A}_i - \hat{\mathbf{A}}_i\|_F^2 / |V_i|^2$ $\triangleright$ reconstruction error
 3. **end for**
 4. Rank by $R_i$ in descending order; select top-$k$ as hard negatives
 5. Combine hard normal samples with all attack samples
@@ -56,13 +56,14 @@ Node features (31 dimensions) include: CAN ID, normalized payload bytes (mean ac
 
 High reconstruction error indicates ambiguous or boundary-proximate normal samples. Selective undersampling preserves discriminative hard examples while reducing majority class dominance.
 
-**Architectural Enhancements to VGAE:**
+:::{dropdown} Architectural Enhancements to VGAE
+:open:
 
-*GATv2 Attention.* All graph convolution layers use GATv2Conv {cite}`brody2022attentive` rather than the original GATConv. GATv2 reorders the attention computation to apply the nonlinearity before the attention parameter, resolving the *static attention* limitation where GATv1 produces the same attention ranking regardless of the query node. This is critical for CAN bus anomaly detection: adversarial messages inject noise into graph structure, and dynamic attention can adaptively down-weight noisy edges while static attention degrades uniformly.
+*GATv2 Attention.* All graph convolution layers use GATv2Conv [@brody2022attentive] rather than the original GATConv. GATv2 reorders the attention computation to apply the nonlinearity before the attention parameter, resolving the *static attention* limitation where GATv1 produces the same attention ranking regardless of the query node. This is critical for CAN bus anomaly detection: adversarial messages inject noise into graph structure, and dynamic attention can adaptively down-weight noisy edges while static attention degrades uniformly.
 
-*GraphNorm.* Normalization layers use GraphNorm {cite}`cai2021graphnorm` instead of BatchNorm. BatchNorm normalizes across all nodes in a batch, mixing statistics from different graphs and introducing batch-dependent noise. GraphNorm normalizes per-graph with a learnable shift parameter, preserving graph-level distributional information that is essential for anomaly scoring.
+*GraphNorm.* Normalization layers use GraphNorm [@cai2021graphnorm] instead of BatchNorm. BatchNorm normalizes across all nodes in a batch, mixing statistics from different graphs and introducing batch-dependent noise. GraphNorm normalizes per-graph with a learnable shift parameter, preserving graph-level distributional information that is essential for anomaly scoring.
 
-*Masked Feature Reconstruction.* Following GraphMAE {cite}`hou2022graphmae`, a configurable fraction ($\rho = 0.3$ by default) of continuous node features are randomly masked to zero before encoding. The reconstruction loss is then computed only on masked positions:
+*Masked Feature Reconstruction.* Following GraphMAE [@hou2022graphmae], a configurable fraction ($\rho = 0.3$ by default) of continuous node features are randomly masked to zero before encoding. The reconstruction loss is then computed only on masked positions:
 
 ```{math}
 :label: eq-masked-recon
@@ -70,6 +71,8 @@ High reconstruction error indicates ambiguous or boundary-proximate normal sampl
 ```
 
 where $\mathcal{M}$ is the set of masked (node, feature) positions. This prevents the encoder from trivially copying features through message passing and forces it to learn structural patterns, improving sensitivity to anomalous reconstruction errors at inference time. CAN ID features (column 0) are never masked, preserving the discrete identity structure.
+
+:::
 
 #### Stage 2: GAT Training with Curriculum Learning
 
@@ -98,13 +101,16 @@ where $B_{\text{bal}}$ is class-balanced, $B_{\text{nat}}$ reflects natural imba
 
 where $T$ is temperature (softening factor) and $\lambda$ is mixing coefficient. No intermediate feature distillation applied.
 
-**Architectural Enhancements to GAT:**
+:::{dropdown} Architectural Enhancements to GAT
+:open:
 
-*GATv2 Attention.* As with the VGAE encoder, all GAT convolution layers use GATv2Conv {cite}`brody2022attentive` with dynamic attention. GATv2Conv additionally accepts edge features via the `edge_dim` parameter, incorporating the 12-dimensional edge attributes (frequency, temporal intervals, bidirectionality, degree products) into the attention computation. This enables attention-weighted message passing that is conditioned on both node and edge information.
+*GATv2 Attention.* As with the VGAE encoder, all GAT convolution layers use GATv2Conv [@brody2022attentive] with dynamic attention. GATv2Conv additionally accepts edge features via the `edge_dim` parameter, incorporating the 12-dimensional edge attributes (frequency, temporal intervals, bidirectionality, degree products) into the attention computation. This enables attention-weighted message passing that is conditioned on both node and edge information.
 
-*LSTM Jumping Knowledge.* Layer outputs are aggregated via LSTM-based Jumping Knowledge {cite}`xu2018jk` rather than concatenation. Concatenation-mode JK (`mode="cat"`) applies the same linear combination of layer representations to all nodes, and output dimensionality grows linearly with depth. LSTM-mode JK learns a per-node adaptive combination via a bidirectional LSTM with attention over the sequence of layer outputs, allowing each CAN node (ECU) to draw information from the most informative depth. This also reduces the classifier input dimension from $L \times d$ to $d$ (where $L$ is the number of layers and $d$ is the hidden dimension), decreasing parameters in the fully connected head.
+*LSTM Jumping Knowledge.* Layer outputs are aggregated via LSTM-based Jumping Knowledge [@xu2018jk] rather than concatenation. Concatenation-mode JK (`mode="cat"`) applies the same linear combination of layer representations to all nodes, and output dimensionality grows linearly with depth. LSTM-mode JK learns a per-node adaptive combination via a bidirectional LSTM with attention over the sequence of layer outputs, allowing each CAN node (ECU) to draw information from the most informative depth. This also reduces the classifier input dimension from $L \times d$ to $d$ (where $L$ is the number of layers and $d$ is the hidden dimension), decreasing parameters in the fully connected head.
 
-*GPS Graph Transformer (Ablation).* As an ablation, the local GATv2Conv layers can be replaced with GPS layers {cite}`rampasek2022gps`, which combine local message passing with global multi-head self-attention and a feed-forward network in each layer. For CAN bus graphs (20--50 nodes), the global attention component is computationally inexpensive and captures long-range message dependencies that multi-hop local attention may miss. GPS layers are selectable via `conv_type="gps"` in the pipeline configuration.
+*GPS Graph Transformer (Ablation).* As an ablation, the local GATv2Conv layers can be replaced with GPS layers [@rampasek2022gps], which combine local message passing with global multi-head self-attention and a feed-forward network in each layer. For CAN bus graphs (20--50 nodes), the global attention component is computationally inexpensive and captures long-range message dependencies that multi-hop local attention may miss. GPS layers are selectable via `conv_type="gps"` in the pipeline configuration.
+
+:::
 
 #### Stage 3: DQN-Based Adaptive Fusion
 
@@ -112,13 +118,13 @@ After Stages 1--2, a Deep Q-Network learns optimal fusion weights combining VGAE
 
 **State Space:** 15-dimensional feature vector aggregating VGAE and GAT outputs: VGAE reconstruction errors (node, neighbor, CAN ID levels), latent space statistics (mean, std, max, min), VGAE confidence; GAT logits (class 0, class 1), embedding statistics (mean, std, max, min), GAT confidence. All features normalized and clipped to $[0,1]$.
 
-**Action Space:** $N=21$ discrete fusion weights linearly spaced in $[0,1]$. Policy semantics: $\alpha = 0.5$ (equal weighting), $\alpha < 0.5$ (favor VGAE), $\alpha > 0.5$ (favor GAT). Fused anomaly score: $\sigma = (1 - \alpha) \cdot \text{VGAE\_anomaly} + \alpha \cdot \text{GAT\_prob}$; final prediction $\hat{y} = \mathbb{1}[\sigma > 0.5]$.
+**Action Space:** $N=21$ discrete fusion weights linearly spaced in $[0,1]$. Policy semantics: $\alpha = 0.5$ (equal weighting), $\alpha < 0.5$ (favor VGAE), $\alpha > 0.5$ (favor GAT). Fused anomaly score: $\sigma = (1 - \alpha) \cdot \text{VGAE}_{\text{anomaly}} + \alpha \cdot \text{GAT}_{\text{prob}}$; final prediction $\hat{y} = \mathbb{1}[\sigma > 0.5]$.
 
 **Reward Function:** Directly tied to classification accuracy using ground truth labels (supervised RL):
 
 ```{math}
 :label: eq-reward
-R(\hat{y}, y_{\text{true}}, s, \alpha) = \begin{cases}
+R(\hat{y}, y_{\text{true}}, \mathbf{s}, \alpha) = \begin{cases}
     +3.0 + r_{\text{agree}} + r_{\text{conf}} & \text{if } \hat{y} = y_{\text{true}} \\
     -3.0 + r_{\text{disagree}} + r_{\text{overconf}} & \text{if } \hat{y} \neq y_{\text{true}}
 \end{cases}
@@ -128,9 +134,9 @@ where $r_{\text{agree}}$ measures alignment between VGAE and GAT (model agreemen
 
 #### Stage 3 (Alternative): Neural-LinUCB Contextual Bandit Fusion
 
-Because each graph is classified independently---the fusion decision for one CAN window does not affect the next---the sequential MDP assumption underlying DQN is unnecessary. We therefore provide an alternative fusion agent based on contextual bandits {cite}`xu2022neural`, which treats each graph as an independent context-action-reward tuple.
+Because each graph is classified independently---the fusion decision for one CAN window does not affect the next---the sequential MDP assumption underlying DQN is unnecessary. We therefore provide an alternative fusion agent based on contextual bandits [@xu2022neural], which treats each graph as an independent context-action-reward tuple.
 
-**Algorithm:** Neural-LinUCB {cite}`xu2022neural` decomposes the fusion problem into *deep representation learning* and *shallow exploration*. A neural backbone $f_\theta: \mathbb{R}^{15} \to \mathbb{R}^d$ transforms the raw state vector into a learned representation $\mathbf{z} = f_\theta(\mathbf{s})$. Per-arm ridge regression models then estimate the expected reward for each discrete fusion weight $\alpha_a$, while an upper confidence bound (UCB) term drives exploration:
+**Algorithm:** Neural-LinUCB [@xu2022neural] decomposes the fusion problem into *deep representation learning* and *shallow exploration*. A neural backbone $f_\theta: \mathbb{R}^{15} \to \mathbb{R}^d$ transforms the raw state vector into a learned representation $\mathbf{z} = f_\theta(\mathbf{s})$. Per-arm ridge regression models then estimate the expected reward for each discrete fusion weight $\alpha_a$, while an upper confidence bound (UCB) term drives exploration:
 
 ```{math}
 :label: eq-bandit-ucb
@@ -154,9 +160,9 @@ This requires no gradient computation and runs in $O(d^2)$ per sample.
 
 **Backbone Retraining:** Periodically (every $N$ episodes), the backbone parameters $\theta$ are updated via gradient descent on the replay buffer to improve the learned representation. After retraining, the linear models are reset since the representation space has shifted.
 
-**Theoretical Motivation:** Unlike epsilon-greedy exploration (which explores uniformly at random), the UCB term provides *directed* exploration---arms with high uncertainty receive higher scores, and this uncertainty shrinks as $O(1/\sqrt{n_a})$ with the number of times arm $a$ is pulled. Neural-LinUCB achieves $\tilde{O}(\sqrt{T})$ cumulative regret {cite}`xu2022neural`, matching full NeuralUCB {cite}`zhou2020neural` at a fraction of the computational cost since exploration is confined to the last layer.
+**Theoretical Motivation:** Unlike epsilon-greedy exploration (which explores uniformly at random), the UCB term provides *directed* exploration---arms with high uncertainty receive higher scores, and this uncertainty shrinks as $O(1/\sqrt{n_a})$ with the number of times arm $a$ is pulled. Neural-LinUCB achieves $\tilde{O}(\sqrt{T})$ cumulative regret [@xu2022neural], matching full NeuralUCB [@zhou2020neural] at a fraction of the computational cost since exploration is confined to the last layer.
 
-**Comparison with DQN:** The bandit formulation removes the target network, discount factor $\gamma$, and Double DQN machinery, replacing them with principled uncertainty-driven exploration. Empirical comparisons between bandit and supervised baselines (MLP, weighted average) {cite}`riquelme2018deep` determine whether the RL formulation provides genuine benefit over simpler approaches.
+**Comparison with DQN:** The bandit formulation removes the target network, discount factor $\gamma$, and Double DQN machinery, replacing them with principled uncertainty-driven exploration. Empirical comparisons between bandit and supervised baselines (MLP, weighted average) [@riquelme2018deep] determine whether the RL formulation provides genuine benefit over simpler approaches.
 
 ### Inference Pipeline
 

@@ -4,7 +4,7 @@ title: "Appendix"
 
 ## Experimental Setup
 
-#### Implementation Details
+### Implementation Details
 
 80% of the dataset was utilized for training, 20% for validation, and a distinct test set was compiled by the dataset providers. All experiments were conducted using PyTorch and PyTorch Geometric. Model training and evaluation were performed on GPU clusters provided by the Ohio Supercomputer Center (OSC) [@OhioSupercomputerCenter1987]. Each CAN message is represented with 11 features (CAN ID, 8 data bytes, message count, and bus position).
 
@@ -12,7 +12,7 @@ title: "Appendix"
 
 This section provides specific parameter budgets for the three-model student ensemble (GAT classifier, VGAE autoencoder, DQN fusion) derived from the CAN bus latency constraints, with unequal allocation reflecting architectural complexity and inference cost trade-offs.
 
-#### Total Parameter Budget
+### Total Parameter Budget
 
 From the CAN bus latency constraint (7 ms hard limit [@ARM-Cortex-A7-TRM]), the total onboard parameter budget is:
 
@@ -26,7 +26,7 @@ $$
 N_{t,\text{model}} \approx 20 \times N_{s,\text{model}} \quad \text{for each model}
 $$
 
-#### Heterogeneous Model Allocation
+### Heterogeneous Model Allocation
 
 Student ensemble members are not equally sized. The GAT classifier and VGAE autoencoder perform primary detection tasks and receive larger parameter budgets, while the DQN fusion model aggregates their outputs and receives reduced allocation:
 
@@ -35,9 +35,9 @@ Student ensemble members are not equally sized. The GAT classifier and VGAE auto
 
 | Model | Student | Teacher | Compression |
 |-------|---------|---------|-------------|
-| GAT Classifier | 55 K | 1.100 M | 20$\times$ |
-| VGAE Autoencoder | 86 K | 1.710 M | $\approx$20$\times$ |
-| DQN Fusion | 32 K | 687 K | $\approx$21$\times$ |
+| GAT Classifier | 55 K | 1.100 M | $20\times$ |
+| VGAE Autoencoder | 86 K | 1.710 M | ${\approx}20\times$ |
+| DQN Fusion | 32 K | 687 K | ${\approx}21\times$ |
 | **Total (Onboard)** | **173 K** | --- | --- |
 | **Total (Offline)** | --- | **3.497 M** | --- |
 
@@ -47,17 +47,13 @@ Student ensemble members are not equally sized. The GAT classifier and VGAE auto
 
 [](#tbl-teacher-student) details the architectural parameters for all teacher and student models across the three ensemble members. Each model follows a teacher-student distillation framework with $\approx 20\times$ compression ratio.
 
-```{code-cell} python
-:tags: [remove-input]
+:::{table} Teacher and Student Model Parameters for Classifier and Autoencoder
 :label: tbl-teacher-student
-:caption: "Teacher (Tch.) and Student (Std.) Model Parameters for Classifier, Autoencoder, and Fusion"
 
-import pandas as pd
-from IPython.display import Markdown
-
-df = pd.read_csv("data/model_params.csv")
-Markdown(df.to_markdown(index=False))
+```{include} ../../_build/tables/model_parameters.md
 ```
+
+:::
 
 #### GAT Classifier (55 K Student, 1.100 M Teacher)
 
@@ -73,40 +69,52 @@ Deep Q-Network for multi-model state fusion, aggregating features from the VGAE 
 
 ### GAT Architecture
 
-The teacher GAT uses 5 GATConv layers with 8 attention heads, 64 hidden channels, and 32-dimensional node embeddings. Jumping knowledge (concatenation mode) and residual connections aggregate multi-scale features into a single-layer FC classification head (2 outputs: normal/attack). Dropout is set to 0.2.
-
-The student GAT uses 2 GATConv layers with 4 attention heads, 24 hidden channels, and 8-dimensional embeddings. It omits jumping knowledge and residual connections for deployment simplicity, using a 2-layer FC head instead. Dropout is reduced to 0.1.
+:::::{tab-set}
+::::{tab-item} Teacher (1.100 M)
+5 GATConv layers with 8 attention heads, 64 hidden channels, and 32-dimensional node embeddings. Jumping knowledge (concatenation mode) and residual connections aggregate multi-scale features into a single-layer FC classification head (2 outputs: normal/attack). Dropout is set to 0.2.
+::::
+::::{tab-item} Student (55 K)
+2 GATConv layers with 4 attention heads, 24 hidden channels, and 8-dimensional embeddings. Omits jumping knowledge and residual connections for deployment simplicity, using a 2-layer FC head instead. Dropout is reduced to 0.1.
+::::
+:::::
 
 ### VGAE Architecture
 
 Our VGAE encoder progressively compresses the input through multiple GATConv layers.
 
-**Teacher:** Starting with 11-dimensional CAN features and 64-dimensional CAN ID embeddings, we apply:
+:::::{tab-set}
+::::{tab-item} Teacher (1.710 M)
+Starting with 11-dimensional CAN features and 64-dimensional CAN ID embeddings:
 
 - Layer 1: GATConv($11 \to 1024$, heads=4) with multi-head attention
 - Layer 2: GATConv($1024 \to 512$, heads=4) with multi-head refinement
 - Bottleneck: Linear projection to latent distribution ($\mu$, $\sigma$ for 96-d $\mathbf{z}$)
 
 The decoder mirrors this structure, reconstructing the 11 continuous features from the sampled latent code. The CAN ID is separately classified from the latent representation via a 256-unit MLP decoder.
-
-**Student:** Starting with 11-dimensional CAN features and 4-dimensional CAN ID embeddings:
+::::
+::::{tab-item} Student (86 K)
+Starting with 11-dimensional CAN features and 4-dimensional CAN ID embeddings:
 
 - Layer 1: GATConv($11 \to 80$, heads=1) with single-head attention
 - Layer 2: GATConv($80 \to 40$, heads=1) with single-head refinement
 - Bottleneck: Linear projection to latent distribution ($\mu$, $\sigma$ for 16-d $\mathbf{z}$)
 
-The student decoder mirrors the encoder ($[40, 80]$) and uses a compact 16-unit MLP neighborhood decoder.
+The decoder mirrors the encoder ($[40, 80]$) and uses a compact 16-unit MLP neighborhood decoder.
+::::
+:::::
 
 ### DQN Architecture
 
-**Teacher:** The teacher DQN takes a 15-dimensional state vector (8 VGAE features + 7 GAT features) as input. The state is composed of:
+Both models take a 15-dimensional state vector (8 VGAE features + 7 GAT features): VGAE features (8D) comprise 3 reconstruction error components (node, neighbor, CAN ID), 4 latent statistics (mean, std, max, min of $\mathbf{z}$), and 1 confidence score; GAT features (7D) comprise 2 class logits, 4 embedding statistics (mean, std, max, min), and 1 confidence score.
 
-- VGAE features (8D): 3 reconstruction error components (node, neighbor, CAN ID), 4 latent statistics (mean, std, max, min of $\mathbf{z}$), and 1 confidence score
-- GAT features (7D): 2 class logits, 4 embedding statistics (mean, std, max, min), and 1 confidence score
-
-Architecture: 3 hidden layers with 576 units each, LayerNorm, ReLU, and 0.2 dropout. Output: 21 Q-values corresponding to $\alpha \in \{0, 0.05, \ldots, 1.0\}$. Uses Double DQN with target network updates every 100 steps.
-
-**Student:** Same 15D input state. Architecture: 2 hidden layers with 160 units each, LayerNorm, ReLU, and 0.1 dropout. Lower exploration ($\epsilon=0.05$, faster decay) and more frequent target updates (every 50 steps) for stable deployment.
+:::::{tab-set}
+::::{tab-item} Teacher (687 K)
+3 hidden layers with 576 units each, LayerNorm, ReLU, and 0.2 dropout. Output: 21 Q-values corresponding to $\alpha \in \{0, 0.05, \ldots, 1.0\}$. Uses Double DQN with target network updates every 100 steps.
+::::
+::::{tab-item} Student (32 K)
+2 hidden layers with 160 units each, LayerNorm, ReLU, and 0.1 dropout. Lower exploration ($\epsilon=0.05$, faster decay) and more frequent target updates (every 50 steps) for stable deployment.
+::::
+:::::
 
 ## Distillation Training
 
@@ -140,7 +148,7 @@ $$
 $$
 
 $$
-\text{Latency}_{\text{inference}} = \frac{346 \text{ K FLOPs}}{50 \text{ MFLOP/s}} \times 0.7 \text{ (system overhead)} = 4.8\text{ ms}
+\text{Latency}_{\text{inference}} = \frac{346 \text{ K FLOPs}}{50 \text{ MFLOP/s}} \times 0.7 \text{ (sparsity factor)} = 4.8\text{ ms}
 $$
 
 This provides $\approx 2.2$ ms safety margin within the 7 ms CAN message cycle (100 Hz), accounting for context switches, cache misses, and interrupt handling.

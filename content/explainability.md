@@ -20,7 +20,7 @@ UMAP projections of GAT embeddings (10% sample). Toggle attack types to explore 
 
 ### Composite VGAE Reconstruction Error
 
-To assess the overall reconstruction quality of the VGAE, we combine three types of reconstruction errors: node feature reconstruction error ($E_{\text{node}}$), CAN ID prediction error ($E_{\text{CAN\,ID}}$), and neighborhood reconstruction error ($E_{\text{neighbor}}$). Each error captures a different aspect of the graph structure and message semantics. We compute a single composite score as a weighted sum:
+To assess the overall reconstruction quality of the VGAE, we combine three types of reconstruction errors: node feature reconstruction error ($E_{\text{node}}$), neighborhood reconstruction error ($E_{\text{neighbor}}$), and CAN ID prediction error ($E_{\text{CAN\,ID}}$). Each error captures a different aspect of the graph structure and message semantics. We compute a single composite score as a weighted sum:
 
 ```{math}
 :label: eq-composite-error
@@ -44,7 +44,7 @@ The learned DQN fusion policy exhibits interpretable, context-specific weighting
 :::{iframe} https://robertfrenken.github.io/kd-gat-paper/assets/html/submission/fusion.html
 :label: fig-fusion
 :width: 100%
-DQN fusion weight distribution by attack type. Peaks at distinct alpha values indicate learned attack-type-specific strategies.
+DQN fusion weight distribution by attack type. Peaks at distinct $\alpha$ values indicate learned attack-type-specific strategies.
 :::
 
 ### GAT Attention Weights

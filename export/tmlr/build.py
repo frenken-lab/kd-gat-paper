@@ -107,6 +107,52 @@ def _h_iframe(n: dict) -> str:
     )
 
 
+def _h_details(n: dict) -> str:
+    """Convert MyST {dropdown} → HTML5 <details>/<summary>."""
+    open_attr = " open" if n.get("open") else ""
+    summary, body_parts = "", []
+    for c in n.get("children", []):
+        if c.get("type") == "summary":
+            summary = _C(c)
+        else:
+            body_parts.append(serialize(c))
+    body = "\n".join(body_parts)
+    return (
+        f'\n<details{open_attr}>\n'
+        f'<summary markdown="1">{summary}</summary>\n\n'
+        f'{body}\n'
+        f'</details>\n'
+    )
+
+
+def _h_tab_set(n: dict) -> str:
+    """Convert MyST {tab-set} → Bootstrap 4 nav-tabs."""
+    tabs = [c for c in n.get("children", []) if c.get("type") == "tabItem"]
+    if not tabs:
+        return _C(n)
+    # Build unique IDs from tab titles
+    tab_ids = [re.sub(r"[^a-z0-9]", "-", t.get("title", f"tab-{i}").lower())
+               for i, t in enumerate(tabs)]
+    # Nav header
+    nav = '<ul class="nav nav-tabs" role="tablist">\n'
+    for i, (tab, tid) in enumerate(zip(tabs, tab_ids)):
+        active = " active" if i == 0 else ""
+        title = tab.get("title", f"Tab {i+1}")
+        nav += (f'  <li class="nav-item">'
+                f'<a class="nav-link{active}" data-toggle="tab" '
+                f'href="#tab-{tid}" role="tab">{title}</a></li>\n')
+    nav += '</ul>\n'
+    # Tab panes
+    panes = '<div class="tab-content">\n'
+    for i, (tab, tid) in enumerate(zip(tabs, tab_ids)):
+        active = " active" if i == 0 else ""
+        body = _children(tab.get("children", []))
+        panes += (f'<div class="tab-pane{active}" id="tab-{tid}" '
+                  f'role="tabpanel" markdown="1">\n{body}\n</div>\n')
+    panes += '</div>\n'
+    return f'\n{nav}{panes}\n'
+
+
 def _h_admonition(n: dict) -> str:
     title = ""
     body_parts: list[str] = []
@@ -164,6 +210,11 @@ HANDLERS: dict[str, callable] = {
     "container":      _h_container,
     "iframe":         _h_iframe,
     "admonition":     _h_admonition,
+    # Collapsible / tabbed content
+    "details":        _h_details,
+    "summary":        lambda n: _C(n),  # handled by _h_details; standalone fallback
+    "tabSet":         _h_tab_set,
+    "tabItem":        lambda n: _C(n),  # handled by _h_tab_set; standalone fallback
 }
 
 

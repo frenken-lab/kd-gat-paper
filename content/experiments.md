@@ -8,7 +8,7 @@ This section presents the experimental setup, evaluation metrics, and insights i
 
 ### Evaluation Metrics
 
-The performance of the model is evaluated using accuracy and F1-Score. All experiments were conducted using PyTorch and PyTorch Geometric on GPU clusters provided by the Ohio Supercomputer Center [@OhioSupercomputerCenter1987].
+The performance of the model is evaluated using accuracy and F1-score. All experiments were conducted using PyTorch and PyTorch Geometric on GPU clusters provided by the Ohio Supercomputer Center [@OhioSupercomputerCenter1987].
 
 ### Datasets
 

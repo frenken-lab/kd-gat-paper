@@ -12,7 +12,7 @@ The CAN is a robust serial protocol enabling real-time communication between ECU
 
 ### Graph Neural Networks
 
-A graph is a data structure consisting of a set of nodes *V* and a set of edges *E* that connect pairs of nodes. A graph can be defined as $G = (V,E)$, where $V = \{v_1, v_2, ..., v_n\}$ is a node set with $n$ nodes, and $E = \{e_1, e_2, ..., e_m\}$ is an edge set with $m$ edges.
+A graph is a data structure consisting of a set of nodes $V$ and a set of edges $E$ that connect pairs of nodes. A graph can be defined as $G = (V,E)$, where $V = \{v_1, v_2, ..., v_n\}$ is a node set with $n$ nodes, and $E = \{e_1, e_2, ..., e_m\}$ is an edge set with $m$ edges.
 
 Given this graph structure, a GNN looks to find meaningful relationships and insights of the graph. The most common way to accomplish this is through the message passing framework [@gilmer2017mpnn; @scarselli2009gnn], where at each iteration, every node aggregates information from its local neighborhood. Across iterations, node embeddings contain information from further parts of the graph. This update rule can be explained through the following equation:
 
@@ -21,7 +21,7 @@ Given this graph structure, a GNN looks to find meaningful relationships and ins
 \mathbf{h}_v^{(k)} = \phi\big(\mathbf{h}_v^{(k-1)},\ \bigoplus_{u \in \mathcal{N}(v)} \psi(\mathbf{h}_v^{(k-1)}, \mathbf{h}_u^{(k-1)}, \mathbf{e}_{vu})\big)
 ```
 
-where $h$ is the feature embedding, $\phi$ is the node update function, $\psi$ the message function, $\mathbf{e}_{vu}$ the edge feature, $\bigoplus$ an aggregation (sum/mean), and $\mathcal{N}(v)$ the neighbors of $v$.
+where $\mathbf{h}$ is the node feature embedding, $\phi$ is the node update function, $\psi$ the message function, $\mathbf{e}_{vu}$ the edge feature, $\bigoplus$ an aggregation (sum/mean), and $\mathcal{N}(v)$ the neighbors of $v$.
 
 GAT [@velickovic2018gat] builds upon GNNs by introducing an attention mechanism. This allows each node in the message passing framework to dynamically assign weight contributions to their neighbors. For node $v$, the attention coefficient $\alpha_{vu}$ for neighbor $u$ is computed as:
 
@@ -37,7 +37,7 @@ GAT [@velickovic2018gat] builds upon GNNs by introducing an attention mechanism.
 \right)
 ```
 
-where $\alpha$ is the learnable attention vector, $\mathbf{W}$ is a weight matrix, and $\mathbin{\|}$ denotes concatenation between the weight matrices.
+where $\mathbf{a}$ is the learnable attention parameter vector, $\mathbf{W}$ is a shared weight matrix, and $\mathbin{\|}$ denotes concatenation of the projected node feature vectors.
 
 The attention function computes a scalar weight for each neighbor of node $v_i$, denoted by $\alpha_{ij}$, which reflects the importance or relevance of node $v_j$ for node $v_i$.
 
@@ -51,31 +51,32 @@ The attention function computes a scalar weight for each neighbor of node $v_i$,
 
 where $\sigma$ is the activation function, normally ELU or ReLU.
 
-The Jumping Knowledge (JK) module [@xu2018jk] enhances GATs by aggregating intermediate layer representations. In this work, we adopt the concatenation strategy, where each node's final representation is formed by directly concatenating its embeddings from all GAT layers. Let $h_v^{(l)}$ denote the representation of node $v$ at layer $l \in \{1, \dots, L\}$. The final output is computed as:
+The Jumping Knowledge (JK) module [@xu2018jk] enhances GATs by aggregating intermediate layer representations. In this work, we adopt the concatenation strategy, where each node's final representation is formed by directly concatenating its embeddings from all GAT layers. Let $\mathbf{h}_v^{(l)}$ denote the representation of node $v$ at layer $l \in \{1, \dots, L\}$. The final output is computed as:
 
 ```{math}
 :label: eq-jk-concat
-h_v^{\text{final}} = \left[ h_v^{(1)} \; ; \; h_v^{(2)} \; ; \; \dots \; ; \; h_v^{(L)} \right]
+\mathbf{h}_v^{\text{final}} = \left[ \mathbf{h}_v^{(1)} \; ; \; \mathbf{h}_v^{(2)} \; ; \; \dots \; ; \; \mathbf{h}_v^{(L)} \right]
 ```
 
 This approach preserves multi-level features without introducing additional sequential modeling overhead.
 
 ### Variational Graph Autoencoder
 
-The Variational Graph Autoencoder (VGAE) [@kipf2016variational] is a probabilistic model designed for unsupervised learning on graphs. Given a graph $G=(V, E)$ with adjacency matrix $A$ and node features $X$, VGAE approximates the posterior distribution of latent variables $Z$ using an $n$ layer graph convolutional network (GCN) encoder.
+The Variational Graph Autoencoder (VGAE) [@kipf2016variational] is a probabilistic model designed for unsupervised learning on graphs. Given a graph $G=(V, E)$ with adjacency matrix $A$ and node features $X$, VGAE approximates the posterior distribution of latent variables $Z$ using a multi-layer graph convolutional network (GCN) encoder.
 
-The encoder approximates the posterior distribution over the latent variables $Z = \{z_1, ..., z_N\}$ by assuming a Gaussian distribution for each node:
+The encoder approximates the posterior distribution over the latent variables $Z = \{z_1, \ldots, z_n\}$ by assuming a Gaussian distribution for each node:
 
 ```{math}
 :label: eq-vgae-encoder
-q(Z|X, A) = \prod_{i=1}^{N} \mathcal{N}(z_i|\mu_i, \mathrm{diag}(\sigma_i^2))
+q(Z|X, A) = \prod_{i=1}^{n} \mathcal{N}(z_i|\mu_i, \mathrm{diag}(\sigma_i^2))
 ```
 
 where $\mu_i \in \mathbb{R}^d$ and $\sigma_i \in \mathbb{R}^d$ are the mean and standard deviation vectors for node $i$. These are parameterized by two separate GCN layers:
 
-$$
+```{math}
+:label: eq-vgae-gcn-params
 \mu = \mathrm{GCN}_\mu(X, A), \quad \log \sigma = \mathrm{GCN}_\sigma(X, A)
-$$
+```
 
 which capture both local topology and node features. The outputs of these GCNs define the variational posterior $q(Z|X, A)$.
 
@@ -83,10 +84,10 @@ The decoder attempts to reconstruct the graph structure by computing the probabi
 
 ```{math}
 :label: eq-vgae-decoder
-p(A|Z) = \prod_{i=1}^{N} \prod_{j=1}^{N} \sigma(z_i^\top z_j)
+p(A|Z) = \prod_{i=1}^{n} \prod_{j=1}^{n} \sigma(z_i^\top z_j)
 ```
 
-where $\sigma(\cdot)$ is the sigmoid function and $z_i^\top z_j$ measures similarity in latent space. This inner product decoder encourages connected nodes to have similar embeddings.
+where $\sigma(\cdot)$ here denotes the sigmoid function (distinct from the activation in Eq. {eq}`eq-gat-update`) and $z_i^\top z_j$ measures similarity in latent space. This inner product decoder encourages connected nodes to have similar embeddings.
 
 The training objective is to maximize the variational evidence lower bound (ELBO), which consists of a reconstruction term and a regularization term:
 
@@ -95,13 +96,13 @@ The training objective is to maximize the variational evidence lower bound (ELBO
 \mathcal{L} = \mathbb{E}_{q(Z|X, A)}[\log p(A|Z)] - \mathrm{KL}[q(Z|X, A) \| p(Z)]
 ```
 
-where the first term encourages accurate reconstruction of the observed adjacency matrix, and the second term is the Kullback-Leibler divergence between the approximate posterior and the prior $p(Z) = \prod_{i=1}^N \mathcal{N}(z_i|0, I)$, promoting regularization and disentangled latent representations.
+where the first term encourages accurate reconstruction of the observed adjacency matrix, and the second term is the Kullback-Leibler divergence between the approximate posterior and the prior $p(Z) = \prod_{i=1}^{n} \mathcal{N}(z_i|0, I)$, promoting regularization and disentangled latent representations.
 
 While VGAE effectively captures global graph structure, its full-graph decoding may be suboptimal for detecting localized anomalies, especially in sparse or noisy graphs. To address this, @zhou2023gadnr introduced GAD-NR, which replaces full adjacency reconstruction with localized neighborhood prediction. This modification enhances sensitivity to topological deviations at the node-level, making it suitable for intrusion detection in systems like CAN networks. Inspired by this, our architecture adopts neighborhood-level reconstruction via masked decoding over the graph of each CAN window.
 
 ### Deep Q-Network {#sec-dqn}
 
-Deep Q-Networks (DQNs) combine Q-learning with neural networks to handle high dimensional state spaces [@mnih2013playingatarideepreinforcement]. In traditional Q-learning, an agent learns a Q-table mapping with a (state, action) pair and is given a reward after an action. DQNs replace the Q-table with a neural network that approximates Q-values, enabling learning in more complex environments.
+Deep Q-Networks (DQNs) combine Q-learning with neural networks to handle high-dimensional state spaces [@mnih2013playingatarideepreinforcement]. In traditional Q-learning, an agent learns a Q-table mapping with a (state, action) pair and is given a reward after an action. DQNs replace the Q-table with a neural network that approximates Q-values, enabling learning in more complex environments.
 
 In this framework, the DQN agent learns an optimal weighting policy $\pi(s)$ that dynamically assigns importance scores $\alpha = [\alpha_{\text{GAT}}, \alpha_{\text{VGAE}}]$ to each expert model based on the current CAN message state $s_t$. The state $s_t$ is defined as the concatenation of anomaly scores and confidence scores from both experts. At each step $t$, the agent selects an action $a_t$ corresponding to a weight vector adjustment to minimize the detection loss. The network is trained by minimizing the temporal difference error using the Bellman equation:
 
@@ -127,7 +128,7 @@ The student is trained to match these probabilities by minimizing the Kullback-L
 
 ```{math}
 :label: eq-kd-total-loss
-\mathcal{L}_{\text{total}} = \alpha \cdot \mathcal{L}_{\text{hard}} + (1 - \alpha) \cdot \mathcal{L}_{\text{KD}}
+\mathcal{L}_{\text{total}} = \lambda \cdot \mathcal{L}_{\text{hard}} + (1 - \lambda) \cdot \mathcal{L}_{\text{KD}}
 ```
 
-where $\alpha$ balances the contribution of ground truth ($\mathcal{L}_{\text{hard}}$) and teacher supervision ($\mathcal{L}_{\text{KD}}$).
+where $\lambda$ balances the contribution of ground truth ($\mathcal{L}_{\text{hard}}$) and teacher supervision ($\mathcal{L}_{\text{KD}}$).

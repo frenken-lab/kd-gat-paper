@@ -4,7 +4,10 @@ title: "Ablation Study"
 
 ## Ablation Study
 
-To assess the contribution of different model configurations, we perform ablation experiments investigating three key variables: Knowledge Distillation, supervised learning training strategies (curriculum learning and hard sample mining), and fusion effectiveness, comparing standalone and fused architectures. [](#tbl-ablation-kd), [](#tbl-ablation-gat), and [](#tbl-ablation-fusion) test different configurations across two of the six datasets.
+To assess the contribution of different model configurations, we perform ablation experiments investigating three key variables: knowledge distillation, supervised learning training strategies (curriculum learning and hard sample mining), and fusion effectiveness, comparing standalone and fused architectures.
+
+<!-- TODO: Restore cross-refs once ablation tables are exported:
+     [](#tbl-ablation-kd), [](#tbl-ablation-gat), and [](#tbl-ablation-fusion) -->
 
 ### Knowledge Distillation Effects
 
@@ -12,7 +15,7 @@ To assess the contribution of different model configurations, we perform ablatio
 
 _Awaiting data export for Knowledge Distillation ablation table._
 
-To further characterize how knowledge transfers between teacher and student networks, we compute Centered Kernel Alignment (CKA) between all pairs of teacher and student layers. High CKA values indicate that corresponding layers learn similar representations despite the 20$\times$ parameter reduction.
+To further characterize how knowledge transfers between teacher and student networks, we compute Centered Kernel Alignment (CKA) between all pairs of teacher and student layers. High CKA values indicate that corresponding layers learn similar representations despite the $20\times$ parameter reduction.
 
 :::{iframe} https://robertfrenken.github.io/kd-gat-paper/assets/html/submission/cka.html
 :label: fig-cka

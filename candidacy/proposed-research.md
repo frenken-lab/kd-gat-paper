@@ -9,23 +9,23 @@ title: "Proposed Research"
 
 #### Prior Work
 
-Physics-informed machine learning (PIML) encodes domain-specific physical laws---typically as ODE/PDE residual penalties---into neural network training, producing models that respect known dynamics even under limited data {cite}`Wu2024PIMLReview`. Several recent works demonstrate the viability of this paradigm for anomaly detection in cyber-physical systems. Nandanoori et al. {cite}`Nandanoori2023PIConvAE` embed power-grid swing equations into a convolutional autoencoder loss, detecting false data injection (FDI) attacks with significantly fewer false positives than purely data-driven baselines. Wu et al. {cite}`Wu2025PIGCRN` combine graph convolutional and recurrent layers with physics-residual losses for chemical process networks, establishing an architecture precedent for coupling GNN-based feature extraction with physics-informed training---directly analogous to the GAT + physics loss proposed here.
+Physics-informed machine learning (PIML) encodes domain-specific physical laws---typically as ODE/PDE residual penalties---into neural network training, producing models that respect known dynamics even under limited data [@Wu2024PIMLReview]. Several recent works demonstrate the viability of this paradigm for anomaly detection in cyber-physical systems. Nandanoori et al. [@Nandanoori2023PIConvAE] embed power-grid swing equations into a convolutional autoencoder loss, detecting false data injection (FDI) attacks with significantly fewer false positives than purely data-driven baselines. Wu et al. [@Wu2025PIGCRN] combine graph convolutional and recurrent layers with physics-residual losses for chemical process networks, establishing an architecture precedent for coupling GNN-based feature extraction with physics-informed training---directly analogous to the GAT + physics loss proposed here.
 
-The closest precedent to the present work is the Hybrid PINN (HPINN) of Vyas et al. {cite}`Vyas2023HPINN`, which uses a PINN to detect FDI attacks in cooperative adaptive cruise control (CACC) vehicle platoons. The HPINN encodes longitudinal dynamics (acceleration, spacing) and achieves high detection rates on simulated platoon data. However, HPINN is limited to *longitudinal* dynamics of platooning vehicles and has not been evaluated on real CAN traffic or lateral maneuvers. Our work extends the PINN concept in three directions: (1) encoding the full nonlinear bicycle model including lateral dynamics and Pacejka tire forces, (2) operating on reverse-engineered CAN signals rather than cooperative V2X data, and (3) integrating the PINN as one expert within a DQN-weighted ensemble rather than as a standalone detector.
+The closest precedent to the present work is the Hybrid PINN (HPINN) of Vyas et al. [@Vyas2023HPINN], which uses a PINN to detect FDI attacks in cooperative adaptive cruise control (CACC) vehicle platoons. The HPINN encodes longitudinal dynamics (acceleration, spacing) and achieves high detection rates on simulated platoon data. However, HPINN is limited to *longitudinal* dynamics of platooning vehicles and has not been evaluated on real CAN traffic or lateral maneuvers. Our work extends the PINN concept in three directions: (1) encoding the full nonlinear bicycle model including lateral dynamics and Pacejka tire forces, (2) operating on reverse-engineered CAN signals rather than cooperative V2X data, and (3) integrating the PINN as one expert within a DQN-weighted ensemble rather than as a standalone detector.
 
 #### Comparison to Classical Baselines
 
-A natural question is whether a neural network is needed at all when vehicle dynamics are known analytically. The Context-Aware Anomaly Detection using vehicle Dynamics (CADD) system {cite}`Chen2024CADD` answers this partly: CADD uses classical bicycle-model residuals (no neural network) with OBD-II ground-truth signals, achieving >96% recall and <0.5% false positive rate on the ROAD dataset. This strong result validates the physics-based anomaly signal but also reveals the limitations of a purely analytical approach:
+A natural question is whether a neural network is needed at all when vehicle dynamics are known analytically. The Context-Aware Anomaly Detection using vehicle Dynamics (CADD) system [@Chen2024CADD] answers this partly: CADD uses classical bicycle-model residuals (no neural network) with OBD-II ground-truth signals, achieving >96% recall and <0.5% false positive rate on the ROAD dataset. This strong result validates the physics-based anomaly signal but also reveals the limitations of a purely analytical approach:
 
 - **Model mismatch:** The linear bicycle model diverges from real tire behavior at high slip angles, during emergency maneuvers, and on low-friction surfaces. A PINN can learn nonlinear corrections beyond the analytical model.
 - **Training integration:** A classical residual is a fixed function; it cannot serve as a differentiable loss term for joint training of the GAT and VGAE. The PINN's physics loss $L_{\text{physics}}$ regularizes the entire ensemble during backpropagation.
 - **Graceful degradation:** When full dynamics signals are unavailable (common in raw CAN captures without DBC files), CADD cannot operate. The PINN framework degrades smoothly via adaptive $\lambda_{\text{physics}}$ weighting rather than failing entirely.
 
-Ozdemir and Peng {cite}`Ozdemir2024IVNSurvey` categorize IVN anomaly detection methods as either *observer-based* (predict-then-compare, e.g., Kalman filter residuals) or *data-driven* (learned representations). The proposed PINN bridges both paradigms: it learns a dynamics model (data-driven) whose training is constrained by known physics (observer-based), combining the interpretability of residual-based detection with the flexibility of neural approximation.
+Ozdemir and Peng [@Ozdemir2024IVNSurvey] categorize IVN anomaly detection methods as either *observer-based* (predict-then-compare, e.g., Kalman filter residuals) or *data-driven* (learned representations). The proposed PINN bridges both paradigms: it learns a dynamics model (data-driven) whose training is constrained by known physics (observer-based), combining the interpretability of residual-based detection with the flexibility of neural approximation.
 
 #### PINN Architecture and Training
 
-The PINN is a compact MLP trained on vehicle dynamics using CAN data extracted via ByCAN {cite}`ByCAN` reverse engineering and state estimation via Extended Kalman Filter (EKF). The architecture is specified in [](#tab:pinn-arch).
+The PINN is a compact MLP trained on vehicle dynamics using CAN data extracted via ByCAN [@ByCAN] reverse engineering and state estimation via Extended Kalman Filter (EKF). The architecture is specified in [](#tab:pinn-arch).
 
 :::{table} PINN Module Specification
 :label: tab:pinn-arch
@@ -64,7 +64,7 @@ L_{\text{physics}} = L_{\text{vx}} + L_{\text{vy}} + L_{\text{yaw}}
 
 where each term penalizes the residual of the corresponding bicycle-model ODE constraint (detailed in Appendix [](#app:pinn-physics)).
 
-**Adaptive $\lambda_{\text{physics}}$ weighting.** Rather than fixing $\lambda_{\text{physics}}$ to a static value, we adopt an adaptive weighting strategy. Wang et al. {cite}`Wang2022NTK` show from a Neural Tangent Kernel (NTK) perspective that static weighting causes PINNs to under-train either the data or physics branch, depending on relative gradient magnitudes. McClenny and Braga-Neto {cite}`McClenny2023SAPINN` address this with self-adaptive weights, parameterizing $\lambda_{\text{physics}}$ as a learnable scalar optimized jointly with the network. Bischof and Kraus {cite}`Bischof2024MultiObj` frame multi-objective loss balancing more generally, showing that gradient-based balancing (e.g., GradNorm, PCGrad) outperforms grid-searched static weights across physics-informed architectures. We propose initializing $\lambda_{\text{physics}}$ based on the deployment tier (see [Graceful Degradation](#pinn-graceful-degradation) below) and then allowing it to adapt during training via the self-adaptive approach of {cite}`McClenny2023SAPINN`, with a tier-dependent upper bound to prevent the physics term from dominating when signal quality is low.
+**Adaptive $\lambda_{\text{physics}}$ weighting.** Rather than fixing $\lambda_{\text{physics}}$ to a static value, we adopt an adaptive weighting strategy. Wang et al. [@Wang2022NTK] show from a Neural Tangent Kernel (NTK) perspective that static weighting causes PINNs to under-train either the data or physics branch, depending on relative gradient magnitudes. McClenny and Braga-Neto [@McClenny2023SAPINN] address this with self-adaptive weights, parameterizing $\lambda_{\text{physics}}$ as a learnable scalar optimized jointly with the network. Bischof and Kraus [@Bischof2024MultiObj] frame multi-objective loss balancing more generally, showing that gradient-based balancing (e.g., GradNorm, PCGrad) outperforms grid-searched static weights across physics-informed architectures. We propose initializing $\lambda_{\text{physics}}$ based on the deployment tier (see [Graceful Degradation](#pinn-graceful-degradation) below) and then allowing it to adapt during training via the self-adaptive approach of [@McClenny2023SAPINN], with a tier-dependent upper bound to prevent the physics term from dominating when signal quality is low.
 
 #### Anomaly Detection via PINN
 
@@ -80,7 +80,9 @@ Large prediction errors (physics violations) yield high anomaly scores. This pro
 (pinn-graceful-degradation)=
 #### Graceful Degradation
 
-The PINN module is optional and its influence depends on three deployment tiers, with $\lambda_{\text{physics}}$ initialized per tier and adapted during training:
+The PINN module is optional and its influence depends on three deployment tiers, with $\lambda_{\text{physics}}$ initialized per tier and adapted during training. This tiered approach ensures robustness across diverse deployment scenarios while respecting signal-quality constraints.
+
+:::{dropdown} Deployment tiers and adaptive $\lambda_{\text{physics}}$ initialization
 
 1. **Full dynamics available:** Extract vehicle speed, steering angle, and yaw rate via ByCAN + EKF. Initialize $\lambda_{\text{physics}}^{(0)} = 0.5$ with adaptive upper bound $\lambda_{\max} = 1.0$. All five input channels populated.
 
@@ -88,31 +90,35 @@ The PINN module is optional and its influence depends on three deployment tiers,
 
 3. **No dynamics:** If signal extraction fails or dynamics signals are unavailable, set $\lambda_{\text{physics}} = 0$ (non-learnable). The framework relies entirely on the GAT and VGAE data-driven models.
 
-This tiered approach ensures robustness across diverse deployment scenarios. The adaptive weighting avoids the need to hand-tune $\lambda_{\text{physics}}$ per dataset while respecting signal-quality constraints.
+:::
 
 #### Data Extraction: ByCAN Reverse Engineering
 
-To obtain vehicle dynamics, we apply the ByCAN reverse engineering framework {cite}`ByCAN`. ByCAN achieves 80.21% slicing accuracy by analyzing CAN payloads at byte and bit levels, outperforming READ (51.99%) and CAN-D (63.88%) {cite}`ByCAN`. The extraction process entails four steps:
+To obtain vehicle dynamics, we apply the ByCAN reverse engineering framework [@ByCAN]. ByCAN achieves 80.21% slicing accuracy by analyzing CAN payloads at byte and bit levels, outperforming READ (51.99%) and CAN-D (63.88%) [@ByCAN]. The extraction process entails four steps:
 
-1. Load CAN frames from publicly available datasets {cite}`Song2020carhacking`, {cite}`Lampe2024cantrainandtest`, {cite}`ROAD`.
+1. Load CAN frames from publicly available datasets [@Song2020carhacking; @Lampe2024cantrainandtest; @ROAD].
 2. Apply DBSCAN clustering on byte-level features to identify signal boundaries.
-3. Use Dynamic Time Warping template matching to align CAN sequences across vehicle models and identify consistent signal semantics (Vehicle Speed, Engine RPM, Throttle Position) {cite}`ByCAN`.
+3. Use Dynamic Time Warping template matching to align CAN sequences across vehicle models and identify consistent signal semantics (Vehicle Speed, Engine RPM, Throttle Position) [@ByCAN].
 4. Extract labeled signals that appear consistently across manufacturers.
 
 These extracted signals feed the EKF for state estimation and PINN training. If signal extraction fails, that particular dataset falls back to data-driven models only with $\lambda_{\text{physics}} = 0$.
 
-**Limitations and fallback hierarchy.** The 80.21% slicing accuracy is a *signal boundary* metric---it measures whether ByCAN correctly identifies where one CAN signal ends and the next begins within a message payload. Errors in slicing directly corrupt the physical quantities fed to the PINN, particularly steering angle ($\delta$) and yaw rate ($\dot{\psi}$), which are critical inputs to the bicycle model. Missliced signals can introduce systematic bias rather than random noise, because adjacent signals in a CAN frame often encode related but distinct quantities (e.g., raw sensor counts vs. scaled physical values). LibreCAN {cite}`Pese2019LibreCAN` provides an alternative reverse-engineering approach using diagnostic (OBD-II) responses as ground truth, but requires physical access to the vehicle's OBD-II port during data collection.
+:::{dropdown} Limitations and signal extraction fallback hierarchy
+
+The 80.21% slicing accuracy is a *signal boundary* metric---it measures whether ByCAN correctly identifies where one CAN signal ends and the next begins within a message payload. Errors in slicing directly corrupt the physical quantities fed to the PINN, particularly steering angle ($\delta$) and yaw rate ($\dot{\psi}$), which are critical inputs to the bicycle model. Missliced signals can introduce systematic bias rather than random noise, because adjacent signals in a CAN frame often encode related but distinct quantities (e.g., raw sensor counts vs. scaled physical values). LibreCAN [@Pese2019LibreCAN] provides an alternative reverse-engineering approach using diagnostic (OBD-II) responses as ground truth, but requires physical access to the vehicle's OBD-II port during data collection.
 
 To mitigate signal extraction risk, we propose the following fallback hierarchy:
 
 1. **DBC file access (best case):** If the manufacturer's DBC database definition is available (common in OEM research partnerships), use it directly. This eliminates reverse-engineering error entirely.
-2. **OBD-II ground truth:** Following CADD's approach {cite}`Chen2024CADD`, use OBD-II PID responses for vehicle speed, RPM, and throttle as ground truth to validate and calibrate ByCAN-extracted signals before PINN training.
-3. **ByCAN reverse engineering (last resort):** Apply ByCAN {cite}`ByCAN` with post-hoc validation: cross-check extracted signal ranges against known physical bounds (e.g., steering angle $|\delta| < 40°$, yaw rate $|\dot{\psi}| < 1.0$ rad/s) and discard signals that fail plausibility checks. Supplement with LibreCAN {cite}`Pese2019LibreCAN` for cross-validation where OBD-II data is available in the dataset.
+2. **OBD-II ground truth:** Following CADD's approach [@Chen2024CADD], use OBD-II PID responses for vehicle speed, RPM, and throttle as ground truth to validate and calibrate ByCAN-extracted signals before PINN training.
+3. **ByCAN reverse engineering (last resort):** Apply ByCAN [@ByCAN] with post-hoc validation: cross-check extracted signal ranges against known physical bounds (e.g., steering angle $|\delta| < 40°$, yaw rate $|\dot{\psi}| < 1.0$ rad/s) and discard signals that fail plausibility checks. Supplement with LibreCAN [@Pese2019LibreCAN] for cross-validation where OBD-II data is available in the dataset.
+
+:::
 
 (subsec:DQN)=
 ### Dynamic Expert Fusion
 
-The current framework implements two complementary formulations for learning dynamic fusion weights: a Deep Q-Network (DQN) and a Neural-LinUCB contextual bandit {cite}`xu2022neural`. Both operate on the same state and action spaces---a 15-dimensional vector of anomaly scores and confidence metrics from each expert, and $K=21$ discrete fusion weight settings---but differ in their modeling assumptions.
+The current framework implements two complementary formulations for learning dynamic fusion weights: a Deep Q-Network (DQN) and a Neural-LinUCB contextual bandit [@xu2022neural]. Both operate on the same state and action spaces---a 15-dimensional vector of anomaly scores and confidence metrics from each expert, and $K=21$ discrete fusion weight settings---but differ in their modeling assumptions.
 
 The contextual bandit formulation is arguably more principled for this problem: each CAN window graph is classified independently, so the fusion decision for one window does not affect the next. This eliminates the sequential MDP assumption (discount factor, target network, experience replay) that the DQN inherits but does not strictly require. The Neural-LinUCB agent decomposes the problem into deep representation learning (a neural backbone mapping states to embeddings) and shallow exploration via upper confidence bounds, providing principled uncertainty-driven exploration without the overhead of temporal credit assignment.
 
@@ -120,7 +126,7 @@ Both formulations currently fuse two experts (GAT and VGAE). The proposed extens
 
 #### Deep Q-Network Formulation
 
-Deep Q-Networks combine Q-learning with neural networks to handle high dimensional state spaces {cite}`mnih2013playingatarideepreinforcement`. In traditional Q-learning, an agent learns a Q-table mapping with a (state, action) pair and is given a reward after an action. DQNs replace the Q-table with a neural network that approximated Q-values, enabling learning in more complex environments.
+Deep Q-Networks combine Q-learning with neural networks to handle high-dimensional state spaces [@mnih2013playingatarideepreinforcement]. In traditional Q-learning, an agent learns a Q-table mapping with a (state, action) pair and is given a reward after an action. DQNs replace the Q-table with a neural network that approximates Q-values, enabling learning in more complex environments.
 
 In the DQN formulation, the agent learns an optimal weighting policy $\pi(s)$ that dynamically assigns importance scores $\alpha = [\alpha_{\text{GAT}}, \alpha_{\text{VGAE}}, \alpha_{\text{PINN}}, \alpha_{\text{CWD}}]$ to each expert model based on the current CAN message state $s_t$. The state $s_t$ is defined as the concatenation of anomaly scores and confidence scores from both experts. At each step $t$, the agent selects an action $a_t$ corresponding to a weight vector adjustment to minimize the detection loss. The network is trained by minimizing the temporal difference error using the Bellman equation:
 
@@ -147,7 +153,7 @@ Table [](#tab:ablation_DQN) details initial DQN results on training data compare
 | S03         | 94.71   | 95.83    | **97.32** |
 | S04         | 64.81   | 67.93    | **88.60** |
 
-**Column Legend:** GAT = GAT-only, E.W = Equal Weighting to GAT and VGAE, DQN= Dynamic Weighting from DQN model.
+**Column Legend:** GAT = GAT-only, E.W = Equal Weighting to GAT and VGAE, DQN = Dynamic Weighting from DQN model.
 :::
 
 (subsec:IntelKD)=
@@ -155,7 +161,7 @@ Table [](#tab:ablation_DQN) details initial DQN results on training data compare
 
 While previous work devised teacher-student parameter sizing following conventional wisdom using factors of 2, 5, 10, or 100, future work will incorporate both hardware constraints and recent research on distillation scaling to develop principled guidance for teacher and student sizing.
 
-Automotive deployment requires <50 ms inference latency on ARM Cortex-A7 processors, with a safe general throughput of 50-75 MFLOP/s (accounting for memory overhead) {cite}`ARMCortexA7`. This latency constraint directly constrains the computational budget available for anomaly detection inference.
+Automotive deployment requires <50 ms inference latency on ARM Cortex-A7 processors, with a safe general throughput of 50-75 MFLOP/s (accounting for memory overhead) [@ARMCortexA7]. This latency constraint directly constrains the computational budget available for anomaly detection inference.
 
 The maximum FLOPs available within a 50ms latency budget is:
 
@@ -180,19 +186,21 @@ As an example, the current student GAT model is composed of linear layers and gr
 \end{aligned}
 ```
 
-for a CAN graph with $n=37$ signals and $d=16$ embedding dimension across $4$ attention heads. While this model is safely under the max parameter limit, future work will need to ensure that every component and it's combination meets the computational limit of the hardware.
+for a CAN graph with $n=37$ signals and $d=16$ embedding dimension across $4$ attention heads. While this model is safely under the max parameter limit, future work will need to ensure that every component and its combination meets the computational limit of the hardware.
 
-**Scaling Law Principles:**
+:::{dropdown} Scaling law principles from distillation literature
 
-Recent empirical research on knowledge distillation {cite}`distillation-scaling-laws` reveals that optimal teacher-student sizing depends on the target task complexity and available compute. While this research primarily studied large language models (143M-12.6B parameters), the underlying principles generalize to smaller domains:
+Recent empirical research on knowledge distillation [@distillation-scaling-laws] reveals that optimal teacher-student sizing depends on the target task complexity and available compute. While this research primarily studied large language models (143M-12.6B parameters), the underlying principles generalize to smaller domains:
 
 1. Teacher size plateaus at 2-3x student size for most tasks: Beyond this ratio, further teacher scaling yields diminishing returns due to inference cost overhead. However, for simpler binary classification tasks (like benign vs. attack detection), more aggressive compression (>50x) is feasible because decision boundaries are simpler.
 
 2. Capacity gap risk at extreme compression ratios: When teacher and student are too different in capacity, the student struggles to model teacher behavior. The current framework has a compression rate of 68x. Though results have been strong, future work will entail augmenting parameters to more appropriate compression ratios.
 
-3. Teacher quality matters more than size: Student performance depends more on teacher quality than teacher size. A well trained smaller teacher is preferable to an under-trained larger teacher.
+3. Teacher quality matters more than size: Student performance depends more on teacher quality than teacher size. A well-trained smaller teacher is preferable to an under-trained larger teacher.
 
 These principles will guide future work on the framework, ensuring appropriate compression ratios based on the resource constraints of onboard hardware.
+
+:::
 
 (subsec:XAI)=
 ### Explainable Artificial Intelligence
@@ -201,20 +209,20 @@ Understanding why the ensemble flags a CAN sequence as anomalous is critical for
 
 **Standard Methods: LIME and SHAP**
 
-1. LIME (Local Interpretable Model-agnostic Explanations) {cite}`LIME` approximates local model behavior via linear surrogates. For a flagged CAN sequence, LIME perturbs individual message fields and measures impact on anomaly score {cite}`LIME`. Output: "Removing this signal reduces attack confidence by 15%," highlighting which CAN IDs contributed to detection.
-2. SHAP (SHapley Additive exPlanations) {cite}`SHAP` computes feature importance via Shapley values from cooperative game theory. SHAP attributes each CAN signal's contribution to the ensemble decision, with theoretical guarantees on local accuracy and consistency {cite}`SHAP`. For CAN anomaly detection, SHAP shows: "This message sequence violates the typical pattern for Engine ECU; signal X was out-of-distribution by 3-sigma."
+1. LIME (Local Interpretable Model-agnostic Explanations) [@LIME] approximates local model behavior via linear surrogates. For a flagged CAN sequence, LIME perturbs individual message fields and measures impact on anomaly score. Output: "Removing this signal reduces attack confidence by 15%," highlighting which CAN IDs contributed to detection.
+2. SHAP (SHapley Additive exPlanations) [@SHAP] computes feature importance via Shapley values from cooperative game theory. SHAP attributes each CAN signal's contribution to the ensemble decision, with theoretical guarantees on local accuracy and consistency. For CAN anomaly detection, SHAP shows: "This message sequence violates the typical pattern for Engine ECU; signal X was out-of-distribution by 3-sigma."
 
 Both methods are model-agnostic and provide intuitive feature-level explanations. However, they treat CAN data as flat feature vectors, ignoring graph structure and temporal dynamics.
 
 **Novel Methods: Orthogonal Explainability Perspectives**
 
-To complement the standard methods of XAI, three additional approaches will be explored and determined if it provides strong interpretability:
+To complement the standard methods of XAI, three additional approaches will be explored to determine whether they provide strong interpretability:
 
-1. **Counterfactual Analysis (CF-GNNExplainer):** For graph-structured CAN data, counterfactual explanations show minimal perturbations that flip predictions {cite}`CFGNNExplainer`. Example: "Removing the message relationship between Steering Angle and Yaw Rate signals flips the attack classification to benign." This reveals decision boundaries and what must change for the model to change its mind {cite}`CounterfactualExplainability`.
+1. **Counterfactual Analysis (CF-GNNExplainer):** For graph-structured CAN data, counterfactual explanations show minimal perturbations that flip predictions [@CFGNNExplainer]. Example: "Removing the message relationship between Steering Angle and Yaw Rate signals flips the attack classification to benign." This reveals decision boundaries and what must change for the model to change its mind [@CounterfactualExplainability].
 
-2. **Concept Activation Vectors (TCAV):** TCAV maps internal neural network activations to user-defined concepts without retraining {cite}`TCAV`. Example: "How much does the GAT layer respond to DoS-like behavior (high message frequency)?" or "Does the VGAE encode spoofing signatures?" TCAV provides global model behavior explanation (not per-sample), quantifying what high-level patterns the ensemble learned {cite}`TCAV`.
+2. **Concept Activation Vectors (TCAV):** TCAV maps internal neural network activations to user-defined concepts without retraining [@TCAV]. Example: "How much does the GAT layer respond to DoS-like behavior (high message frequency)?" or "Does the VGAE encode spoofing signatures?" TCAV provides global model behavior explanation (not per-sample), quantifying what high-level patterns the ensemble learned [@TCAV].
 
-3. **Prototype-Based Learning:** Supplement ensemble with learned archetypal attack/benign patterns. Explanations: "This sequence matches DoS prototype with 94% similarity" or "Resembles Spoofing Attack Example 3" Unlike post-hoc methods, prototypes are faithful (model literally uses them) and transparent (users inspect training exemplars) {cite}`ProtoPNet`.
+3. **Prototype-Based Learning:** Supplement ensemble with learned archetypal attack/benign patterns. Explanations: "This sequence matches DoS prototype with 94% similarity" or "Resembles Spoofing Attack Example 3" Unlike post-hoc methods, prototypes are faithful (model literally uses them) and transparent (users inspect training exemplars) [@ProtoPNet].
 
 These methods are complementary to LIME/SHAP, addressing model-specific biases and providing multiple perspectives on why anomalies are detected. For safety-critical automotive systems, this multi-method approach ensures comprehensive interpretability.
 
@@ -228,15 +236,15 @@ To demonstrate framework robustness beyond automotive CAN, additional validation
 
 | **Dataset** | **Domain** | **Modality** | **Attack Types** | **Records** | **Physics Dynamics** |
 |---|---|---|---|---|---|
-| Car-Hacking (2015) {cite}`Song2020carhacking` | Automotive | CAN Bus Messages | DoS, Fuzzy, Spoofing (RPM, Gear) | 30--40 min (300 ea.) | Available (Speed, RPM, Gear) |
-| ROAD (2021) {cite}`ROAD` | Automotive | CAN Bus Messages | Fabrication, Masquerade (physical verified) | 100+ hrs (>100K msgs) | High Quality (Real vehicle, dynamometer) |
-| KDD'99 {cite}`stolfo1999kddcup99` | Network | TCP/IP Connections | DoS, Probe, R2L, U2R | 5M records | No (network traffic) |
-| NSL-KDD (2009) {cite}`tavallaee2009nslkdd` | Network | TCP/IP Connections | DoS, Probe, R2L, U2R (refined KDD'99) | 125K train, 22K test | No (network traffic) |
-| CICIDS2017 (2017) {cite}`sharafaldin2018cicids2017` | Network | Network Flows | DoS, DDoS, Brute-force, Botnet, Infiltration | 2.8M flows (80K CSV) | No (network traffic) |
-| UNSW-NB15 (2015) {cite}`moustafa2015unswnb15` | Network | TCP/IP Connections | DoS, Exploits, Backdoor, Reconnaissance | 2.5M records (100K CSV) | No (network traffic) |
-| SWaT (2015) {cite}`goh2016swatdataset` | Water Treatment (SCADA) | 51 Sensors, 6 Actuators | Sensor Spoofing, Valve Injection, Backdoor | 496K rows (1 week), 12% attacks | High (water treatment physics model) |
-| WADI (2017) {cite}`ahmed2017wadi` | Water Distribution (SCADA) | 103 Sensors, 15 Actuators | Sensor Attacks, Logic Attacks, Actuator Attacks | 1.05M rows (2 weeks), 6% attacks | High (water distribution dynamics) |
-| HAI (2020) {cite}`shin2020hai` | Critical Infrastructure (Hybrid) | Multiple Sensors/Actuators | Sensor Attacks, Valve Attacks, Logic Attacks | 80K rows (1 week) | Moderate (SCADA, process control) |
+| Car-Hacking (2015) [@Song2020carhacking] | Automotive | CAN Bus Messages | DoS, Fuzzy, Spoofing (RPM, Gear) | 30--40 min (300 ea.) | Available (Speed, RPM, Gear) |
+| ROAD (2021) [@ROAD] | Automotive | CAN Bus Messages | Fabrication, Masquerade (physical verified) | 100+ hrs (>100K msgs) | High Quality (Real vehicle, dynamometer) |
+| KDD'99 [@stolfo1999kddcup99] | Network | TCP/IP Connections | DoS, Probe, R2L, U2R | 5M records | No (network traffic) |
+| NSL-KDD (2009) [@tavallaee2009nslkdd] | Network | TCP/IP Connections | DoS, Probe, R2L, U2R (refined KDD'99) | 125K train, 22K test | No (network traffic) |
+| CICIDS2017 (2017) [@sharafaldin2018cicids2017] | Network | Network Flows | DoS, DDoS, Brute-force, Botnet, Infiltration | 2.8M flows (80K CSV) | No (network traffic) |
+| UNSW-NB15 (2015) [@moustafa2015unswnb15] | Network | TCP/IP Connections | DoS, Exploits, Backdoor, Reconnaissance | 2.5M records (100K CSV) | No (network traffic) |
+| SWaT (2015) [@goh2016swatdataset] | Water Treatment (SCADA) | 51 Sensors, 6 Actuators | Sensor Spoofing, Valve Injection, Backdoor | 496K rows (1 week), 12% attacks | High (water treatment physics model) |
+| WADI (2017) [@ahmed2017wadi] | Water Distribution (SCADA) | 103 Sensors, 15 Actuators | Sensor Attacks, Logic Attacks, Actuator Attacks | 1.05M rows (2 weeks), 6% attacks | High (water distribution dynamics) |
+| HAI (2020) [@shin2020hai] | Critical Infrastructure (Hybrid) | Multiple Sensors/Actuators | Sensor Attacks, Valve Attacks, Logic Attacks | 80K rows (1 week) | Moderate (SCADA, process control) |
 
 :::
 
@@ -244,7 +252,7 @@ To demonstrate framework robustness beyond automotive CAN, additional validation
 
 The current framework operates on static graph snapshots constructed from fixed-size CAN windows. Real-world deployment, however, requires streaming inference where graphs are updated incrementally as new messages arrive.
 
-- **Incremental graph updates:** Recomputing the full graph for every new CAN window is wasteful. Efficient approaches would maintain a sliding-window graph structure, adding new edges/nodes and expiring old ones without full reconstruction. Temporal Graph Networks (TGN) {cite}`rossi2020temporal` provide a foundation for this, learning temporal embeddings that update continuously as events arrive.
+- **Incremental graph updates:** Recomputing the full graph for every new CAN window is wasteful. Efficient approaches would maintain a sliding-window graph structure, adding new edges/nodes and expiring old ones without full reconstruction. Temporal Graph Networks (TGN) [@rossi2020temporal] provide a foundation for this, learning temporal embeddings that update continuously as events arrive.
 - **Concept drift:** Attack patterns evolve over time, and vehicle behavior itself changes with wear, environmental conditions, and software updates. The fusion agent must detect distributional shifts and adapt---either through online fine-tuning of GNN parameters or through drift-aware replay strategies.
 - **Latency constraints:** Streaming inference must still meet the <50 ms latency budget (Section [](#subsec:IntelKD)). Approaches that amortize GNN computation across incremental updates are essential for satisfying this constraint at scale.
 
@@ -252,7 +260,7 @@ The current framework operates on static graph snapshots constructed from fixed-
 
 As a security-critical component, the IDS itself becomes an attack target. Adversaries aware of the GNN-based detection pipeline may craft evasion attacks specifically designed to bypass it.
 
-- **Graph adversarial attacks:** Edge and node perturbation attacks can fool GAT attention mechanisms by injecting carefully chosen CAN messages that appear benign to the graph structure while masking underlying attack patterns {cite}`zugner2018adversarial`.
+- **Graph adversarial attacks:** Edge and node perturbation attacks can fool GAT attention mechanisms by injecting carefully chosen CAN messages that appear benign to the graph structure while masking underlying attack patterns [@zugner2018adversarial].
 - **Training data poisoning:** Fleet-collected datasets used for model updates are vulnerable to poisoning, where an attacker injects subtly mislabeled samples to degrade detection performance over time.
 - **Certified robustness:** Randomized smoothing and other certification techniques can provide provable guarantees on detection stability under bounded perturbations. Adversarial training---augmenting the training set with adversarial examples---provides empirical robustness but increases computational cost.
 - Given the security domain, robustness evaluation against adversarial graph perturbations is not merely academic but operationally necessary for deployment trust.
