@@ -131,5 +131,7 @@ jobs:
         run: |
           cp myst.yml myst.yml.paper
           cp myst.candidacy.yml myst.yml
+          npm install -g mystmd
+          myst build --pdf
           npx -y curvenote deploy --yes
           mv myst.yml.paper myst.yml
