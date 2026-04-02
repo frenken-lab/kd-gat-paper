@@ -1,4 +1,4 @@
-.PHONY: data validate figures figures-static tables site dev tmlr tmlr-anon preview deploy sync bib all clean
+.PHONY: data validate figures figures-static tables site dev candidacy-site candidacy-dev candidacy-pdf tmlr tmlr-anon preview deploy sync bib all clean
 
 SYNC := python ~/KD-GAT/scripts/data/paper_sync.py
 
@@ -28,6 +28,9 @@ candidacy-site: figures tables
 
 candidacy-dev:
 	myst start --config myst.candidacy.yml
+
+candidacy-pdf: figures tables
+	myst build --pdf --config myst.candidacy.yml
 
 tmlr: site
 	python export/tmlr/build.py --output _build/submission/

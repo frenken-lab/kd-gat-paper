@@ -279,4 +279,4 @@ Current evaluation treats each dataset independently, training and testing separ
 
 - **Shared feature extractors:** A common GNN backbone can learn protocol-invariant features (e.g., timing anomalies, frequency deviations) while domain-specific classification heads adapt to dataset-specific label semantics.
 - **Few-shot adaptation:** With a strong shared backbone, adapting to a new vehicle platform or CAN protocol should require only a small number of labeled examples, enabling rapid deployment on unseen vehicles.
-- **Cross-protocol transfer:** The graph construction approach (Section [](#alg-graph-construction)) generalizes beyond CAN to any message-based network protocol. Joint training across CAN, FlexRay, and Automotive Ethernet datasets would test whether learned representations transfer across protocol boundaries.
+- **Cross-protocol transfer:** The graph construction approach (Algorithm 1) generalizes beyond CAN to any message-based network protocol. Joint training across CAN, FlexRay, and Automotive Ethernet datasets would test whether learned representations transfer across protocol boundaries.

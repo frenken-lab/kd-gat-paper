@@ -32,6 +32,32 @@ project:
     - references/background.bib
     - references/loss.bib
     - references/candidacy.bib
+  exports:
+    - format: typst
+      template: plain_typst_book
+      output: _build/exports/candidacy-report.pdf
+      articles:
+        - candidacy/index.md
+        - candidacy/introduction.md
+        - content/background.md
+        - candidacy/background.md
+        - content/related-work.md
+        - content/methodology.md
+        - content/experiments.md
+        - content/results.md
+        - content/ablation.md
+        - content/explainability.md
+        - candidacy/proposed-research.md
+        - candidacy/broader-impact.md
+        - content/conclusion.md
+        - content/appendix/architecture.md
+        - content/appendix/figures.md
+        - candidacy/appendix.md
+      options:
+        show_pagenumber: true
+        show_ToC: true
+        ToC_depth: 3
+        papersize: us-letter
   toc:
     - file: candidacy/index.md
     - title: Current Framework

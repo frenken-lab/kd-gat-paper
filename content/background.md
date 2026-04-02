@@ -18,10 +18,10 @@ Given this graph structure, a GNN looks to find meaningful relationships and ins
 
 ```{math}
 :label: eq-message-passing
-\mathbf{h}_v^{(k)} = \phi\big(\mathbf{h}_v^{(k-1)},\ \bigoplus_{u \in \mathcal{N}(v)} \psi(\mathbf{h}_v^{(k-1)}, \mathbf{h}_u^{(k-1)}, \mathbf{e}_{vu})\big)
+\mathbf{h}_v^{(k)} = \phi\big(\mathbf{h}_v^{(k-1)},\ \oplus_{u \in \mathcal{N}(v)} \psi(\mathbf{h}_v^{(k-1)}, \mathbf{h}_u^{(k-1)}, \mathbf{e}_{vu})\big)
 ```
 
-where $\mathbf{h}$ is the node feature embedding, $\phi$ is the node update function, $\psi$ the message function, $\mathbf{e}_{vu}$ the edge feature, $\bigoplus$ an aggregation (sum/mean), and $\mathcal{N}(v)$ the neighbors of $v$.
+where $\mathbf{h}$ is the node feature embedding, $\phi$ is the node update function, $\psi$ the message function, $\mathbf{e}_{vu}$ the edge feature, $\oplus$ an aggregation (sum/mean), and $\mathcal{N}(v)$ the neighbors of $v$.
 
 GAT [@velickovic2018gat] builds upon GNNs by introducing an attention mechanism. This allows each node in the message passing framework to dynamically assign weight contributions to their neighbors. For node $v$, the attention coefficient $\alpha_{vu}$ for neighbor $u$ is computed as:
 
@@ -31,13 +31,13 @@ GAT [@velickovic2018gat] builds upon GNNs by introducing an attention mechanism.
     \mathrm{LeakyReLU}\left(
         \mathbf{a}^\top
         \left[
-            \mathbf{W}\mathbf{h}_v \mathbin{\|} \mathbf{W}\mathbf{h}_u
+            \mathbf{W}\mathbf{h}_v \| \mathbf{W}\mathbf{h}_u
         \right]
     \right)
 \right)
 ```
 
-where $\mathbf{a}$ is the learnable attention parameter vector, $\mathbf{W}$ is a shared weight matrix, and $\mathbin{\|}$ denotes concatenation of the projected node feature vectors.
+where $\mathbf{a}$ is the learnable attention parameter vector, $\mathbf{W}$ is a shared weight matrix, and $\|$ denotes concatenation of the projected node feature vectors.
 
 The attention function computes a scalar weight for each neighbor of node $v_i$, denoted by $\alpha_{ij}$, which reflects the importance or relevance of node $v_j$ for node $v_i$.
 
@@ -100,7 +100,8 @@ where the first term encourages accurate reconstruction of the observed adjacenc
 
 While VGAE effectively captures global graph structure, its full-graph decoding may be suboptimal for detecting localized anomalies, especially in sparse or noisy graphs. To address this, @zhou2023gadnr introduced GAD-NR, which replaces full adjacency reconstruction with localized neighborhood prediction. This modification enhances sensitivity to topological deviations at the node-level, making it suitable for intrusion detection in systems like CAN networks. Inspired by this, our architecture adopts neighborhood-level reconstruction via masked decoding over the graph of each CAN window.
 
-### Deep Q-Network {#sec-dqn}
+(sec-dqn)=
+### Deep Q-Network
 
 Deep Q-Networks (DQNs) combine Q-learning with neural networks to handle high-dimensional state spaces [@mnih2013playingatarideepreinforcement]. In traditional Q-learning, an agent learns a Q-table mapping with a (state, action) pair and is given a reward after an action. DQNs replace the Q-table with a neural network that approximates Q-values, enabling learning in more complex environments.
 

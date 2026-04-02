@@ -8,7 +8,8 @@ title: "Appendix"
 
 80% of the dataset was utilized for training, 20% for validation, and a distinct test set was compiled by the dataset providers. All experiments were conducted using PyTorch and PyTorch Geometric. Model training and evaluation were performed on GPU clusters provided by the Ohio Supercomputer Center (OSC) [@OhioSupercomputerCenter1987]. Each CAN message is represented with 11 features (CAN ID, 8 data bytes, message count, and bus position).
 
-## Model Sizing for Cascading Knowledge Distillation Ensemble {#sec-model-sizing}
+(sec-model-sizing)=
+## Model Sizing for Cascading Knowledge Distillation Ensemble
 
 This section provides specific parameter budgets for the three-model student ensemble (GAT classifier, VGAE autoencoder, DQN fusion) derived from the CAN bus latency constraints, with unequal allocation reflecting architectural complexity and inference cost trade-offs.
 
