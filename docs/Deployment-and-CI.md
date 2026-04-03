@@ -20,7 +20,7 @@ validate (schemas + bib)
 
 | Job | Trigger | What it does |
 |-----|---------|-------------|
-| **validate** | push + PR | Runs `data/validate.py` + `references/validate.py` |
+| **validate** | push + PR | Runs `tools/validate_data.py` + `tools/validate_bib.py` |
 | **figures** | after validate | `cd interactive && npm ci && npm run build`, uploads `figures` artifact |
 | **build** | after figures | `myst build --site`, TMLR export (public + anonymous), uploads `tmlr-site` + `tmlr-submission` artifacts |
 | **deploy-pages** | main push only | Downloads `tmlr-site`, builds Jekyll, deploys to GitHub Pages |
@@ -37,7 +37,7 @@ The three deploy jobs (`deploy-pages`, `candidacy-pdf`, `candidacy-site`) run **
 
 Hosts the TMLR Distill-layout site (paper content) and interactive figure HTML files (used as iframe sources by both the paper and candidacy builds).
 
-The site is built via Jekyll from the TMLR author kit (`tmlr_do_not_modify/`). The TMLR export serializer (`export/tmlr/build.py`) walks the MyST AST and outputs Distill-compatible markdown.
+The site is built via Jekyll from the TMLR author kit (`tmlr_do_not_modify/`). The TMLR export serializer (`tools/tmlr/build.py`) walks the MyST AST and outputs Distill-compatible markdown.
 
 ### curve.space
 

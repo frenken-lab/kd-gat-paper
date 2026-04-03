@@ -11,8 +11,8 @@ The TMLR export pipeline converts the MyST paper into a Distill-layout markdown 
 ## How It Works
 
 ```bash
-python export/tmlr/build.py --output _build/submission/
-python export/tmlr/build.py --output _build/submission_anon/ --anonymous
+python tools/tmlr/build.py --output _build/submission/
+python tools/tmlr/build.py --output _build/submission_anon/ --anonymous
 ```
 
 ### Pipeline

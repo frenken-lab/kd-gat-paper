@@ -27,7 +27,7 @@ Schema contract (`data/schemas.yaml`) checks shape but not value ranges — all-
 
 ### TMLR Export — LOW (was HIGH)
 
-`export/tmlr/build.py` (~370 lines) walks MyST AST JSON to produce Distill-layout markdown.
+`tools/tmlr/build.py` (~370 lines) walks MyST AST JSON to produce Distill-layout markdown.
 
 All five fragility points hardened (2026-04-02):
 

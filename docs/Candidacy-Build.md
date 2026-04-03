@@ -6,7 +6,7 @@ The candidacy build is a superset of the paper, adding extended sections for the
 
 | Aspect | Paper (`myst.yml`) | Candidacy (`myst.candidacy.yml`) |
 |--------|-------------------|----------------------------------|
-| Entry point | `index.md` | `candidacy/index.md` |
+| Entry point | `paper/index.md` | `paper/candidacy/index.md` |
 | Scope | Core framework | Framework + proposed extensions |
 | Extra sections | — | Introduction (extended), CWD background, proposed research, broader impact, physics appendix |
 | TOC structure | ~11 individual pages | 4 combined pages (via `{include}`) |
@@ -25,7 +25,7 @@ The candidacy TOC consolidates sections into continuous pages using `{include}` 
 | **Conclusion** | conclusion (standalone) |
 | **Appendix** | architecture, figures, physics-appendix |
 
-The combined wrapper files live in `candidacy/` (e.g., `candidacy/current-framework.md`). They skip frontmatter from included files using `:start-line: 3` and let the existing `##` headings serve as section dividers.
+The combined wrapper files live in `paper/candidacy/` (e.g., `paper/candidacy/current-framework.md`). They skip frontmatter from included files using `:start-line: 3` and let the existing `##` headings serve as section dividers.
 
 Original source files are unchanged — the paper build continues to use them individually.
 

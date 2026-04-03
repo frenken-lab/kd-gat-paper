@@ -1,4 +1,4 @@
-"""Tests for export/tmlr/build.py AST → Distill markdown serializer.
+"""Tests for tools/tmlr/build.py AST → Distill markdown serializer.
 
 Focuses on two known failure modes:
   1. HTML tags (especially <d-cite>) rendering as literal text
@@ -13,8 +13,8 @@ from pathlib import Path
 
 import pytest
 
-# Make export/tmlr importable
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "export" / "tmlr"))
+# Make tools/tmlr importable
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools" / "tmlr"))
 from build import serialize, _text_of, _serialize_table, HANDLERS
 
 from conftest import (

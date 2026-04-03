@@ -34,7 +34,7 @@ _Awaiting data export for GAT training strategy ablation table._
 :::{table} VGAE Anomaly Detection Threshold Analysis
 :label: tbl-vgae-threshold
 
-```{include} ../_build/tables/vgae_threshold.md
+```{include} ../../_build/tables/vgae_threshold.md
 ```
 
 :::

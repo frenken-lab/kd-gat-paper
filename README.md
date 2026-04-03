@@ -14,12 +14,13 @@ The candidacy build includes all paper content plus extended sections (introduct
 
 ```
 kd-gat-paper/
-  content/             Shared paper sections (MyST Markdown, used by both builds)
-  candidacy/           Candidacy-only content + combined page wrappers
+  paper/               All authored content
+    content/             Shared paper sections (MyST Markdown, used by both builds)
+    candidacy/           Candidacy-only content + combined page wrappers
+    references/          BibTeX files (topic-split)
   interactive/         Svelte figure source code + diagram library
-  data/                Source CSVs, validation schemas, table build script
-  references/          BibTeX files (topic-split) + validation
-  export/tmlr/         TMLR Beyond PDF export pipeline
+  data/                Source CSVs + validation schemas
+  tools/               Build scripts, validators, export pipelines
   _static/             Custom CSS for MyST site
   tmlr_do_not_modify/  Vendored TMLR author kit (upstream, do not edit)
   _build/              All generated output (gitignored)
@@ -33,7 +34,7 @@ kd-gat-paper/
 Source directories are leaf producers or consumers of each other:
 
 ```
-references/   data/csv/   interactive/src/
+paper/references/   data/csv/   interactive/src/
     |             |              |
     |             v              v
     |        _build/tables/ _build/figures/
@@ -41,7 +42,7 @@ references/   data/csv/   interactive/src/
     +------+------+--------------+
            |
            v
-       content/  (includes tables, iframes figures, cites references)
+       paper/content/  (includes tables, iframes figures, cites references)
            |
            v
        myst build --> _build/site/
@@ -49,7 +50,7 @@ references/   data/csv/   interactive/src/
       +----+----+
       |         |
       v         v
-  export/   myst build --pdf
+  tools/    myst build --pdf
   tmlr/        --> _build/exports/candidacy-report.pdf
   build.py
       |
@@ -149,7 +150,7 @@ Data flows from the [KD-GAT](https://github.com/frenken-lab/KD-GAT) evaluation a
 |--------|------|-----|
 | [GitHub Pages](https://frenken-lab.github.io/kd-gat-paper/) | TMLR Distill site + figures (iframe src) | Jekyll build + `deploy-pages` in CI |
 | [rob.curve.space](https://rob.curve.space) | Candidacy report (MyST SPA) | `curvenote deploy` in CI |
-| TMLR submission | Anonymous self-contained folder | `export/tmlr/build.py`, uploaded as CI artifact |
+| TMLR submission | Anonymous self-contained folder | `tools/tmlr/build.py`, uploaded as CI artifact |
 | Candidacy PDF | Typst book with page numbers | `myst build --pdf`, uploaded as CI artifact |
 
 Figures require iframe isolation (Svelte apps need `<script>` execution) and curve.space's SPA can't serve static HTML, so GitHub Pages hosts the figure files separately. The TMLR build rewrites all iframe paths to `assets/html/submission/` so no external URLs leak into the anonymous submission.

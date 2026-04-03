@@ -10,8 +10,8 @@
  * are skipped with a warning.
  *
  * Usage:
- *   node export/pdf/extract-svg.js              # all figures
- *   node export/pdf/extract-svg.js umap cka     # specific figures
+ *   node tools/pdf/extract-svg.js              # all figures
+ *   node tools/pdf/extract-svg.js umap cka     # specific figures
  */
 import { chromium } from "playwright";
 import { readdirSync, writeFileSync, mkdirSync, existsSync } from "fs";

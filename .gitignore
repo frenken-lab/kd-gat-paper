@@ -9,6 +9,8 @@ __pycache__/
 *.pyc
 .ipynb_checkpoints/
 .ruff_cache/
+.venv/
+.pytest_cache/
 
 # Node (interactive figures)
 interactive/node_modules/

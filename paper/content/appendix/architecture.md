@@ -51,7 +51,7 @@ Student ensemble members are not equally sized. The GAT classifier and VGAE auto
 :::{table} Teacher and Student Model Parameters for Classifier and Autoencoder
 :label: tbl-teacher-student
 
-```{include} ../../_build/tables/model_parameters.md
+```{include} ../../../_build/tables/model_parameters.md
 ```
 
 :::

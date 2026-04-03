@@ -2,7 +2,7 @@
 """Validate committed data files against schemas.yaml.
 
 Usage:
-    python data/validate.py
+    python tools/validate_data.py
 """
 
 import csv

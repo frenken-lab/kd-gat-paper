@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Build markdown tables from raw CSVs + YAML spec.
 
-Reads data/tables/spec.yaml, loads each CSV, merges literature baselines,
+Reads tools/tables/spec.yaml, loads each CSV, merges literature baselines,
 applies formatting + bolding, writes _build/tables/{name}.md.
 
 Usage:
-    python data/tables/build.py
+    python tools/tables/build.py
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ import yaml
 from tabulate import tabulate
 
 ROOT = Path(__file__).resolve().parents[2]
-SPEC_PATH = ROOT / "data" / "tables" / "spec.yaml"
+SPEC_PATH = ROOT / "tools" / "tables" / "spec.yaml"
 STYLES_PATH = ROOT / "styles.yml"
 OUT_DIR = ROOT / "_build" / "tables"
 

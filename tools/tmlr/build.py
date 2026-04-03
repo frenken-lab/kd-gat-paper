@@ -314,7 +314,7 @@ def copy_assets(out: Path) -> None:
     (out / "assets" / "bibliography").mkdir(parents=True, exist_ok=True)
 
     # Concatenate all bib files into a single submission.bib
-    bib_dir = ROOT / "references"
+    bib_dir = ROOT / "paper" / "references"
     if bib_dir.is_dir():
         with open(out / "assets" / "bibliography" / "submission.bib", "w") as dest:
             for bib in sorted(bib_dir.glob("*.bib")):

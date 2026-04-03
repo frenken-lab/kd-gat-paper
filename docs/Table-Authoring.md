@@ -1,20 +1,20 @@
 # Table Authoring
 
-Tables are built declaratively from CSV data using specs defined in `data/tables/spec.yaml`.
+Tables are built declaratively from CSV data using specs defined in `tools/tables/spec.yaml`.
 
 ## How It Works
 
 ```
 data/csv/*.csv + data/csv/literature_baselines.csv
-  → data/tables/spec.yaml (defines columns, formatting, sort order)
-  → data/tables/build.py
+  → tools/tables/spec.yaml (defines columns, formatting, sort order)
+  → tools/tables/build.py
   → _build/tables/<name>.md (booktabs-style pipe tables)
   → content files include via {include} directive
 ```
 
 ## Spec Format
 
-Each table in `data/tables/spec.yaml` defines:
+Each table in `tools/tables/spec.yaml` defines:
 
 ```yaml
 main_results:
@@ -65,7 +65,7 @@ Tables are rebuilt by `make tables` before `make site`, so they're always fresh 
 
 1. Export the CSV from KD-GAT and place in `data/csv/`.
 2. Add a schema entry in `data/schemas.yaml`.
-3. Add a spec entry in `data/tables/spec.yaml`.
+3. Add a spec entry in `tools/tables/spec.yaml`.
 4. Run `make tables` to verify output.
 5. Add an `{include}` directive in the relevant content file.
 

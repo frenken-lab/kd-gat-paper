@@ -21,7 +21,7 @@ KD-GAT eval artifacts
 
 ### CSV Validation
 
-For each declared CSV, `data/validate.py` checks:
+For each declared CSV, `tools/validate_data.py` checks:
 - File exists at `data/csv/<name>`
 - All declared `columns` are present in CSV headers
 - Row count meets `min_rows` constraint

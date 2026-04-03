@@ -6,9 +6,9 @@ Downloads from buckeyeguy/GraphIDS dataset and produces:
   - interactive/src/figures/*/data.json  (figure plot data)
 
 Usage:
-    python data/pull_data.py                          # default run
-    python data/pull_data.py --run hcrl_sa/eval_large_evaluation
-    python data/pull_data.py --dry-run                # show what would be written
+    python tools/pull_data.py                          # default run
+    python tools/pull_data.py --run hcrl_sa/eval_large_evaluation
+    python tools/pull_data.py --dry-run                # show what would be written
 """
 
 from __future__ import annotations
@@ -246,7 +246,7 @@ def main() -> None:
     import subprocess
 
     result = subprocess.run(
-        [sys.executable, str(ROOT / "data" / "validate.py")],
+        [sys.executable, str(ROOT / "tools" / "validate_data.py")],
         capture_output=True, text=True,
     )
     print(result.stdout, end="")

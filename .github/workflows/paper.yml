@@ -23,8 +23,8 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - run: pip install pyyaml bibtexparser==2.0.0b9
-      - run: python data/validate.py
-      - run: python references/validate.py
+      - run: python tools/validate_data.py
+      - run: python tools/validate_bib.py
 
   figures:
     runs-on: ubuntu-latest
@@ -52,11 +52,11 @@ jobs:
 
       - run: pip install pyyaml tabulate pandas
       - name: Build tables
-        run: python data/tables/build.py
+        run: python tools/tables/build.py
       - name: Build MyST AST
         run: npm install -g mystmd@1.8.3 && myst build --site
       - name: Build TMLR submission (public)
-        run: python export/tmlr/build.py --output _build/submission/
+        run: python tools/tmlr/build.py --output _build/submission/
       - name: Merge with TMLR author kit
         run: |
           cp _build/submission/submission.md tmlr_do_not_modify/_under_review/submission.md
@@ -65,7 +65,7 @@ jobs:
       # Build anonymous submission artifact
       - name: Build TMLR submission (anonymous)
         if: github.ref == 'refs/heads/main'
-        run: python export/tmlr/build.py --output _build/submission_anon/ --anonymous
+        run: python tools/tmlr/build.py --output _build/submission_anon/ --anonymous
       - uses: actions/upload-artifact@v4
         if: github.ref == 'refs/heads/main'
         with: { name: tmlr-submission, path: _build/submission_anon/ }
@@ -116,7 +116,7 @@ jobs:
       - uses: typst-community/setup-typst@v4
       - name: Build candidacy PDF
         run: |
-          python data/tables/build.py
+          python tools/tables/build.py
           npm install -g mystmd@1.8.3 && myst build --pdf --config myst.candidacy.yml
       - uses: actions/upload-artifact@v4
         with: { name: candidacy-pdf, path: _build/exports/candidacy-report.pdf }
@@ -142,7 +142,7 @@ jobs:
           cp myst.yml myst.yml.paper
           cp myst.candidacy.yml myst.yml
           trap 'mv myst.yml.paper myst.yml' EXIT
-          python data/tables/build.py
+          python tools/tables/build.py
           npm install -g mystmd@1.8.3
           myst build --pdf
           npx -y curvenote@0.14.3 deploy --yes

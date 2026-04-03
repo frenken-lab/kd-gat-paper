@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "export" / "tmlr"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools" / "tmlr"))
 from build import build_frontmatter, build_toc
 
 

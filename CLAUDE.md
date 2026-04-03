@@ -5,7 +5,7 @@ MyST paper: "Adaptive Fusion of Graph-Based Ensembles for Automotive IDS". Two b
 - **Paper** (`myst.yml`): TMLR submission → GitHub Pages via Jekyll
 - **Candidacy** (`myst.candidacy.yml`): Superset report → rob.curve.space via `curvenote deploy`
 
-The candidacy TOC includes all paper content plus `candidacy/` extensions (merged introduction, CWD background, proposed research, broader impact, PINN appendix). Both builds share figures, tables, and references.
+The candidacy TOC includes all paper content plus `paper/candidacy/` extensions (merged introduction, CWD background, proposed research, broader impact, PINN appendix). Both builds share figures, tables, and references.
 
 ## Tech Stack
 
@@ -15,9 +15,9 @@ The candidacy TOC includes all paper content plus `candidacy/` extensions (merge
 | Interactive figures   | **SveltePlot 0.12** (grammar-of-graphics)   | Spec-driven: `<Cell>`, `<RectY>`, `<Line>`, `<Dot>`, `<Arrow>`. SVG output, Svelte-native          |
 | Architecture diagrams | **SveltePlot** + **graphology**             | `buildGraph` → `addLayer` → `unpack` → SveltePlot marks. Library in `interactive/src/lib/diagram/` |
 | Build                 | **Vite 6** + `vite-plugin-singlefile`       | Each figure → self-contained HTML (JS+CSS+data inlined)                                            |
-| Tables                | **spec.yaml** + `data/tables/build.py`      | Declarative table specs, booktabs-style, literature baselines                                      |
+| Tables                | **spec.yaml** + `tools/tables/build.py`     | Declarative table specs, booktabs-style, literature baselines                                      |
 | Validation schemas    | **`data/schemas.yaml`**                     | Single source of truth for both export and pull validation                                         |
-| TMLR export           | **AST serializer** (`export/tmlr/build.py`) | Walks MyST AST JSON → Distill-layout markdown                                                      |
+| TMLR export           | **AST serializer** (`tools/tmlr/build.py`)  | Walks MyST AST JSON → Distill-layout markdown                                                      |
 | CI/CD                 | **GitHub Actions**                          | validate → figures → deploy-figures (Pages) + build-and-deploy (curve.space)                       |
 
 ## Key Commands
@@ -34,7 +34,7 @@ make deploy        # Deploy to rob.curve.space (depends on site)
 make candidacy-site # myst build --config myst.candidacy.yml (superset)
 make candidacy-dev  # myst start --config myst.candidacy.yml (live reload)
 make sync          # Pull Curvenote editor changes into repo
-make bib           # Validate references/*.bib
+make bib           # Validate paper/references/*.bib
 make all           # data → figures → tables → site
 ```
 
@@ -47,7 +47,7 @@ KD-GAT eval artifacts
   → npm run build → _build/figures/*.html
   → myst build → _build/ → curvenote deploy → rob.curve.space
                           → GitHub Pages (figures only) → frenken-lab.github.io/kd-gat-paper/
-  → export/tmlr/build.py (reads _build/site/ AST) → _build/submission/ (self-contained)
+  → tools/tmlr/build.py (reads _build/site/ AST) → _build/submission/ (self-contained)
 ```
 
 ## Deployment
@@ -56,7 +56,7 @@ KD-GAT eval artifacts
 | -------------------- | ----------------------------------------- | -------------------------------------------------- |
 | **rob.curve.space**  | Candidacy report (MyST SPA, superset)     | `curvenote deploy` in CI (config-swap to `myst.candidacy.yml`) |
 | **GitHub Pages**     | TMLR Distill site + figures (iframe src)  | Jekyll build + `deploy-pages` in CI                |
-| **TMLR submission**  | Self-contained folder (anonymous)         | `export/tmlr/build.py` in CI, uploaded as artifact |
+| **TMLR submission**  | Self-contained folder (anonymous)         | `tools/tmlr/build.py` in CI, uploaded as artifact  |
 | **Curvenote editor** | Edit on web → `make sync` to pull changes | Manual (`curvenote pull`)                          |
 
 curve.space is an SPA that can't serve static HTML files. Figures require iframe isolation (Svelte apps need `<script>` execution). Content files use absolute GitHub Pages URLs for iframes; the TMLR build rewrites all iframe paths to `assets/html/submission/` via `_h_iframe` (extracts filename, rebuilds as relative) — no external URLs leak into the anonymous submission. `curvenote deploy` doesn't support `--config`, so CI swaps `myst.candidacy.yml` into `myst.yml` before deploying to curve.space.
@@ -67,9 +67,9 @@ curve.space is an SPA that can't serve static HTML files. Figures require iframe
 
 ## Table Convention
 
-- `data/tables/spec.yaml` defines table specs: source CSV, columns, formatting, sort order, literature baselines
+- `tools/tables/spec.yaml` defines table specs: source CSV, columns, formatting, sort order, literature baselines
 - `data/csv/literature_baselines.csv` holds comparison metrics with citation keys
-- `data/tables/build.py` renders to `_build/tables/*.md` — baselines first, user models **bolded** at bottom
+- `tools/tables/build.py` renders to `_build/tables/*.md` — baselines first, user models **bolded** at bottom
 - Content files use `{include}` directives to pull in generated tables
 
 ## Interactive Figure Convention

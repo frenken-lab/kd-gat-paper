@@ -25,52 +25,52 @@ project:
     - Physics-Informed Neural Networks
     - Explainable AI
   bibliography:
-    - references/own.bib
-    - references/can_ids.bib
-    - references/gnn.bib
-    - references/kd.bib
-    - references/rl.bib
-    - references/vgae.bib
-    - references/datasets.bib
-    - references/curriculum.bib
-    - references/cross_domain.bib
-    - references/infrastructure.bib
-    - references/background.bib
-    - references/loss.bib
-    - references/candidacy.bib
+    - paper/references/own.bib
+    - paper/references/can_ids.bib
+    - paper/references/gnn.bib
+    - paper/references/kd.bib
+    - paper/references/rl.bib
+    - paper/references/vgae.bib
+    - paper/references/datasets.bib
+    - paper/references/curriculum.bib
+    - paper/references/cross_domain.bib
+    - paper/references/infrastructure.bib
+    - paper/references/background.bib
+    - paper/references/loss.bib
+    - paper/references/candidacy.bib
   exports:
     - format: typst
       template: plain_typst_book
       output: _build/exports/candidacy-report.pdf
       id: candidacy-pdf
       articles:
-        - candidacy/index.md
-        - candidacy/introduction.md
-        - content/related-work.md
-        - content/background.md
-        - candidacy/background.md
-        - content/methodology.md
-        - content/experiments.md
-        - content/results.md
-        - content/ablation.md
-        - content/explainability.md
-        - candidacy/proposed-research.md
-        - candidacy/broader-impact.md
-        - content/conclusion.md
-        - content/appendix/architecture.md
-        - content/appendix/figures.md
-        - candidacy/appendix.md
+        - paper/candidacy/index.md
+        - paper/candidacy/introduction.md
+        - paper/content/related-work.md
+        - paper/content/background.md
+        - paper/candidacy/background.md
+        - paper/content/methodology.md
+        - paper/content/experiments.md
+        - paper/content/results.md
+        - paper/content/ablation.md
+        - paper/content/explainability.md
+        - paper/candidacy/proposed-research.md
+        - paper/candidacy/broader-impact.md
+        - paper/content/conclusion.md
+        - paper/content/appendix/architecture.md
+        - paper/content/appendix/figures.md
+        - paper/candidacy/appendix.md
       options:
         show_pagenumber: true
         show_ToC: true
         ToC_depth: 3
         papersize: us-letter
   toc:
-    - file: candidacy/index.md
-    - file: candidacy/current-framework.md
-    - file: candidacy/proposed-combined.md
-    - file: content/conclusion.md
-    - file: candidacy/appendix-combined.md
+    - file: paper/candidacy/index.md
+    - file: paper/candidacy/current-framework.md
+    - file: paper/candidacy/proposed-combined.md
+    - file: paper/content/conclusion.md
+    - file: paper/candidacy/appendix-combined.md
 
 site:
   template: article-theme

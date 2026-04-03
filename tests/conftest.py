@@ -1,7 +1,7 @@
 """Shared AST node builders for TMLR serializer tests.
 
 Each helper returns a dict matching the MDAST node schema that
-``export/tmlr/build.py`` expects from ``myst build --site`` output.
+``tools/tmlr/build.py`` expects from ``myst build --site`` output.
 """
 
 from __future__ import annotations

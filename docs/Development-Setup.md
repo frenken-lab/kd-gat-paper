@@ -61,17 +61,17 @@ Requires Typst installed. Significantly faster than LaTeX.
 ## Project Layout
 
 ```
-content/                  Shared paper sections (both builds use these)
-candidacy/                Candidacy-only content + combined page wrappers
+paper/                    All authored content
+  content/                  Shared paper sections (both builds use these)
+  candidacy/                Candidacy-only content + combined page wrappers
+  references/               Split .bib files by topic
 interactive/              SveltePlot figures (Svelte + Vite)
   src/figures/<name>/       One directory per figure
   src/lib/diagram/          Architecture diagram library
 data/
   csv/                    Source data files
   schemas.yaml            Validation schemas
-  tables/                 Table specs + build script
-export/tmlr/              TMLR Beyond PDF export pipeline
-references/               Split .bib files by topic
+tools/                    Build scripts, validators, export pipelines
 _static/                  Custom CSS
 _build/                   All generated output (gitignored)
 ```
@@ -83,6 +83,6 @@ make validate    # Checks data against schemas.yaml + validates .bib files
 make bib         # Validates bibliography only
 ```
 
-`data/validate.py` reads `data/schemas.yaml` and checks:
+`tools/validate_data.py` reads `data/schemas.yaml` and checks:
 - CSV files: required columns exist, minimum row count met
 - JSON files (figure data): required keys present, array length constraints

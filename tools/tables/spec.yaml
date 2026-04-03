@@ -1,5 +1,5 @@
 # Table specifications — defines how raw CSVs become paper tables.
-# Run: python data/tables/build.py
+# Run: python tools/tables/build.py
 # Output: data/tables/*.md (included by content/*.md via {include})
 
 main_results:
