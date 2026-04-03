@@ -24,7 +24,7 @@ jobs:
           git clone "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.wiki.git" wiki
 
           # Replace wiki content with docs/ (preserving .git)
-          find wiki -maxdepth 1 -not -name '.git' -not -name '.' -delete
+          find wiki -mindepth 1 -maxdepth 1 -not -name '.git' -exec rm -rf {} +
           cp docs/*.md wiki/
 
           cd wiki
