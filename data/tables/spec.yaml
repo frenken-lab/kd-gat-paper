@@ -5,6 +5,7 @@
 main_results:
   title: "Test Performance on HCRL Car-Hacking Dataset"
   label: tbl-main-results
+  format_mode: html
   source: csv/main_results.csv
   baselines_source: csv/literature_baselines.csv
   columns:

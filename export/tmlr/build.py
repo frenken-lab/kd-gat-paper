@@ -82,6 +82,9 @@ def _h_list(n: dict) -> str:
     return "\n" + "\n".join(items) + "\n"
 
 
+_TABLE_DIR = ROOT / "_build" / "tables"
+
+
 def _h_container(n: dict) -> str:
     kind, children = n.get("kind", ""), n.get("children", [])
     if kind == "figure":
@@ -94,6 +97,15 @@ def _h_container(n: dict) -> str:
                 cap = _text_of(c).strip()
             else:
                 body += serialize(c)
+        # Use pre-built HTML table if available (preserves inline styles)
+        label = n.get("identifier", "")
+        if label.startswith("tbl-"):
+            table_name = label[4:].replace("-", "_")
+            html_path = _TABLE_DIR / f"{table_name}.md"
+            if html_path.exists():
+                content = html_path.read_text().strip()
+                if content.startswith("<table"):
+                    body = "\n" + content + "\n"
         return (f"\n**{cap}**\n" if cap else "") + body
     return _children(children)
 
@@ -187,6 +199,8 @@ HANDLERS: dict[str, callable] = {
     "math":           lambda n: f'\n$$\n{_V(n)}\n$$\n',
     "inlineCode":     lambda n: f'`{_V(n)}`',
     "code":           lambda n: f'\n```{n.get("lang", "")}\n{_V(n)}\n```\n',
+    "html":           _V,
+    "raw":            _V,
     "comment":        lambda _: "",
     "thematicBreak":  lambda _: "\n---\n",
     # Citations

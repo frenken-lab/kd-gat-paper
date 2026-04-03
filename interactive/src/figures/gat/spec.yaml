@@ -19,7 +19,7 @@ layout:
     - type: pipeline
       elements: [jk, fc]
       direction: vertical
-      gap: 40
+      gap: 60
       flowColor: gat
 
 bridges:

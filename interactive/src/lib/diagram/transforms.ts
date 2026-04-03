@@ -72,6 +72,8 @@ export function scaleComposite(g: Graph, factor: number): void {
     if (a.nodeType === 'box') {
       updates.width = ((a.width as number) ?? 90) * factor;
       updates.height = ((a.height as number) ?? 32) * factor;
+    } else if (a.nodeType === 'node') {
+      updates.r = ((a.r as number) ?? 14) * factor;
     }
     g.mergeNodeAttributes(k, updates);
   });

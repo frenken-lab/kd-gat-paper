@@ -45,6 +45,11 @@ json:
     min_items: 1
     # nodes have pre-computed x, y from force layout
 
+  results-table:
+    type: array
+    item_keys: [model, group, accuracy, precision, recall, f1, auc]
+    min_items: 3
+
 # Input schema — expected columns in HF parquet files (buckeyeguy/GraphIDS).
 # Read by: pull_data.py (this repo) for input validation at pull time.
 input:
@@ -64,3 +69,4 @@ file_map:
   figures/fusion/data.json: interactive/src/figures/fusion/data.json
   figures/cka/data.json: interactive/src/figures/cka/data.json
   figures/attention/data.json: interactive/src/figures/attention/data.json
+  figures/results-table/data.json: interactive/src/figures/results-table/data.json

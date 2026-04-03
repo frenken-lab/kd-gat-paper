@@ -8,17 +8,21 @@
   const { nodes, edges, boxes, domain } = flatten(graph);
 
   const flowEdges = edges.filter(e => e.type === 'flow');
+  const dashedFlow = flowEdges.filter(e => e.style === 'dashed');
+  const solidFlow = flowEdges.filter(e => e.style !== 'dashed');
   const structuralEdges = edges.filter(e => e.type === 'structural');
   const labeledFlow = flowEdges.filter(e => e.label);
 </script>
 
 <Figure title="VGAE Autoencoder">
-  <Plot width={700} height={250} grid={false} axes={false} frame={false}
+  <Plot width={900} height={350} grid={false} axes={false} frame={false}
     x={{ domain: domain.x }} y={{ domain: domain.y }} inset={10}>
     <Link data={structuralEdges} x1="x1" y1="y1" x2="x2" y2="y2"
       stroke="stroke" strokeOpacity={0.5} strokeWidth={1.5} />
-    <Arrow data={flowEdges} x1="x1" y1="y1" x2="x2" y2="y2"
+    <Arrow data={solidFlow} x1="x1" y1="y1" x2="x2" y2="y2"
       stroke="stroke" strokeWidth={1} />
+    <Arrow data={dashedFlow} x1="x1" y1="y1" x2="x2" y2="y2"
+      stroke="stroke" strokeWidth={1} strokeDasharray="4 3" />
     <Text data={labeledFlow}
       {...labelEdgeMid}
       text="label" fontSize={8} fill="#666" fontStyle="italic" />

@@ -67,6 +67,18 @@ export interface SpecResult {
 
 // --- Internals ---
 
+/** Clone a graph with all node IDs prefixed by `prefix.` */
+function prefixGraph(graph: Graph, prefix: string): Graph {
+  const g = new Graph({ multi: true, type: 'mixed' });
+  graph.forEachNode((node, attrs) => {
+    g.addNode(`${prefix}.${node}`, { ...attrs });
+  });
+  graph.forEachEdge((_edge, attrs, source, target) => {
+    g.addDirectedEdge(`${prefix}.${source}`, `${prefix}.${target}`, { ...attrs });
+  });
+  return g;
+}
+
 function buildComponent(
   id: string,
   spec: ComponentSpec,
@@ -82,7 +94,7 @@ function buildComponent(
     if (spec.scale && spec.scale !== 1) {
       scaleComposite(graph, spec.scale);
     }
-    return graph;
+    return prefixGraph(graph, id);
   }
   return buildGraph({
     n: spec.n,

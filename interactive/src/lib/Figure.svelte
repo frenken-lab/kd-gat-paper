@@ -1,11 +1,11 @@
 <script>
-  import { setContext } from "svelte";
+  import { setPlotDefaults } from "svelteplot/hooks/plotDefaults.js";
   import "./theme.css";
   import "virtual:theme-vars.css";
 
   // Global SveltePlot defaults — all figures inherit these.
   // Override per-figure by passing props to <Plot> where needed.
-  setContext("svelteplot/defaults", {
+  setPlotDefaults({
     height: 350,
     categoricalColorScheme: "observable10",
     grid: { implicit: true },

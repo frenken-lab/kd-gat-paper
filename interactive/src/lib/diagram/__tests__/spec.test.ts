@@ -266,19 +266,15 @@ describe('buildFromSpec', () => {
         layout: { type: 'pipeline', elements: ['input', 'model', 'output'], gap: 60 },
       };
       const { graph } = buildFromSpec(parent, { specs: { sub: subSpec } });
-      // Parent boxes + sub-spec boxes
+      // Parent boxes + sub-spec boxes (prefixed with component id)
       expect(graph.hasNode('input')).toBe(true);
-      expect(graph.hasNode('enc')).toBe(true);
-      expect(graph.hasNode('dec')).toBe(true);
+      expect(graph.hasNode('model.enc')).toBe(true);
+      expect(graph.hasNode('model.dec')).toBe(true);
       expect(graph.hasNode('output')).toBe(true);
-      // Sub-spec's internal flow edge preserved
-      expect(graph.hasDirectedEdge('enc', 'dec')).toBe(true);
-      // Parent pipeline wires input→enc (sub-spec anchor) and dec→output
-      // Actually: anchor is first non-container node = 'enc'
-      // But the last element before output is the sub-spec graph,
-      // whose anchor is also 'enc'. So pipeline wires enc→output.
-      // And input→enc from the pipeline's sequential wiring.
-      expect(graph.hasDirectedEdge('input', 'enc')).toBe(true);
+      // Sub-spec's internal flow edge preserved (prefixed)
+      expect(graph.hasDirectedEdge('model.enc', 'model.dec')).toBe(true);
+      // Parent pipeline wires input→model.enc and model.enc→output
+      expect(graph.hasDirectedEdge('input', 'model.enc')).toBe(true);
     });
 
     it('scales a referenced spec', () => {
@@ -290,9 +286,9 @@ describe('buildFromSpec', () => {
         layout: { type: 'hstack', children: ['model'] },
       };
       const { graph } = buildFromSpec(parent, { specs: { sub: subSpec } });
-      // Box dimensions should be halved
-      expect(graph.getNodeAttribute('enc', 'width')).toBe(50);  // 100 * 0.5
-      expect(graph.getNodeAttribute('dec', 'width')).toBe(50);
+      // Box dimensions should be halved (nodes prefixed)
+      expect(graph.getNodeAttribute('model.enc', 'width')).toBe(50);  // 100 * 0.5
+      expect(graph.getNodeAttribute('model.dec', 'width')).toBe(50);
     });
 
     it('preserves sub-spec internal edges', () => {
@@ -304,7 +300,7 @@ describe('buildFromSpec', () => {
         layout: { type: 'hstack', children: ['model'] },
       };
       const { graph } = buildFromSpec(parent, { specs: { sub: subSpec } });
-      expect(graph.hasDirectedEdge('enc', 'dec')).toBe(true);
+      expect(graph.hasDirectedEdge('model.enc', 'model.dec')).toBe(true);
     });
 
     it('allows bridges to sub-spec nodes', () => {
@@ -316,11 +312,11 @@ describe('buildFromSpec', () => {
         },
         layout: { type: 'hstack', children: ['trigger', 'model'], gap: 40 },
         bridges: [
-          { from: 'trigger', to: 'dec', type: 'kd', color: 'kd', label: 'KD' },
+          { from: 'trigger', to: 'model.dec', type: 'kd', color: 'kd', label: 'KD' },
         ],
       };
       const { graph } = buildFromSpec(parent, { specs: { sub: subSpec } });
-      expect(graph.hasDirectedEdge('trigger', 'dec')).toBe(true);
+      expect(graph.hasDirectedEdge('trigger', 'model.dec')).toBe(true);
     });
 
     it('throws when referenced spec is not in specs map', () => {
@@ -362,12 +358,12 @@ describe('buildFromSpec', () => {
         layout: { type: 'hstack', children: ['model'] },
       };
       const { graph } = buildFromSpec(parent, { specs: { gsub: graphSub } });
-      // Graph nodes + box node
-      expect(graph.hasNode('layer_0')).toBe(true);
-      expect(graph.hasNode('layer_2')).toBe(true);
-      expect(graph.hasNode('out')).toBe(true);
-      // Internal flow from anchor (layer_0) to out
-      expect(graph.hasDirectedEdge('layer_0', 'out')).toBe(true);
+      // Graph nodes + box node (prefixed with component id)
+      expect(graph.hasNode('model.layer_0')).toBe(true);
+      expect(graph.hasNode('model.layer_2')).toBe(true);
+      expect(graph.hasNode('model.out')).toBe(true);
+      // Internal flow from anchor to out (prefixed)
+      expect(graph.hasDirectedEdge('model.layer_0', 'model.out')).toBe(true);
     });
   });
 });

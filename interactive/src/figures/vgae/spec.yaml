@@ -1,20 +1,87 @@
 figure: vgae
 
 components:
-  input:   { type: graph, n: 5, topology: sparse, color: data, labels: auto, scale: 50 }
-  encoder: { type: box, label: "GCN Encoder", color: vgae, width: 120, height: 40 }
-  latent:  { type: box, label: "μ, σ", color: vgae, width: 70, height: 40 }
-  decoder: { type: box, label: "IP Decoder", color: vgae, width: 110, height: 40 }
-  output:  { type: graph, n: 5, topology: sparse, color: vgae, labels: auto, scale: 50 }
+  # Input graph
+  input: { type: graph, n: 5, topology: sparse, color: data, labels: auto, scale: 50 }
+
+  # Encoder: 2 GATv2Conv layers (vertical stack)
+  enc0: { type: graph, n: 5, topology: sparse, color: vgae, labels: auto, scale: 60 }
+  enc1: { type: graph, n: 5, topology: sparse, color: vgae, labels: auto, scale: 50 }
+
+  # Latent: mu + logvar heads → reparameterize
+  mu:    { type: box, label: "μ",     color: vgae, width: 50, height: 30 }
+  sigma: { type: box, label: "log σ", color: vgae, width: 50, height: 30 }
+  z:     { type: box, label: "z",     color: vgae, width: 50, height: 30 }
+
+  # Decoder: 2 GATv2Conv layers (vertical stack, mirror of encoder)
+  dec0: { type: graph, n: 5, topology: sparse, color: vgae, labels: auto, scale: 50 }
+  dec1: { type: graph, n: 5, topology: sparse, color: vgae, labels: auto, scale: 60 }
+
+  # Reconstructed output
+  output: { type: graph, n: 5, topology: sparse, color: vgae, labels: auto, scale: 50 }
+
+  # Auxiliary heads off z
+  canid: { type: box, label: "CAN-ID", color: data, width: 70, height: 30 }
+  nbr:   { type: box, label: "Nbr MLP", color: data, width: 70, height: 30 }
 
 layout:
-  type: pipeline
+  type: hstack
   gap: 60
-  elements: [input, encoder, latent, decoder, output]
-  flowLabels: ["X, A", "z ~ q(Z|X,A)", ~, "Â"]
+  children:
+    - input
+    # Encoder layers stacked vertically
+    - type: vstack
+      gap: 60
+      align: center
+      children: [enc0, enc1]
+    # Latent block: mu/sigma side by side, z below
+    - type: vstack
+      gap: 40
+      align: center
+      children:
+        - type: hstack
+          gap: 20
+          children: [mu, sigma]
+        - z
+    # Decoder layers stacked vertically
+    - type: vstack
+      gap: 60
+      align: center
+      children: [dec0, dec1]
+    - output
+    # Auxiliary heads stacked vertically at the end
+    - type: vstack
+      gap: 50
+      align: center
+      children: [canid, nbr]
+
+bridges:
+  # Input → encoder
+  - { from: input_0, to: enc0_0, type: flow, color: grey, label: "X, A" }
+  # Encoder layer-to-layer
+  - { from: enc0_0, to: enc1_3, type: flow, color: vgae }
+  # Encoder → latent heads
+  - { from: enc1_0, to: mu,    type: flow, color: vgae }
+  - { from: enc1_0, to: sigma, type: flow, color: vgae }
+  # Heads → z (reparameterize)
+  - { from: mu,    to: z, type: flow, color: vgae }
+  - { from: sigma, to: z, type: flow, color: vgae }
+  # z → decoder
+  - { from: z, to: dec0_0, type: flow, color: vgae }
+  # Decoder layer-to-layer
+  - { from: dec0_0, to: dec1_3, type: flow, color: vgae }
+  # Decoder → output
+  - { from: dec1_0, to: output_0, type: flow, color: vgae, label: "X̂" }
+  # z → auxiliary heads
+  - { from: z, to: canid, type: flow, color: grey, style: dashed }
+  - { from: z, to: nbr,   type: flow, color: grey, style: dashed }
 
 assertions:
   checks:
-    - "input_0: left-of encoder"
-    - "encoder: left-of latent"
-    - "decoder: left-of output_0"
+    - "input_0: left-of enc0_0"
+    - "enc0_0: above enc1_0"
+    - "enc1_0: left-of mu"
+    - "mu: above z"
+    - "z: left-of dec0_0"
+    - "dec0_0: above dec1_0"
+    - "dec1_0: left-of output_0"

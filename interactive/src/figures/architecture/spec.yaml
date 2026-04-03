@@ -8,8 +8,8 @@ components:
     color: data
     labels: ["0x1A0", "0x2B3", "0x3C1", "0x4D5", "0x5E2"]
     scale: 50
-  vgae_t: { type: box, label: "VGAE Teacher", color: vgae, width: 120 }
-  gat_t:  { type: box, label: "GAT Teacher",  color: gat,  width: 110 }
+  vgae_t: { type: spec, ref: vgae, scale: 0.4 }
+  gat_t:  { type: spec, ref: gat,  scale: 0.35 }
   dqn:    { type: box, label: "DQN Fusion",   color: dqn,  width: 100 }
   output: { type: box, label: "Anomaly Score", color: data, width: 120 }
   vgae_s: { type: box, label: "VGAE Student", color: vgae, width: 120 }
@@ -26,24 +26,29 @@ layout:
         - type: pipeline
           elements: [vgae_t, gat_t, dqn, output]
           gap: 50
-          flowLabels: ["hard samples", "classification"]
         - type: hstack
           children: [vgae_s, gat_s]
           gap: 50
 
 bridges:
-  - { from: input_0, to: vgae_t, type: flow, color: grey }
-  - { from: vgae_t, to: dqn, type: flow, color: grey, label: "recon error" }
+  # Input → VGAE encoder
+  - { from: input_0, to: vgae_t.input_0, type: flow, color: grey }
+  # VGAE output → GAT input
+  - { from: vgae_t.output_0, to: gat_t.L0_0, type: flow, color: grey, label: "hard samples" }
+  # GAT output → DQN
+  - { from: gat_t.fc, to: dqn, type: flow, color: grey, label: "classification" }
+  # VGAE recon error → DQN
+  - { from: vgae_t.z, to: dqn, type: flow, color: grey, label: "recon error" }
+  # Student → DQN (dashed = deployment path)
   - { from: vgae_s, to: dqn, type: flow, color: grey, style: dashed }
   - { from: gat_s,  to: dqn, type: flow, color: grey, style: dashed }
-  - { from: vgae_t, to: vgae_s, type: kd, color: kd, label: KD }
-  - { from: gat_t,  to: gat_s,  type: kd, color: kd, label: KD }
+  # Knowledge distillation edges
+  - { from: vgae_t.enc1_0, to: vgae_s, type: kd, color: kd, label: KD }
+  - { from: gat_t.jk, to: gat_s, type: kd, color: kd, label: KD }
 
 assertions:
   prefixMap: { input: in }
   checks:
-    - "input_0: left-of vgae_t"
-    - "vgae_t: left-of gat_t"
-    - "vgae_t: above vgae_s"
-    - "vgae_t: aligned-horizontally gat_t"
-    - "vgae_t: aligned-vertically vgae_s"
+    - "input_0: left-of vgae_t.input_0"
+    - "vgae_t.output_0: left-of gat_t.L0_0"
+    - "vgae_t.enc1_0: above vgae_s"

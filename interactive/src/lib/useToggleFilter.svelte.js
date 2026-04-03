@@ -6,7 +6,10 @@
  * @param {(d: any) => string} getKey - function to extract the category key from a datum
  */
 export function useToggleFilter(getData, getKey) {
-  let visible = $state({});
+  // Eagerly initialize visible from the initial data so $derived works on first render
+  const initData = getData();
+  const initKeys = Array.isArray(initData) ? [...new Set(initData.map(getKey))] : [];
+  let visible = $state(Object.fromEntries(initKeys.map((k) => [k, true])));
 
   $effect(() => {
     const data = getData();

@@ -17,6 +17,12 @@ Our approach demonstrates consistent improvements across all datasets, with part
 ```
 :::
 
+:::{iframe} https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/results-table.html
+:label: fig-results-table
+:width: 100%
+Interactive results table. Click column headers to sort; use the filter to search models.
+:::
+
 :::{table} Cross-Scenario Test Results
 :label: tbl-test-scenarios
 
