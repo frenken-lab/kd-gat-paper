@@ -1,0 +1,37 @@
+name: Sync docs → Wiki
+
+on:
+  push:
+    branches: [main]
+    paths: ['docs/**']
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sync docs to wiki
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          git clone "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.wiki.git" wiki
+
+          # Replace wiki content with docs/ (preserving .git)
+          find wiki -maxdepth 1 -not -name '.git' -not -name '.' -delete
+          cp docs/*.md wiki/
+
+          cd wiki
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Wiki already up to date"
+          else
+            git commit -m "Sync from docs/ (${GITHUB_SHA::7})"
+            git push
+          fi

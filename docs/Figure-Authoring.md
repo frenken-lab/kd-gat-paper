@@ -60,6 +60,10 @@ interactive/src/figures/umap/
    :::
    ```
 
+## Architecture Diagrams (spec-driven)
+
+Architecture diagrams (architecture, gat, kd-gat, kd-vgae, vgae) use a different workflow: **YAML specs** instead of `data.json`. See the [Diagram Authoring Guide](Diagram-Authoring-Guide.md) for the full spec reference.
+
 ## Key Conventions
 
 - **Dumb renderers**: Figures import `data.json` and plot it. All preprocessing (sampling, flattening, ROC computation, layout) happens in `export_paper_data.py` in the KD-GAT repo. No data transforms in `.svelte` files.
