@@ -1,0 +1,15 @@
+[project]
+name = "kd-gat-paper"
+requires-python = ">=3.12"
+dependencies = [
+    "pyyaml",
+    "tabulate",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

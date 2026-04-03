@@ -1,4 +1,4 @@
-.PHONY: data validate figures figures-static tables site dev candidacy-site candidacy-dev candidacy-pdf tmlr tmlr-anon preview deploy sync bib all clean
+.PHONY: data validate figures figures-static tables site dev candidacy-site candidacy-dev candidacy-pdf tmlr tmlr-anon preview deploy sync bib test all clean
 
 data:
 	uv run --with huggingface_hub --with pandas --with pyarrow --with pyyaml python data/pull_data.py
@@ -53,6 +53,9 @@ sync:
 
 bib:
 	python references/validate.py
+
+test:
+	python -m pytest tests/ -v
 
 all: site
 
