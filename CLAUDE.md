@@ -13,7 +13,7 @@ The candidacy TOC includes all paper content plus `paper/candidacy/` extensions 
 | --------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | Paper authoring       | **MyST Markdown**                           | Cross-references, math, citations, builds to HTML                                                  |
 | Interactive figures   | **SveltePlot 0.12** (grammar-of-graphics)   | Spec-driven: `<Cell>`, `<RectY>`, `<Line>`, `<Dot>`, `<Arrow>`. SVG output, Svelte-native          |
-| Architecture diagrams | **SveltePlot** + **graphology**             | `buildGraph` → `addLayer` → `unpack` → SveltePlot marks. Library in `interactive/src/lib/diagram/` |
+| Architecture diagrams | **SveltePlot** + **graphology**             | Spec-driven YAML → `buildFromSpec` → `flatten` → SveltePlot marks. Library in `interactive/src/lib/diagram/` |
 | Build                 | **Vite 6** + `vite-plugin-singlefile`       | Each figure → self-contained HTML (JS+CSS+data inlined)                                            |
 | Tables                | **spec.yaml** + `tools/tables/build.py`     | Declarative table specs, booktabs-style, literature baselines                                      |
 | Validation schemas    | **`data/schemas.yaml`**                     | Single source of truth for both export and pull validation                                         |
@@ -30,12 +30,17 @@ make tables        # Build markdown tables from CSV + spec.yaml
 make site          # myst build (depends on figures + tables)
 make dev           # myst start (live reload)
 make tmlr          # Convert to TMLR Beyond PDF submission
-make deploy        # Deploy to rob.curve.space (depends on site)
+make tmlr-anon     # Build anonymous TMLR submission
+make preview       # Merge submission into author kit + Jekyll preview (Docker)
+make deploy        # Merge submission into TMLR author kit (push to deploy via Pages)
 make candidacy-site # myst build --config myst.candidacy.yml (superset)
 make candidacy-dev  # myst start --config myst.candidacy.yml (live reload)
+make candidacy-pdf  # myst build --pdf via Typst → _build/exports/candidacy-report.pdf
 make sync          # Pull Curvenote editor changes into repo
 make bib           # Validate paper/references/*.bib
-make all           # data → figures → tables → site
+make test          # Run pytest suite (tools/tmlr tests)
+make all           # figures → tables → site (data pulled transitively)
+make clean         # rm -rf _build
 ```
 
 ## Data Flow
@@ -43,7 +48,7 @@ make all           # data → figures → tables → site
 ```
 KD-GAT eval artifacts
   → export_paper_data.py → ESS exports/paper/ (_manifest.json + _provenance.json)
-  → validate_data.py (checks schemas.yaml) → data/csv/ + interactive/src/*/data.json
+  → validate_data.py (checks schemas.yaml) → data/csv/ + interactive/src/figures/*/data.json
   → npm run build → _build/figures/*.html
   → myst build → _build/ → curvenote deploy → rob.curve.space
                           → GitHub Pages (figures only) → frenken-lab.github.io/kd-gat-paper/
@@ -77,19 +82,23 @@ curve.space is an SPA that can't serve static HTML files. Figures require iframe
 - **Dumb renderers**: Figures import `data.json` and plot it. No data transforms in `.svelte` files.
 - All preprocessing (sampling, flattening, ROC computation, layout) happens in `export_paper_data.py`.
 - Use SveltePlot marks (`<Cell>`, `<RectY>`, `<Line>`, `<Dot>`, `<Arrow>`). No D3.
-- Each figure: `interactive/src/<name>/App.svelte` + `data.json` + `index.html` + `main.js`
+- Each figure: `interactive/src/figures/<name>/App.svelte` + `data.json` + `index.html` + `main.js`
 - Handle empty data: show "Awaiting data export" when data is `[]` or `{}`
 - Figures build one-at-a-time via `interactive/build.js` (vite-plugin-singlefile requires single entry per build)
+- **Colors/fonts**: `styles.yml` is the single source of truth. Exposed at build time via `virtual:styles` (JS object) and `virtual:theme-vars.css` (CSS custom properties). Use role names (`vgae`, `gat`, `kd`) not hex colors.
 
 ## Diagram Convention
 
-- **Library**: `interactive/src/lib/diagram/` — `buildGraph`, `addLayer`, `unpack`, `resolve`
-- **`buildGraph`**: Creates a graphology graph cluster (n nodes, topology, color, labels, positions, container)
-- **`addLayer`**: Positions child graphs side-by-side and imports into a parent graph
-- **`unpack`**: Converts graphology graph → flat arrays for SveltePlot marks (nodes, boxes, edges by type, containers)
-- **`resolve`**: Maps role names (`vgae`, `gat`, `kd`) → stroke/fill colors from Observable 10 palette
-- **Edge types**: `structural`, `flow`, `kd`, `encoded`, `annotation` — bucketed by `unpack`, rendered as separate SveltePlot layers
+- **Library**: `interactive/src/lib/diagram/` — spec-driven YAML diagrams
+- **Preferred workflow**: Write a `spec.yaml` per diagram, then `buildFromSpec(spec)` → `flatten(graph)` → SveltePlot marks. See `docs/Diagram-Authoring-Guide.md` for the full spec reference.
+- **`buildFromSpec`** (spec.ts): Walks a YAML layout tree (components + layout + bridges) → graphology graph
+- **`buildGraph`** (buildGraph.ts): Creates a positioned graphology graph cluster (n nodes, topology, color, labels, positions, container)
+- **Composition** (compose.ts + transforms.ts): `pipeline`, `bridge`, `boxSequence`, `hstack`, `vstack` — position and connect sub-graphs
+- **`flatten`** (flatten.ts): Converts graphology graph → flat arrays for SveltePlot marks (nodes, boxes, edges by type, domain)
+- **`resolve`** (palette.ts): Maps role names (`vgae`, `gat`, `kd`) → stroke/fill colors from `styles.yml` palette
+- **Edge types**: `structural`, `flow`, `kd`, `encoded`, `annotation` — bucketed by `flatten`, rendered as separate SveltePlot layers
 - **Boxes**: Standalone boxes use explicit `x`/`y` node attributes; group-derived boxes auto-center on group bounds
+- **Colors**: Defined in `styles.yml` (Observable 10 palette). Use role names, not hex values, in specs.
 - Diagrams are SveltePlot figures (same build pipeline as interactive figures), not separate SVGs
 
 ## What NOT To Do

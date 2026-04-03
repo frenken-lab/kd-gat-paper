@@ -99,10 +99,10 @@ make deploy         # Merge submission into TMLR author kit
 
 ## Developing Interactive Figures
 
-Each figure is a self-contained Svelte app in `interactive/src/<name>/`:
+Each figure is a self-contained Svelte app in `interactive/src/figures/<name>/`:
 
 ```
-interactive/src/umap/
+interactive/src/figures/umap/
   App.svelte    Renderer (SveltePlot marks, no data transforms)
   data.json     Pre-computed data (from KD-GAT export pipeline)
   index.html    Entry point
@@ -121,7 +121,7 @@ FIGURE=umap npx vite dev       # Live-reload one figure at localhost:5173
 **Build all figures:**
 
 ```bash
-make figures                    # Builds all 12 via build.js (sequential vite builds)
+make figures                    # Builds all figures via build.js (sequential vite builds)
 ```
 
 Each build produces a single self-contained HTML file (JS + CSS + data inlined via vite-plugin-singlefile).

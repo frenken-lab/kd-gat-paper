@@ -82,7 +82,7 @@ Architecture diagrams (architecture, gat, kd-gat, kd-vgae, vgae) use a different
 
 ## Styling
 
-`interactive/styles.yml` defines the shared palette and font settings. Two virtual Vite modules expose it at build time:
+`styles.yml` (repo root) defines the shared palette and font settings. Two virtual Vite modules expose it at build time:
 
 - `virtual:styles` — imports `styles.yml` as a JS object
 - `virtual:theme-vars.css` — generates `:root { ... }` CSS variables from palette/font sections

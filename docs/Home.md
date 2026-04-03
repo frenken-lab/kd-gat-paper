@@ -6,7 +6,6 @@ Development guides for the **Adaptive Fusion of Graph-Based Ensembles for Automo
 
 - [Development Setup](Development-Setup.md) — Prerequisites, local dev environment, quick start
 - [Figure Authoring](Figure-Authoring.md) — Creating and modifying interactive SveltePlot figures
-- [Architecture Diagrams](Architecture-Diagrams.md) — Using the graphology → SveltePlot diagram library
 - [Diagram Authoring Guide](Diagram-Authoring-Guide.md) — Spec-driven YAML diagrams: format, layout tree, `type: spec` embedding, tuning
 - [Data Pipeline](Data-Pipeline.md) — How data flows from KD-GAT experiments to the paper
 - [Table Authoring](Table-Authoring.md) — Declarative table specs and the build script

@@ -1,7 +1,7 @@
 .PHONY: data validate figures figures-static tables site dev candidacy-site candidacy-dev candidacy-pdf tmlr tmlr-anon preview deploy sync bib test all clean
 
 data:
-	uv run --with huggingface_hub --with pandas --with pyarrow --with pyyaml python tools/pull_data.py
+	uv run --with polars --with pyyaml --with scipy python tools/pull_data.py
 
 validate:
 	python tools/validate_data.py

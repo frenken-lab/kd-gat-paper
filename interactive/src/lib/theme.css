@@ -78,6 +78,27 @@
   color: #666;
 }
 
+.figure .metrics {
+  display: flex;
+  gap: 16px;
+  font-size: 11px;
+  color: #666;
+  margin-top: 4px;
+}
+
+.figure .metrics strong {
+  color: var(--utility-on-light);
+}
+
+.figure .plot-with-marginal {
+  display: flex;
+  align-items: flex-start;
+}
+
+.figure .plot-with-marginal > :first-child {
+  flex: 1;
+}
+
 .figure .tooltip {
   background: white;
   background: var(--utility-surface-light);

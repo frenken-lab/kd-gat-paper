@@ -1,6 +1,6 @@
 # Interactive Figure Spec Sheet
 
-Complete catalog of all interactive figures in `interactive/src/figures/`. Audited 2026-04-02.
+Complete catalog of all interactive figures in `interactive/src/figures/`. Audited 2026-04-03.
 
 ## Data-Driven Figures
 
@@ -115,6 +115,30 @@ These consume `data.json` and render it. No transforms in the component — all 
 
 ---
 
+### `algorithm` — Pseudocode Algorithm Blocks
+
+- **What it shows:** Rendered pseudocode for the paper's algorithms (e.g., training procedure, DQN fusion).
+- **Chart type:** Pseudocode rendering (KaTeX + pseudocode.js)
+- **Marks:** None (HTML rendering, not SveltePlot)
+- **Interactions:** None (static)
+- **Data format:** Object with `algorithms` array
+- **Current data:** data.json driven
+- **HF source:** —
+
+---
+
+### `results-table` — Interactive Results Table
+
+- **What it shows:** Model evaluation metrics (accuracy, precision, recall, F1, AUC) as a styled interactive table.
+- **Chart type:** Data table
+- **Marks:** None (HTML table, not SveltePlot)
+- **Interactions:** None (static)
+- **Data format:** Flat array of metric records
+- **Current data:** data.json driven
+- **HF source:** `data/metrics.parquet` / `data/leaderboard.json`
+
+---
+
 ## Architecture Diagrams
 
 These use the diagram library (`interactive/src/lib/diagram/`) with graphology. No external data — all topology is inline.
@@ -151,17 +175,37 @@ These use the diagram library (`interactive/src/lib/diagram/`) with graphology. 
 - **Interactions:** Hover tooltip on nodes
 - **Data:** Inline via `buildGraph` (5 nodes, sparse topology)
 
----
+### `dqn` — DQN Fusion Architecture
 
-## Stubs (Awaiting Rewrite)
+- **What it shows:** DQN-based bandit fusion module connecting VGAE and GAT score streams to anomaly output.
+- **Chart type:** Architecture diagram (spec-driven)
+- **Marks:** `Link`, `Arrow`, `Rect`, `Dot`, `Text`
+- **Interactions:** None
+- **Data:** Inline via `spec.yaml`
 
-These render only "Awaiting rewrite" and consume no data.
+### `kd-gat` — KD-GAT Knowledge Distillation
 
-| Name | Intended Purpose |
-|---|---|
-| `kd-gat` | KD-GAT knowledge distillation diagram |
-| `kd-vgae` | KD-VGAE knowledge distillation diagram |
-| `vgae` | VGAE autoencoder architecture diagram |
+- **What it shows:** Knowledge distillation from GAT teacher to GAT student with feature-matching edges.
+- **Chart type:** Architecture diagram (spec-driven)
+- **Marks:** `Link`, `Arrow`, `Rect`, `Dot`, `Text`
+- **Interactions:** None
+- **Data:** Inline via `spec.yaml`
+
+### `kd-vgae` — KD-VGAE Knowledge Distillation
+
+- **What it shows:** Knowledge distillation from VGAE teacher to VGAE student.
+- **Chart type:** Architecture diagram (spec-driven)
+- **Marks:** `Link`, `Arrow`, `Rect`, `Dot`, `Text`
+- **Interactions:** None
+- **Data:** Inline via `spec.yaml`
+
+### `vgae` — VGAE Autoencoder Architecture
+
+- **What it shows:** Variational graph autoencoder: encoder → latent space → decoder with reconstruction.
+- **Chart type:** Architecture diagram (spec-driven)
+- **Marks:** `Link`, `Arrow`, `Rect`, `Dot`, `Text`
+- **Interactions:** None
+- **Data:** Inline via `spec.yaml`
 
 ---
 
@@ -169,22 +213,25 @@ These render only "Awaiting rewrite" and consume no data.
 
 | Figure | Type | Data Source | Status | HF Equivalent |
 |---|---|---|---|---|
+| `algorithm` | Pseudocode | `data.json` | Complete | — |
 | `attention` | Network graph | `data.json` (10 graphs) | Real data | `graph_samples.json` + `attention_weights.parquet` |
 | `cka` | Heatmap | `data.json` (3x2) | Placeholder | `cka_similarity.parquet` |
 | `fusion` | Histogram | `data.json` (1,873) | Real data | `dqn_policy.parquet` |
 | `reconstruction` | Multi-panel | `data.json` (3 sub-datasets) | Placeholder | `recon_errors.parquet` |
+| `results-table` | Data table | `data.json` | Complete | `metrics.parquet` / `leaderboard.json` |
 | `umap` | Scatter | `data.json` (187 pts) | Partial (2 of 7 classes) | `embeddings.parquet` |
-| `architecture` | Diagram | Inline | Complete | — |
-| `gat` | Diagram | Inline | Complete | — |
+| `architecture` | Diagram | `spec.yaml` | Complete | — |
+| `dqn` | Diagram | `spec.yaml` | Complete | — |
+| `gat` | Diagram | `spec.yaml` | Complete | — |
 | `gat-layer` | Diagram | Inline | Complete | — |
 | `graph-base` | Diagram | Inline | Complete | — |
-| `kd-gat` | Diagram | — | Stub | — |
-| `kd-vgae` | Diagram | — | Stub | — |
-| `vgae` | Diagram | — | Stub | — |
+| `kd-gat` | Diagram | `spec.yaml` | Complete | — |
+| `kd-vgae` | Diagram | `spec.yaml` | Complete | — |
+| `vgae` | Diagram | `spec.yaml` | Complete | — |
 
 ### Data Completeness
 
 - **Real data:** `attention`, `fusion` — ready for paper
 - **Placeholder/partial:** `cka`, `reconstruction`, `umap` — need fresh export from KD-GAT
-- **No data needed:** architecture diagrams (inline)
-- **Not started:** 3 stub diagrams
+- **No data needed:** architecture diagrams (spec-driven inline)
+- **Complete (non-data):** `algorithm`, `results-table`, all 8 architecture diagrams

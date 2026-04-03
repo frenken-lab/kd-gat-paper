@@ -1,6 +1,6 @@
 # Interactive Figures
 
-Svelte + Vite project that builds each figure as a self-contained HTML file (via `vite-plugin-singlefile`) into `_figures/`.
+Svelte + Vite project that builds each figure as a self-contained HTML file (via `vite-plugin-singlefile`) into `_build/figures/`.
 
 ## Setup
 
@@ -25,7 +25,7 @@ cp .env.example .env
 npm run dev
 ```
 
-Available figures: `architecture`, `attention`, `cka`, `fusion`, `gat`, `gat-layer`, `graph-base`, `kd-gat`, `kd-vgae`, `reconstruction`, `umap`, `vgae`.
+Available figures: `algorithm`, `architecture`, `attention`, `cka`, `dqn`, `fusion`, `gat`, `gat-layer`, `graph-base`, `kd-gat`, `kd-vgae`, `reconstruction`, `results-table`, `umap`, `vgae`.
 
 ## Building all figures
 
@@ -35,7 +35,7 @@ npm run build
 make figures
 ```
 
-`build.js` iterates over every directory in `src/figures/` that contains an `App.svelte`, builds each one in a separate Vite pass, and writes the output to `_figures/<name>.html`. `index.html` and `main.js` are auto-generated for any figure that doesn't already have them.
+`build.js` iterates over every directory in `src/figures/` that contains an `App.svelte`, builds each one in a separate Vite pass, and writes the output to `_build/figures/<name>.html`. `index.html` and `main.js` are auto-generated for any figure that doesn't already have them.
 
 ## Global styles from `styles.yml`
 

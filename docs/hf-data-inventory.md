@@ -4,6 +4,12 @@ Inventory of all KD-GAT data currently on Hugging Face under `buckeyeguy`. Audit
 
 ## Datasets
 
+### `buckeyeguy/GraphIDS`
+
+Primary data source for the paper. `make data` pulls from this dataset via `tools/pull_data.py`. Contains 30+ files validated against `data/schemas.yaml`.
+
+---
+
 ### `buckeyeguy/kd-gat-experiments`
 
 MLflow experiment run tracking data. Last modified: 2026-03-10.

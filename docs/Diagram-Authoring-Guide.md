@@ -95,7 +95,7 @@ interactive/
 │           ├── assertSpatial.ts # vitest assertion helper
 │           └── index.js         # barrel exports
 ├── vite.config.js               # includes YAML import plugin
-└── build.js                     # builds all 12 figures
+└── build.js                     # builds all figures
 ```
 
 ## Spec Reference
