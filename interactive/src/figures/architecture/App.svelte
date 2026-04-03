@@ -1,52 +1,11 @@
 <script>
-  import Graph from 'graphology';
   import { Plot, Dot, Text, Link, Arrow, Rect } from 'svelteplot';
-  import { buildGraph, flatten, translate, labelCenter, labelEdgeMid } from '../../lib/diagram';
+  import spec from './spec.yaml';
+  import { buildFromSpec, flatten, labelCenter, labelEdgeMid } from '../../lib/diagram';
   import Figure from '../../lib/Figure.svelte';
 
-  // --- Input CAN bus graph ---
-  const input = buildGraph({
-    n: 5, topology: 'sparse', color: 'data', prefix: 'in',
-    labels: ['0x1A0', '0x2B3', '0x3C1', '0x4D5', '0x5E2'],
-    scale: 50,
-  });
-
-  // --- Compose diagram ---
-  const g = new Graph({ multi: true });
-
-  // Import input graph, translated to (80, 150)
-  {
-    const c = input.copy();
-    translate(c, 80, 150);
-    g.import(c);
-  }
-
-  // Teacher pipeline boxes (y = 150)
-  g.addNode('vgae_t', { nodeType: 'box', x: 270, y: 150, label: 'VGAE Teacher', color: 'vgae', width: 120 });
-  g.addNode('gat_t',  { nodeType: 'box', x: 440, y: 150, label: 'GAT Teacher',  color: 'gat',  width: 110 });
-  g.addNode('dqn',    { nodeType: 'box', x: 610, y: 150, label: 'DQN Fusion',   color: 'dqn',  width: 100 });
-  g.addNode('output', { nodeType: 'box', x: 760, y: 150, label: 'Anomaly Score', color: 'data', width: 120 });
-
-  // Student boxes (y = 310)
-  g.addNode('vgae_s', { nodeType: 'box', x: 270, y: 310, label: 'VGAE Student', color: 'vgae', width: 120 });
-  g.addNode('gat_s',  { nodeType: 'box', x: 440, y: 310, label: 'GAT Student',  color: 'gat',  width: 110 });
-
-  // --- Pipeline flow edges ---
-  g.addDirectedEdge('in_0', 'vgae_t',  { type: 'flow', color: 'grey' });
-  g.addDirectedEdge('vgae_t', 'gat_t',  { type: 'flow', color: 'grey', label: 'hard samples' });
-  g.addDirectedEdge('vgae_t', 'dqn',    { type: 'flow', color: 'grey', label: 'recon error' });
-  g.addDirectedEdge('gat_t', 'dqn',     { type: 'flow', color: 'grey', label: 'classification' });
-  g.addDirectedEdge('dqn', 'output',    { type: 'flow', color: 'grey' });
-
-  // Student → DQN (dashed)
-  g.addDirectedEdge('vgae_s', 'dqn', { type: 'flow', color: 'grey', style: 'dashed' });
-  g.addDirectedEdge('gat_s', 'dqn',  { type: 'flow', color: 'grey', style: 'dashed' });
-
-  // --- KD edges ---
-  g.addDirectedEdge('vgae_t', 'vgae_s', { type: 'kd', color: 'kd', label: 'KD' });
-  g.addDirectedEdge('gat_t', 'gat_s',   { type: 'kd', color: 'kd', label: 'KD' });
-
-  const { nodes, edges, boxes, domain } = flatten(g);
+  const { graph } = buildFromSpec(spec);
+  const { nodes, edges, boxes, domain } = flatten(graph);
 
   const flowEdges = edges.filter(e => e.type === 'flow');
   const kdEdges = edges.filter(e => e.type === 'kd');

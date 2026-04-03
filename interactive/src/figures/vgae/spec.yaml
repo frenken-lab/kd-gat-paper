@@ -1,0 +1,20 @@
+figure: vgae
+
+components:
+  input:   { type: graph, n: 5, topology: sparse, color: data, labels: auto, scale: 50 }
+  encoder: { type: box, label: "GCN Encoder", color: vgae, width: 120, height: 40 }
+  latent:  { type: box, label: "μ, σ", color: vgae, width: 70, height: 40 }
+  decoder: { type: box, label: "IP Decoder", color: vgae, width: 110, height: 40 }
+  output:  { type: graph, n: 5, topology: sparse, color: vgae, labels: auto, scale: 50 }
+
+layout:
+  type: pipeline
+  gap: 60
+  elements: [input, encoder, latent, decoder, output]
+  flowLabels: ["X, A", "z ~ q(Z|X,A)", ~, "Â"]
+
+assertions:
+  checks:
+    - "input_0: left-of encoder"
+    - "encoder: left-of latent"
+    - "decoder: left-of output_0"

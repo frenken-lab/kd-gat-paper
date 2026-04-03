@@ -1,0 +1,49 @@
+figure: architecture
+
+components:
+  input:
+    type: graph
+    n: 5
+    topology: sparse
+    color: data
+    labels: ["0x1A0", "0x2B3", "0x3C1", "0x4D5", "0x5E2"]
+    scale: 50
+  vgae_t: { type: box, label: "VGAE Teacher", color: vgae, width: 120 }
+  gat_t:  { type: box, label: "GAT Teacher",  color: gat,  width: 110 }
+  dqn:    { type: box, label: "DQN Fusion",   color: dqn,  width: 100 }
+  output: { type: box, label: "Anomaly Score", color: data, width: 120 }
+  vgae_s: { type: box, label: "VGAE Student", color: vgae, width: 120 }
+  gat_s:  { type: box, label: "GAT Student",  color: gat,  width: 110 }
+
+layout:
+  type: hstack
+  gap: 60
+  children:
+    - input
+    - type: vstack
+      gap: 100
+      children:
+        - type: pipeline
+          elements: [vgae_t, gat_t, dqn, output]
+          gap: 50
+          flowLabels: ["hard samples", "classification"]
+        - type: hstack
+          children: [vgae_s, gat_s]
+          gap: 50
+
+bridges:
+  - { from: input_0, to: vgae_t, type: flow, color: grey }
+  - { from: vgae_t, to: dqn, type: flow, color: grey, label: "recon error" }
+  - { from: vgae_s, to: dqn, type: flow, color: grey, style: dashed }
+  - { from: gat_s,  to: dqn, type: flow, color: grey, style: dashed }
+  - { from: vgae_t, to: vgae_s, type: kd, color: kd, label: KD }
+  - { from: gat_t,  to: gat_s,  type: kd, color: kd, label: KD }
+
+assertions:
+  prefixMap: { input: in }
+  checks:
+    - "input_0: left-of vgae_t"
+    - "vgae_t: left-of gat_t"
+    - "vgae_t: above vgae_s"
+    - "vgae_t: aligned-horizontally gat_t"
+    - "vgae_t: aligned-vertically vgae_s"

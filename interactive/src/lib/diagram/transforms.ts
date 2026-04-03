@@ -48,6 +48,36 @@ export function scale(g: Graph, factor: number): void {
 }
 
 /**
+ * Scale all spatially relevant nodes — including boxes — around their centroid.
+ * Unlike `scale()`, this also moves box positions and shrinks their dimensions.
+ * Use for embedding a sub-diagram as a component in a larger composition.
+ */
+export function scaleComposite(g: Graph, factor: number): void {
+  if (factor === 1) return;
+  let cx = 0, cy = 0, count = 0;
+  g.forEachNode((_, a) => {
+    if (a.nodeType === 'container') return;
+    if (a.x == null || a.y == null) return;
+    cx += a.x; cy += a.y; count++;
+  });
+  if (count === 0) return;
+  cx /= count; cy /= count;
+  g.forEachNode((k, a) => {
+    if (a.nodeType === 'container') return;
+    if (a.x == null || a.y == null) return;
+    const updates: Record<string, unknown> = {
+      x: cx + (a.x - cx) * factor,
+      y: cy + (a.y - cy) * factor,
+    };
+    if (a.nodeType === 'box') {
+      updates.width = ((a.width as number) ?? 90) * factor;
+      updates.height = ((a.height as number) ?? 32) * factor;
+    }
+    g.mergeNodeAttributes(k, updates);
+  });
+}
+
+/**
  * Bounding box of all spatially relevant nodes: positioned nodes + explicit-position boxes.
  * For boxes, incorporates width/height extents (defaults: 90x32).
  * Use instead of `bounds` when composing heterogeneous graphs (node clusters + boxes).

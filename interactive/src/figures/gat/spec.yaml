@@ -1,0 +1,30 @@
+figure: gat
+
+components:
+  L0: { type: graph, n: 5, topology: sparse, color: gat, labels: auto, scale: 80 }
+  L1: { type: graph, n: 5, topology: sparse, color: gat, labels: auto, scale: 80 }
+  L2: { type: graph, n: 5, topology: sparse, color: gat, labels: auto, scale: 80 }
+  jk: { type: box, label: "JK Concat", color: gat }
+  fc: { type: box, label: "FC → class", color: gat }
+
+layout:
+  type: vstack
+  gap: 60
+  align: center
+  children:
+    - type: vstack
+      gap: 100
+      align: center
+      children: [L0, L1, L2]
+    - type: pipeline
+      elements: [jk, fc]
+      direction: vertical
+      gap: 40
+      flowColor: gat
+
+bridges:
+  - { from: L0_0, to: L1_3, type: flow, color: gat }
+  - { from: L1_0, to: L2_3, type: flow, color: gat }
+  - { from: L0_4, to: jk, type: flow, color: gat }
+  - { from: L1_4, to: jk, type: flow, color: gat }
+  - { from: L2_4, to: jk, type: flow, color: gat }

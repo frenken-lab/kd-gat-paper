@@ -8,6 +8,16 @@ import yaml from "js-yaml";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+// Import .yaml/.yml files as ES modules (parsed via js-yaml)
+const yamlImportPlugin = {
+  name: "yaml-import",
+  transform(code, id) {
+    if (/\.ya?ml$/.test(id) && !id.includes("\0")) {
+      return `export default ${JSON.stringify(yaml.load(code))};`;
+    }
+  },
+};
+
 // Virtual module that exposes styles.yml at build time
 const stylesVirtualPlugin = {
   name: "styles-yaml",
@@ -59,6 +69,7 @@ export default defineConfig(({ command, mode }) => {
 
   return {
     plugins: [
+      yamlImportPlugin,
       stylesVirtualPlugin,
       svelte(),
       ...(isServe ? [] : [viteSingleFile()]),
