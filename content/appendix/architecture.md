@@ -6,7 +6,7 @@ title: "Appendix"
 
 ### Implementation Details
 
-80% of the dataset was utilized for training, 20% for validation, and a distinct test set was compiled by the dataset providers. All experiments were conducted using PyTorch and PyTorch Geometric. Model training and evaluation were performed on GPU clusters provided by the Ohio Supercomputer Center (OSC) [@OhioSupercomputerCenter1987]. Each CAN message is represented with 11 features (CAN ID, 8 data bytes, message count, and bus position).
+80% of the dataset was utilized for training, 20% for validation, and a distinct test set was compiled by the dataset providers. All experiments were conducted using PyTorch and PyTorch Geometric. Model training and evaluation were performed on GPU clusters provided by the Ohio Supercomputer Center (OSC) [@OhioSupercomputerCenter1987]. Each CAN message carries a CAN ID and 8 data bytes; the graph construction pipeline ([Algorithm 1](#alg-graph-construction)) aggregates windowed messages into 35-dimensional node features and 11-dimensional edge features per graph.
 
 (sec-model-sizing)=
 ## Model Sizing for Cascading Knowledge Distillation Ensemble
@@ -38,7 +38,7 @@ Student ensemble members are not equally sized. The GAT classifier and VGAE auto
 |-------|---------|---------|-------------|
 | GAT Classifier | 55 K | 1.100 M | $20\times$ |
 | VGAE Autoencoder | 86 K | 1.710 M | ${\approx}20\times$ |
-| DQN Fusion | 32 K | 687 K | ${\approx}21\times$ |
+| Fusion Agent | 32 K | 687 K | ${\approx}21\times$ |
 | **Total (Onboard)** | **173 K** | --- | --- |
 | **Total (Offline)** | --- | **3.497 M** | --- |
 
@@ -58,62 +58,64 @@ Student ensemble members are not equally sized. The GAT classifier and VGAE auto
 
 #### GAT Classifier (55 K Student, 1.100 M Teacher)
 
-Graph attention network over 11 CAN signal features per node (CAN ID, 8 data bytes, message count, and bus position). The student model uses 2 stacked GAT layers with 4 attention heads and 24 hidden channels, producing 8-dimensional node embeddings that feed into a 2-class classification head. The teacher model expands to 5 GAT layers with 8 attention heads and 64 hidden channels with 32-dimensional embeddings, using jumping knowledge (concatenation mode) and residual connections for higher representational capacity and softer knowledge targets during distillation.
+Graph attention network over 35 node features with GATv2Conv layers and 11-dimensional edge attributes. Both student and teacher use LSTM-based Jumping Knowledge aggregation, which learns a per-node adaptive combination of layer representations and keeps the output dimension at $d$ (hidden $\times$ heads) rather than $L \times d$. The student model uses 2 GATv2Conv layers with 4 attention heads, 24 hidden channels, 8-dimensional CAN ID embeddings, and a 32-dimensional feature projection, feeding into a 2-layer FC classification head. The teacher expands to 3 GATv2Conv layers with 4 attention heads, 64 hidden channels, 8-dimensional embeddings, and a 48-dimensional feature projection, with a 4-layer FC head for higher representational capacity and softer knowledge targets during distillation.
 
 #### VGAE Autoencoder (86 K Student, 1.710 M Teacher)
 
-Variational graph autoencoder for unsupervised anomaly detection. The student model compresses 11-dimensional input features through a 2-layer GATConv encoder (single attention head, progressive schedule $[80 \to 40]$) to a 16-dimensional latent space, with a symmetric decoder for reconstruction. The teacher uses a deeper encoder with 4 attention heads and a progressive hidden schedule $[1024 \to 512]$ to a 96-dimensional latent space, with 64-dimensional CAN ID embeddings and a 256-unit MLP neighborhood decoder for richer representation learning. Both models employ the variational reparameterization trick.
+Variational graph autoencoder for unsupervised anomaly detection with GATv2Conv layers and 11-dimensional edge attributes. The student model compresses 35-dimensional input features (with a 32-dimensional feature projection) through a 3-layer GATv2Conv encoder (single attention head, progressive schedule $[80 \to 40 \to 16]$) to a 16-dimensional latent space, with 4-dimensional CAN ID embeddings and a symmetric decoder for reconstruction. The teacher uses a deeper encoder with 4 attention heads and a progressive schedule $[480 \to 240 \to 64]$ to a 64-dimensional latent space, with 32-dimensional CAN ID embeddings and a 48-dimensional feature projection for richer representation learning. Both models employ the variational reparameterization trick and masked feature reconstruction ($\rho = 0.3$).
 
-#### DQN Fusion (32 K Student, 687 K Teacher)
+#### Fusion Agent (32 K Student, 687 K Teacher)
 
-Deep Q-Network for multi-model state fusion, aggregating features from the VGAE autoencoder (8D: 3 reconstruction error components, 4 latent statistics, 1 confidence score) and GAT classifier (7D: 2 logits, 4 embedding statistics, 1 confidence score) into a combined 15D input state vector. The student model uses 2 hidden layers (160 units each), while the teacher expands to 3 hidden layers (576 units each). Both use Double DQN with LayerNorm and dropout regularization. The action space $|A| = 21$ corresponds to uniformly spaced fusion weights $\alpha \in [0, 1]$.
+Fusion agent for multi-model state aggregation, combining features from the VGAE autoencoder (8D: 3 reconstruction error components, 4 latent statistics, 1 confidence score) and GAT classifier (7D: 2 class probabilities, 4 embedding statistics, 1 confidence score) into a combined 15D input state vector. Both DQN and Neural-LinUCB variants share the same MLP backbone architecture: the student uses 3 hidden layers (128 units each) with LayerNorm, ReLU, and 0.2 dropout; the teacher expands to 3 hidden layers (256 units each). The DQN variant adds a target network ($\gamma = 0$, epsilon-greedy exploration); the bandit variant replaces it with per-arm ridge regression and UCB exploration. The action space $|A| = 21$ corresponds to uniformly spaced fusion weights $\alpha \in [0, 1]$.
 
 ### GAT Architecture
 
 :::::{tab-set}
 ::::{tab-item} Teacher (1.100 M)
-5 GATConv layers with 8 attention heads, 64 hidden channels, and 32-dimensional node embeddings. Jumping knowledge (concatenation mode) and residual connections aggregate multi-scale features into a single-layer FC classification head (2 outputs: normal/attack). Dropout is set to 0.2.
+3 GATv2Conv layers with 4 attention heads, 64 hidden channels, 8-dimensional CAN ID embeddings, and 48-dimensional feature projection. LSTM-based Jumping Knowledge aggregates multi-scale features into a 4-layer FC classification head (2 outputs: normal/attack). Dropout is set to 0.11.
 ::::
 ::::{tab-item} Student (55 K)
-2 GATConv layers with 4 attention heads, 24 hidden channels, and 8-dimensional embeddings. Omits jumping knowledge and residual connections for deployment simplicity, using a 2-layer FC head instead. Dropout is reduced to 0.1.
+2 GATv2Conv layers with 4 attention heads, 24 hidden channels, 8-dimensional CAN ID embeddings, and 32-dimensional feature projection. LSTM-based Jumping Knowledge with a 2-layer FC head. Dropout is set to 0.1.
 ::::
 :::::
 
 ### VGAE Architecture
 
-Our VGAE encoder progressively compresses the input through multiple GATConv layers.
+Our VGAE encoder progressively compresses the input through multiple GATv2Conv layers.
 
 :::::{tab-set}
 ::::{tab-item} Teacher (1.710 M)
-Starting with 11-dimensional CAN features and 64-dimensional CAN ID embeddings:
+Starting with 35-dimensional node features (48-dimensional projection) and 32-dimensional CAN ID embeddings:
 
-- Layer 1: GATConv($11 \to 1024$, heads=4) with multi-head attention
-- Layer 2: GATConv($1024 \to 512$, heads=4) with multi-head refinement
-- Bottleneck: Linear projection to latent distribution ($\mu$, $\sigma$ for 96-d $\mathbf{z}$)
+- Layer 1: GATv2Conv($\to 480$, heads=4) with multi-head attention
+- Layer 2: GATv2Conv($480 \to 240$, heads=4) with multi-head refinement
+- Layer 3: GATv2Conv($240 \to 64$, heads=4) with progressive compression
+- Bottleneck: Linear projection to latent distribution ($\mu$, $\sigma$ for 64-d $\mathbf{z}$)
 
-The decoder mirrors this structure, reconstructing the 11 continuous features from the sampled latent code. The CAN ID is separately classified from the latent representation via a 256-unit MLP decoder.
+The decoder mirrors this structure, reconstructing the continuous node features from the sampled latent code. The CAN ID is separately classified from the latent representation via an MLP neighborhood decoder.
 ::::
 ::::{tab-item} Student (86 K)
-Starting with 11-dimensional CAN features and 4-dimensional CAN ID embeddings:
+Starting with 35-dimensional node features (32-dimensional projection) and 4-dimensional CAN ID embeddings:
 
-- Layer 1: GATConv($11 \to 80$, heads=1) with single-head attention
-- Layer 2: GATConv($80 \to 40$, heads=1) with single-head refinement
+- Layer 1: GATv2Conv($\to 80$, heads=1) with single-head attention
+- Layer 2: GATv2Conv($80 \to 40$, heads=1) with single-head refinement
+- Layer 3: GATv2Conv($40 \to 16$, heads=1) with progressive compression
 - Bottleneck: Linear projection to latent distribution ($\mu$, $\sigma$ for 16-d $\mathbf{z}$)
 
-The decoder mirrors the encoder ($[40, 80]$) and uses a compact 16-unit MLP neighborhood decoder.
+The decoder mirrors the encoder ($[16, 40, 80]$) and uses a compact MLP neighborhood decoder.
 ::::
 :::::
 
 ### DQN Architecture
 
-Both models take a 15-dimensional state vector (8 VGAE features + 7 GAT features): VGAE features (8D) comprise 3 reconstruction error components (node, neighbor, CAN ID), 4 latent statistics (mean, std, max, min of $\mathbf{z}$), and 1 confidence score; GAT features (7D) comprise 2 class logits, 4 embedding statistics (mean, std, max, min), and 1 confidence score.
+Both DQN and bandit variants take a 15-dimensional state vector (8 VGAE features + 7 GAT features): VGAE features (8D) comprise 3 reconstruction error components (node, neighbor, CAN ID), 4 latent statistics (mean, std, max, min of $\mathbf{z}$), and 1 confidence score; GAT features (7D) comprise 2 class probabilities, 4 embedding statistics (mean, std, max, min), and 1 confidence score.
 
 :::::{tab-set}
 ::::{tab-item} Teacher (687 K)
-3 hidden layers with 576 units each, LayerNorm, ReLU, and 0.2 dropout. Output: 21 Q-values corresponding to $\alpha \in \{0, 0.05, \ldots, 1.0\}$. Uses Double DQN with target network updates every 100 steps.
+3 hidden layers with 256 units each, LayerNorm, ReLU, and 0.2 dropout. Output: 21 Q-values (DQN) or 21 reward estimates (bandit) corresponding to $\alpha \in \{0, 0.05, \ldots, 1.0\}$. DQN: $\gamma = 0$, target network updates every 100 steps. Bandit: per-arm ridge regression with UCB exploration ($\beta = 1.0$).
 ::::
 ::::{tab-item} Student (32 K)
-2 hidden layers with 160 units each, LayerNorm, ReLU, and 0.1 dropout. Lower exploration ($\epsilon=0.05$, faster decay) and more frequent target updates (every 50 steps) for stable deployment.
+3 hidden layers with 128 units each, LayerNorm, ReLU, and 0.2 dropout. DQN: epsilon-greedy exploration ($\epsilon = 0.2$, decay $= 0.995$, $\epsilon_{\min} = 0.01$), target network updates every 100 steps, $\gamma = 0$. Bandit: backbone retraining every 50 episodes, UCB exploration ($\beta = 1.0$).
 ::::
 :::::
 

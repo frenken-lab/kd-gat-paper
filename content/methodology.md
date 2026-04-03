@@ -25,14 +25,14 @@ CAN messages are broadcast by Electronic Control Units (ECUs); CAN IDs identify 
     e. $V_t \leftarrow \text{unique}(\text{source} \cup \text{target})$ $\triangleright$ unique nodes
     f. $\text{node\_map} \leftarrow \{v \mapsto \text{idx} \mid v \in V_t\}$ $\triangleright$ node indexing
     g. $E_t \leftarrow [(\text{node\_map}[\text{src}], \text{node\_map}[\text{tgt}])$ for $(\text{src}, \text{tgt}) \in \text{unique\_edges}]$
-    h. Compute node features: $X_t \in \mathbb{R}^{|V_t| \times 31}$
-    i. Compute edge features: $F_t \in \mathbb{R}^{|E_t| \times 12}$
+    h. Compute node features: $X_t \in \mathbb{R}^{|V_t| \times 35}$
+    i. Compute edge features: $F_t \in \mathbb{R}^{|E_t| \times 11}$
     j. $y_t \leftarrow 1$ if any attack ID $\in W_t$ else $0$ $\triangleright$ label
 2. **end for**
 
 :::
 
-Node features (31 dimensions) include: CAN ID, normalized payload bytes (mean across occurrences), occurrence count, temporal position, and statistical moments (mean, std, skewness, kurtosis) computed via Polars group-by aggregation over each node's message occurrences within the window. Edge features (12 dimensions) comprise: frequency count, relative frequency, mean/std inter-arrival intervals, regularity score, temporal position metrics (first, last, spread), reverse-edge indicator, degree product, and degree ratio. Window size $W=100$ balances temporal context and computational efficiency. Graphs are directed and weighted by transition counts; self-loops occur for consecutive identical IDs.
+Node features (35 dimensions) are computed via Polars group-by aggregation over each node's message occurrences within the window. They comprise: per-byte statistics (mean, standard deviation, and range for each of 8 payload bytes; 24 features), temporal and statistical summaries (message count, mean Shannon entropy, skewness, kurtosis; 4 features), graph-structural properties (clustering coefficient, split-half ratio, change rate; 3 features), inter-arrival time statistics (mean and standard deviation; 2 features), and degree (in-degree, out-degree; 2 features). Edge features (11 dimensions) comprise: inter-arrival time between the source and target messages, per-byte absolute differences across 8 payload bytes, a bidirectionality flag indicating whether the reverse edge exists, and edge frequency (transition count). Window size $W=100$ balances temporal context and computational efficiency. Graphs are directed and weighted by transition counts; self-loops occur for consecutive identical IDs.
 
 ### Training Paradigm
 
@@ -104,7 +104,7 @@ where $T$ is temperature (softening factor) and $\lambda$ is mixing coefficient.
 :::{dropdown} Architectural Enhancements to GAT
 :open:
 
-*GATv2 Attention.* As with the VGAE encoder, all GAT convolution layers use GATv2Conv [@brody2022attentive] with dynamic attention. GATv2Conv additionally accepts edge features via the `edge_dim` parameter, incorporating the 12-dimensional edge attributes (frequency, temporal intervals, bidirectionality, degree products) into the attention computation. This enables attention-weighted message passing that is conditioned on both node and edge information.
+*GATv2 Attention.* As with the VGAE encoder, all GAT convolution layers use GATv2Conv [@brody2022attentive] with dynamic attention. GATv2Conv additionally accepts edge features via the `edge_dim` parameter, incorporating the 11-dimensional edge attributes (inter-arrival time, per-byte differences, bidirectionality, edge frequency) into the attention computation. This enables attention-weighted message passing that is conditioned on both node and edge information.
 
 *LSTM Jumping Knowledge.* Layer outputs are aggregated via LSTM-based Jumping Knowledge [@xu2018jk] rather than concatenation. Concatenation-mode JK (`mode="cat"`) applies the same linear combination of layer representations to all nodes, and output dimensionality grows linearly with depth. LSTM-mode JK learns a per-node adaptive combination via a bidirectional LSTM with attention over the sequence of layer outputs, allowing each CAN node (ECU) to draw information from the most informative depth. This also reduces the classifier input dimension from $L \times d$ to $d$ (where $L$ is the number of layers and $d$ is the hidden dimension), decreasing parameters in the fully connected head.
 
@@ -112,15 +112,15 @@ where $T$ is temperature (softening factor) and $\lambda$ is mixing coefficient.
 
 :::
 
-#### Stage 3: DQN-Based Adaptive Fusion
+#### Stage 3: Adaptive Fusion
 
-After Stages 1--2, a Deep Q-Network learns optimal fusion weights combining VGAE and GAT predictions via supervised reinforcement learning. Training uses ground truth labels to compute reward signals.
+After Stages 1--2, a fusion agent learns optimal fusion weights combining VGAE and GAT predictions. Training uses ground truth labels to compute reward signals. We evaluate two fusion formulations---a Deep Q-Network (DQN) and a Neural-LinUCB contextual bandit---that share the same state space, action space, reward function, and MLP backbone architecture, differing only in their exploration and update mechanisms.
 
-**State Space:** 15-dimensional feature vector aggregating VGAE and GAT outputs: VGAE reconstruction errors (node, neighbor, CAN ID levels), latent space statistics (mean, std, max, min), VGAE confidence; GAT logits (class 0, class 1), embedding statistics (mean, std, max, min), GAT confidence. All features normalized and clipped to $[0,1]$.
+**State Space:** 15-dimensional feature vector aggregating VGAE and GAT outputs: VGAE reconstruction errors (node, neighbor, CAN ID levels), latent space statistics (mean, std, max, min), VGAE confidence; GAT class probabilities (class 0, class 1), embedding statistics (mean, std, max, min), GAT confidence. All features normalized and clipped to $[0,1]$.
 
-**Action Space:** $N=21$ discrete fusion weights linearly spaced in $[0,1]$. Policy semantics: $\alpha = 0.5$ (equal weighting), $\alpha < 0.5$ (favor VGAE), $\alpha > 0.5$ (favor GAT). Fused anomaly score: $\sigma = (1 - \alpha) \cdot \text{VGAE}_{\text{anomaly}} + \alpha \cdot \text{GAT}_{\text{prob}}$; final prediction $\hat{y} = \mathbb{1}[\sigma > 0.5]$.
+**Action Space:** $K=21$ discrete fusion weights linearly spaced in $[0,1]$. Policy semantics: $\alpha = 0.5$ (equal weighting), $\alpha < 0.5$ (favor VGAE), $\alpha > 0.5$ (favor GAT). Fused anomaly score: $\sigma = (1 - \alpha) \cdot \text{VGAE}_{\text{anomaly}} + \alpha \cdot \text{GAT}_{\text{prob}}$; final prediction $\hat{y} = \mathbb{1}[\sigma > 0.5]$.
 
-**Reward Function:** Directly tied to classification accuracy using ground truth labels (supervised RL):
+**Reward Function:** Directly tied to classification accuracy using ground truth labels:
 
 ```{math}
 :label: eq-reward
@@ -130,13 +130,40 @@ R(\hat{y}, y_{\text{true}}, \mathbf{s}, \alpha) = \begin{cases}
 \end{cases}
 ```
 
-where $r_{\text{agree}}$ measures alignment between VGAE and GAT (model agreement bonus), $r_{\text{conf}}$ rewards high confidence on correct predictions, $r_{\text{disagree}}$ penalizes misalignment on errors, $r_{\text{overconf}}$ penalizes overconfidence on incorrect predictions, and implicit balance bonus discourages extreme $\alpha$ values.
+where $r_{\text{agree}}$ measures alignment between VGAE and GAT (model agreement bonus), $r_{\text{conf}}$ rewards high confidence on correct predictions, $r_{\text{disagree}}$ penalizes misalignment on errors, $r_{\text{overconf}}$ penalizes overconfidence on incorrect predictions, and an implicit balance bonus discourages extreme $\alpha$ values. Both DQN and bandit use this identical reward.
 
-#### Stage 3 (Alternative): Neural-LinUCB Contextual Bandit Fusion
+**Shared Backbone:** Both agents use an MLP backbone $f_\theta: \mathbb{R}^{15} \to \mathbb{R}^d$ (3 hidden layers, 128 units each, LayerNorm + ReLU + Dropout) that transforms the normalized state vector into a learned representation $\mathbf{z} = f_\theta(\mathbf{s})$.
 
-Because each graph is classified independently---the fusion decision for one CAN window does not affect the next---the sequential MDP assumption underlying DQN is unnecessary. We therefore provide an alternative fusion agent based on contextual bandits [@xu2022neural], which treats each graph as an independent context-action-reward tuple.
+##### DQN Fusion
 
-**Algorithm:** Neural-LinUCB [@xu2022neural] decomposes the fusion problem into *deep representation learning* and *shallow exploration*. A neural backbone $f_\theta: \mathbb{R}^{15} \to \mathbb{R}^d$ transforms the raw state vector into a learned representation $\mathbf{z} = f_\theta(\mathbf{s})$. Per-arm ridge regression models then estimate the expected reward for each discrete fusion weight $\alpha_a$, while an upper confidence bound (UCB) term drives exploration:
+The DQN extends the backbone with a linear output layer producing $K$ Q-values, one per discrete fusion weight. Because each CAN window graph is classified independently---the fusion decision for one window does not affect the next---the discount factor is set to $\gamma = 0$. This reduces the Bellman target (Equation {eq}`eq-bellman`) to pure reward maximization:
+
+```{math}
+:label: eq-dqn-loss
+\mathcal{L}_{\text{DQN}}(\theta) = \mathbb{E}_{(s,a,r) \sim \mathcal{D}} \left[ \text{SmoothL1}\!\left( Q(s, a; \theta),\; r \right) \right]
+```
+
+where $\mathcal{D}$ is an experience replay buffer (capacity 50K) and SmoothL1 loss provides robustness to reward outliers.
+
+**Exploration:** Epsilon-greedy with decaying exploration rate:
+
+```{math}
+:label: eq-epsilon-greedy
+a_t = \begin{cases}
+    \arg\max_{a} Q(s_t, a; \theta) & \text{with probability } 1 - \epsilon \\
+    \text{Uniform}(\{1, \ldots, K\}) & \text{with probability } \epsilon
+\end{cases}
+```
+
+where $\epsilon$ decays as $\epsilon \leftarrow \max(\epsilon_{\min},\; \epsilon \cdot \delta)$ after each episode ($\epsilon_0 = 0.2$, $\delta = 0.995$, $\epsilon_{\min} = 0.01$).
+
+**Target Network:** A separate target network $Q(s, a; \theta^-)$ is hard-copied from $\theta$ every 100 training steps to stabilize updates (Double DQN). With $\gamma = 0$ the target network's role is reduced to providing stable reward baselines during minibatch updates.
+
+##### Neural-LinUCB Contextual Bandit Fusion
+
+Because the fusion decision for each graph is independent, the sequential MDP assumption underlying DQN is unnecessary. Neural-LinUCB [@xu2022neural] decomposes the fusion problem into *deep representation learning* (the shared backbone) and *shallow exploration* (per-arm ridge regression with UCB). This removes the target network, discount factor, and replay-based gradient updates from the decision loop.
+
+**UCB Arm Selection:** Given the backbone representation $\mathbf{z} = f_\theta(\mathbf{s})$, each arm's score combines a reward estimate with an uncertainty bonus:
 
 ```{math}
 :label: eq-bandit-ucb
@@ -145,25 +172,26 @@ a^* = \arg\max_{a \in \{1, \ldots, K\}} \left( \boldsymbol{\theta}_a^\top \mathb
 
 where $\boldsymbol{\theta}_a = \mathbf{A}_a^{-1} \mathbf{b}_a$ are the per-arm weight vectors, $\mathbf{A}_a = \sum_{t: a_t = a} \mathbf{z}_t \mathbf{z}_t^\top + \lambda \mathbf{I}$ is the regularized design matrix, $\mathbf{b}_a = \sum_{t: a_t = a} r_t \mathbf{z}_t$ accumulates observed rewards, and $\beta$ controls exploration magnitude.
 
-**State and Action Spaces:** Identical to DQN---the 15-dimensional state vector and $K=21$ discrete fusion weights are shared across both fusion methods.
+**Closed-Form Linear Update:** After observing reward $r_t$ for action $a_t$, the linear model is updated without gradient computation. The reward accumulator and precision matrix are updated jointly:
 
-**Reward Function:** The same shaped reward as DQN (Equation {eq}`eq-reward`), ensuring a fair comparison between the RL and bandit formulations.
+```{math}
+:label: eq-bandit-accum
+\mathbf{b}_{a_t} \leftarrow \mathbf{b}_{a_t} + r_t \, \mathbf{z}_t, \qquad \boldsymbol{\theta}_{a_t} \leftarrow \mathbf{A}_{a_t}^{-1} \mathbf{b}_{a_t}
+```
 
-**Linear Update (Closed-Form):** After observing rewards, the per-arm precision matrices $\mathbf{A}_a^{-1}$ are updated incrementally via the Sherman-Morrison formula:
+The precision matrix inverse $\mathbf{A}_a^{-1}$ is maintained incrementally via the Sherman-Morrison formula:
 
 ```{math}
 :label: eq-sherman-morrison
-\mathbf{A}_a^{-1} \leftarrow \mathbf{A}_a^{-1} - \frac{(\mathbf{A}_a^{-1} \mathbf{z})(\mathbf{A}_a^{-1} \mathbf{z})^\top}{1 + \mathbf{z}^\top \mathbf{A}_a^{-1} \mathbf{z}}
+\mathbf{A}_{a_t}^{-1} \leftarrow \mathbf{A}_{a_t}^{-1} - \frac{(\mathbf{A}_{a_t}^{-1} \mathbf{z}_t)(\mathbf{A}_{a_t}^{-1} \mathbf{z}_t)^\top}{1 + \mathbf{z}_t^\top \mathbf{A}_{a_t}^{-1} \mathbf{z}_t}
 ```
 
-This requires no gradient computation and runs in $O(d^2)$ per sample.
+This runs in $O(d^2)$ per sample with no gradient computation, making online updates substantially cheaper than DQN's minibatch SGD.
 
-**Backbone Retraining:** Periodically (every $N$ episodes), the backbone parameters $\theta$ are updated via gradient descent on the replay buffer to improve the learned representation. After retraining, the linear models are reset since the representation space has shifted.
+**Backbone Retraining:** Periodically (every $N = 50$ episodes), the backbone parameters $\theta$ are updated via gradient descent on the replay buffer to improve the learned representation. After retraining, the linear models ($\mathbf{A}_a^{-1}$, $\mathbf{b}_a$, $\boldsymbol{\theta}_a$) are reset since the representation space has shifted.
 
-**Theoretical Motivation:** Unlike epsilon-greedy exploration (which explores uniformly at random), the UCB term provides *directed* exploration---arms with high uncertainty receive higher scores, and this uncertainty shrinks as $O(1/\sqrt{n_a})$ with the number of times arm $a$ is pulled. Neural-LinUCB achieves $\tilde{O}(\sqrt{T})$ cumulative regret [@xu2022neural], matching full NeuralUCB [@zhou2020neural] at a fraction of the computational cost since exploration is confined to the last layer.
-
-**Comparison with DQN:** The bandit formulation removes the target network, discount factor $\gamma$, and Double DQN machinery, replacing them with principled uncertainty-driven exploration. Empirical comparisons between bandit and supervised baselines (MLP, weighted average) [@riquelme2018deep] determine whether the RL formulation provides genuine benefit over simpler approaches.
+**Theoretical Motivation:** Unlike epsilon-greedy exploration (which explores uniformly at random), the UCB term provides *directed* exploration---arms with high uncertainty receive higher scores, and this uncertainty shrinks as $O(1/\sqrt{n_a})$ with the number of times arm $a$ is pulled. Neural-LinUCB achieves $\tilde{O}(\sqrt{T})$ cumulative regret [@xu2022neural], matching full NeuralUCB [@zhou2020neural] at a fraction of the computational cost since exploration is confined to the last layer. Empirical comparisons between bandit, DQN, and supervised baselines (MLP, weighted average) [@riquelme2018deep] determine whether principled exploration provides genuine benefit over simpler approaches.
 
 ### Inference Pipeline
 
-At inference, VGAE and GAT execute in parallel to minimize latency. Their outputs are concatenated into the 15D state vector and passed to the DQN for dynamic weight determination and final prediction. Parallelization of VGAE and GAT ensures both models evaluate concurrently, while the DQN adds minimal overhead (single forward pass through a small fully-connected network). This design enables real-time deployment in resource-constrained CAN bus environments with sub-millisecond inference latency.
+At inference, VGAE and GAT execute in parallel to minimize latency. Their outputs are concatenated into the 15D state vector and passed to the fusion agent for dynamic weight determination and final prediction. Parallelization of VGAE and GAT ensures both models evaluate concurrently, while the fusion agent adds minimal overhead (single forward pass through a small fully-connected network). This design enables real-time deployment in resource-constrained CAN bus environments with sub-millisecond inference latency. Temporal extensions that introduce inter-window state transitions are discussed as future work.

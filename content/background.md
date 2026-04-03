@@ -51,14 +51,14 @@ The attention function computes a scalar weight for each neighbor of node $v_i$,
 
 where $\sigma$ is the activation function, normally ELU or ReLU.
 
-The Jumping Knowledge (JK) module [@xu2018jk] enhances GATs by aggregating intermediate layer representations. In this work, we adopt the concatenation strategy, where each node's final representation is formed by directly concatenating its embeddings from all GAT layers. Let $\mathbf{h}_v^{(l)}$ denote the representation of node $v$ at layer $l \in \{1, \dots, L\}$. The final output is computed as:
+The Jumping Knowledge (JK) module [@xu2018jk] enhances GATs by aggregating intermediate layer representations. In this work, we adopt LSTM-based JK aggregation, where a bidirectional LSTM with attention processes the sequence of per-layer embeddings and produces a single adaptive combination per node. Let $\mathbf{h}_v^{(l)}$ denote the representation of node $v$ at layer $l \in \{1, \dots, L\}$. The LSTM reads the layer sequence and outputs a weighted combination:
 
 ```{math}
-:label: eq-jk-concat
-\mathbf{h}_v^{\text{final}} = \left[ \mathbf{h}_v^{(1)} \; ; \; \mathbf{h}_v^{(2)} \; ; \; \dots \; ; \; \mathbf{h}_v^{(L)} \right]
+:label: eq-jk-lstm
+\mathbf{h}_v^{\text{final}} = \text{LSTM-Attn}\!\left( \mathbf{h}_v^{(1)}, \mathbf{h}_v^{(2)}, \dots, \mathbf{h}_v^{(L)} \right)
 ```
 
-This approach preserves multi-level features without introducing additional sequential modeling overhead.
+Unlike concatenation-mode JK, which applies the same linear combination to all nodes and increases the output dimension to $L \times d$, LSTM-mode JK learns a per-node adaptive combination. This allows each CAN node (ECU) to draw information from the most informative depth while keeping the output dimension at $d$, reducing parameters in the downstream classifier.
 
 ### Variational Graph Autoencoder
 
@@ -112,7 +112,7 @@ In this framework, the DQN agent learns an optimal weighting policy $\pi(s)$ tha
 L(\theta) = \mathbb{E}_{(s,a,r,s') \sim \mathcal{D}} \left[ \left( r + \gamma \max_{a'} Q(s', a'; \theta^-) - Q(s, a; \theta) \right)^2 \right]
 ```
 
-where $\mathcal{D}$ is the experience replay buffer, $\theta$ represents the current network weights, $\theta^-$ are the target network weights, $\gamma$ is the discount factor, and $r$ is the reward derived from correct anomaly classification (e.g., +1 for correct detection, -1 for false positive). This formulation allows the ensemble to adaptively prioritize the most reliable expert for specific attack patterns (e.g., up-weighting VGAE for fuzzy attack vs. up-weighting GAT for gear attack), maximizing detection F1-score across diverse scenarios.
+where $\mathcal{D}$ is the experience replay buffer, $\theta$ represents the current network weights, $\theta^-$ are the target network weights, $\gamma$ is the discount factor, and $r$ is the reward derived from correct anomaly classification. Because each CAN window graph is classified independently—the fusion decision for one window does not affect the next—the discount factor is set to $\gamma = 0$, reducing the Bellman target to $r$ alone (pure reward maximization with no bootstrapping). This simplification is appropriate when there is no sequential dependency between fusion decisions; temporal extensions that introduce inter-window state transitions would restore $\gamma > 0$. This formulation allows the ensemble to adaptively prioritize the most reliable expert for specific attack patterns (e.g., up-weighting VGAE for fuzzy attack vs. up-weighting GAT for gear attack), maximizing detection F1-score across diverse scenarios.
 
 ### Knowledge Distillation
 
@@ -129,7 +129,7 @@ The student is trained to match these probabilities by minimizing the Kullback-L
 
 ```{math}
 :label: eq-kd-total-loss
-\mathcal{L}_{\text{total}} = \lambda \cdot \mathcal{L}_{\text{hard}} + (1 - \lambda) \cdot \mathcal{L}_{\text{KD}}
+\mathcal{L}_{\text{total}} = (1 - \lambda) \cdot \mathcal{L}_{\text{hard}} + \lambda \cdot \mathcal{L}_{\text{KD}}
 ```
 
-where $\lambda$ balances the contribution of ground truth ($\mathcal{L}_{\text{hard}}$) and teacher supervision ($\mathcal{L}_{\text{KD}}$).
+where $\lambda$ balances the contribution of teacher supervision ($\mathcal{L}_{\text{KD}}$) and ground truth ($\mathcal{L}_{\text{hard}}$). Higher $\lambda$ places more weight on the soft targets from the teacher.
