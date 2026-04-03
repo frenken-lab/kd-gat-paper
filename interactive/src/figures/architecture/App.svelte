@@ -1,7 +1,7 @@
 <script>
   import Graph from 'graphology';
   import { Plot, Dot, Text, Link, Arrow, Rect } from 'svelteplot';
-  import { buildGraph, flatten, translate } from '../../lib/diagram';
+  import { buildGraph, flatten, translate, labelCenter, labelEdgeMid } from '../../lib/diagram';
   import Figure from '../../lib/Figure.svelte';
 
   // --- Input CAN bus graph ---
@@ -66,8 +66,8 @@
       strokeDasharray={e => e.style === 'dashed' ? '4 3' : 'none'} />
     <!-- Layer 3: Flow edge labels -->
     <Text data={labeledFlow}
-      x={e => (e.x1 + e.x2) / 2} y={e => (e.y1 + e.y2) / 2 - 8}
-      text="label" fontSize={7} fill="#666" textAnchor="middle" />
+      {...labelEdgeMid}
+      text="label" fontSize={7} fill="#666" />
     <!-- Layer 4: KD edges -->
     <Arrow data={kdEdges} x1="x1" y1="y1" x2="x2" y2="y2"
       stroke="stroke" strokeWidth={2} strokeDasharray="6 4" />
@@ -77,13 +77,13 @@
     <!-- Layer 5: Boxes -->
     <Rect data={boxes} x1="x1" y1="y1" x2="x2" y2="y2"
       fill="fill" stroke="stroke" strokeWidth={1.5} rx={6} />
-    <Text data={boxes} x="x" y="y"
-      text="label" fontSize={9} fill="#333" textAnchor="middle" dy={1} />
+    <Text data={boxes} {...labelCenter}
+      text="label" fontSize={9} fill="#333" />
     <!-- Layer 6: Input graph nodes -->
     <Dot data={nodes} x="x" y="y" r={14}
       fill="fill" stroke="stroke" strokeWidth={1.5} />
-    <Text data={nodes} x="x" y="y" text="label"
-      fontSize={6} fill="#333" textAnchor="middle" dy={1}
+    <Text data={nodes} {...labelCenter} text="label"
+      fontSize={6} fill="#333"
       fontFamily="CMU Typewriter Text, monospace" />
   </Plot>
 </Figure>

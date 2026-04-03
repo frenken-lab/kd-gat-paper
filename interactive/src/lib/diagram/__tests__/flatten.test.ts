@@ -9,7 +9,7 @@ vi.mock('virtual:styles', () => ({
 }));
 
 import Graph from 'graphology';
-import { flatten } from '../flatten.ts';
+import { flatten, extractLayout, decorate } from '../flatten.ts';
 
 function simpleGraph(): Graph {
   const g = new Graph();
@@ -128,5 +128,129 @@ describe('flatten', () => {
     expect(boxes).toHaveLength(0);
     expect(spy).toHaveBeenCalledWith(expect.stringContaining("group 'nope'"));
     spy.mockRestore();
+  });
+
+  it('preserves raw color role name alongside resolved stroke/fill', () => {
+    const g = new Graph();
+    g.addNode('v', { nodeType: 'node', x: 0, y: 0, color: 'vgae', label: '' });
+    const { nodes } = flatten(g);
+    expect(nodes[0].color).toBe('vgae');
+    expect(nodes[0].stroke).toBe('#0000ff');
+  });
+});
+
+describe('extractLayout', () => {
+  it('returns spatial data with raw color names and empty stroke/fill', () => {
+    const g = new Graph();
+    g.addNode('v', { nodeType: 'node', x: 0, y: 0, color: 'vgae', label: 'V' });
+    const data = extractLayout(g);
+    expect(data.nodes[0].color).toBe('vgae');
+    expect(data.nodes[0].stroke).toBe('');
+    expect(data.nodes[0].fill).toBe('');
+  });
+
+  it('returns correct spatial positions for boxes', () => {
+    const g = new Graph();
+    g.addNode('n1', { nodeType: 'node', x: 10, y: 20, color: 'blue', label: '', group: 'g' });
+    g.addNode('n2', { nodeType: 'node', x: 50, y: 60, color: 'blue', label: '', group: 'g' });
+    g.addNode('box', { nodeType: 'box', group: 'g', label: 'B', color: 'gat' });
+
+    const data = extractLayout(g);
+    expect(data.boxes).toHaveLength(1);
+    expect(data.boxes[0].x).toBe(30);
+    expect(data.boxes[0].color).toBe('gat');
+    expect(data.boxes[0].stroke).toBe('');
+  });
+
+  it('returns containers with raw color and empty stroke/fill', () => {
+    const g = new Graph();
+    g.addNode('n', { nodeType: 'node', x: 0, y: 0, color: 'blue', label: '', group: 'g' });
+    g.addNode('c', { nodeType: 'container', group: 'g', label: 'C', color: 'gat' });
+
+    const data = extractLayout(g);
+    expect(data.containers).toHaveLength(1);
+    expect(data.containers[0].color).toBe('gat');
+    expect(data.containers[0].stroke).toBe('');
+  });
+
+  it('returns edges with raw color and empty stroke', () => {
+    const g = new Graph();
+    g.addNode('a', { nodeType: 'node', x: 0, y: 0, color: 'blue', label: '' });
+    g.addNode('b', { nodeType: 'node', x: 10, y: 0, color: 'blue', label: '' });
+    g.addEdge('a', 'b', { type: 'structural', color: 'vgae' });
+
+    const data = extractLayout(g);
+    expect(data.edges[0].color).toBe('vgae');
+    expect(data.edges[0].stroke).toBe('');
+  });
+
+  it('computes the same domain as flatten', () => {
+    const g = simpleGraph();
+    const raw = extractLayout(g);
+    const decorated = flatten(g);
+    expect(raw.domain).toEqual(decorated.domain);
+  });
+});
+
+describe('decorate', () => {
+  it('resolves node colors via palette', () => {
+    const g = new Graph();
+    g.addNode('v', { nodeType: 'node', x: 0, y: 0, color: 'vgae', label: '' });
+    const data = extractLayout(g);
+    expect(data.nodes[0].stroke).toBe('');
+
+    decorate(data);
+    expect(data.nodes[0].stroke).toBe('#0000ff');
+    expect(data.nodes[0].fill).toBe('#0000ff40');
+    // Raw color is preserved
+    expect(data.nodes[0].color).toBe('vgae');
+  });
+
+  it('resolves box colors via palette', () => {
+    const g = new Graph();
+    g.addNode('n', { nodeType: 'node', x: 0, y: 0, color: 'blue', label: '', group: 'g' });
+    g.addNode('box', { nodeType: 'box', group: 'g', label: 'B', color: 'gat' });
+
+    const data = decorate(extractLayout(g));
+    expect(data.boxes[0].stroke).toBe('#ff0000');
+    expect(data.boxes[0].fill).toBe('#ff000040');
+    expect(data.boxes[0].color).toBe('gat');
+  });
+
+  it('resolves container colors via palette', () => {
+    const g = new Graph();
+    g.addNode('n', { nodeType: 'node', x: 0, y: 0, color: 'blue', label: '', group: 'g' });
+    g.addNode('c', { nodeType: 'container', group: 'g', label: 'C', color: 'vgae' });
+
+    const data = decorate(extractLayout(g));
+    expect(data.containers[0].stroke).toBe('#0000ff');
+    expect(data.containers[0].fill).toBe('#0000ff40');
+  });
+
+  it('resolves edge colors via palette', () => {
+    const g = new Graph();
+    g.addNode('a', { nodeType: 'node', x: 0, y: 0, color: 'blue', label: '' });
+    g.addNode('b', { nodeType: 'node', x: 10, y: 0, color: 'blue', label: '' });
+    g.addEdge('a', 'b', { type: 'structural', color: 'gat' });
+
+    const data = decorate(extractLayout(g));
+    expect(data.edges[0].stroke).toBe('#ff0000');
+    expect(data.edges[0].color).toBe('gat');
+  });
+
+  it('returns the same reference (mutates in place)', () => {
+    const g = new Graph();
+    g.addNode('v', { nodeType: 'node', x: 0, y: 0, color: 'blue', label: '' });
+    const data = extractLayout(g);
+    const result = decorate(data);
+    expect(result).toBe(data);
+  });
+
+  it('handles missing color gracefully', () => {
+    const g = new Graph();
+    g.addNode('v', { nodeType: 'node', x: 0, y: 0, label: '' });
+    const data = decorate(extractLayout(g));
+    // Empty string color should fall through resolve() to grey fallback
+    expect(data.nodes[0].stroke).toBe('#999999');
   });
 });

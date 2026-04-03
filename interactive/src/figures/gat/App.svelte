@@ -1,7 +1,7 @@
 <script>
   import Graph from "graphology";
   import { Plot, Dot, Text, Link, Arrow, Rect } from "svelteplot";
-  import { flatten } from "../../lib/diagram";
+  import { flatten, labelBoxCenter, labelCenter } from "../../lib/diagram";
   import Figure from "../../lib/Figure.svelte";
 
   // --- Build graph data ---
@@ -93,24 +93,18 @@
     />
     <Text
       data={boxes}
-      x={(b) => (b.x1 + b.x2) / 2}
-      y={(b) => (b.y1 + b.y2) / 2}
+      {...labelBoxCenter}
       text="label"
       fontSize={9}
       fill="#333"
-      textAnchor="middle"
-      dy={1}
     />
     <Dot data={nodes} x="x" y="y" r={10} fill="fill" stroke="stroke" strokeWidth={1.5} />
     <Text
       data={nodes}
-      x="x"
-      y="y"
+      {...labelCenter}
       text="label"
       fontSize={7}
       fill="#333"
-      textAnchor="middle"
-      dy={1}
     />
   </Plot>
 </Figure>

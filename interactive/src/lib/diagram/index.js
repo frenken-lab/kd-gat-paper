@@ -1,5 +1,11 @@
-export { buildGraph } from './buildGraph.ts';
-export { flatten } from './flatten.ts';
+export { buildGraph, boxNode } from './buildGraph.ts';
+export { flatten, extractLayout, decorate } from './flatten.ts';
 export { resolve } from './palette.ts';
-export { bounds, translate, scale, rotate, hstack } from './transforms.ts';
+export { bounds, compositeBounds, translate, scale, rotate, hstack, vstack } from './transforms.ts';
 export { connectContainers, boundingBox } from './layout.ts';
+export { buildSpatialIndex, parseAssertion, checkSpatial } from './spatial.ts';
+export { assertSpatial } from './assertSpatial.ts';
+export {
+  labelAbove, labelBoxCenter, labelCenter, labelEdgeMid,
+  labelAboveOf, labelBoxCenterOf, labelCenterOf, labelEdgeMidOf,
+} from './text.ts';

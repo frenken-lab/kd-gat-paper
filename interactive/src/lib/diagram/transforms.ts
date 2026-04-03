@@ -19,10 +19,11 @@ export function bounds(g: Graph): { x1: number; y1: number; x2: number; y2: numb
   return { x1, y1, x2, y2 };
 }
 
-/** Translate all positioned nodes by (dx, dy). Mutates in place. */
+/** Translate all nodes with explicit positions by (dx, dy). Mutates in place. */
 export function translate(g: Graph, dx: number, dy: number): void {
   g.forEachNode((k, a) => {
-    if (!isPositioned(a)) return;
+    if (a.nodeType === 'container') return;
+    if (a.x == null || a.y == null) return;
     g.mergeNodeAttributes(k, { x: a.x + dx, y: a.y + dy });
   });
 }
@@ -44,6 +45,34 @@ export function scale(g: Graph, factor: number): void {
       y: cy + (a.y - cy) * factor,
     });
   });
+}
+
+/**
+ * Bounding box of all spatially relevant nodes: positioned nodes + explicit-position boxes.
+ * For boxes, incorporates width/height extents (defaults: 90x32).
+ * Use instead of `bounds` when composing heterogeneous graphs (node clusters + boxes).
+ */
+export function compositeBounds(g: Graph): { x1: number; y1: number; x2: number; y2: number } {
+  let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+  g.forEachNode((_, a) => {
+    if (a.nodeType === 'container') return;
+    if (a.nodeType === 'box') {
+      if (a.x == null || a.y == null) return;
+      const hw = ((a.width as number) ?? 90) / 2;
+      const hh = ((a.height as number) ?? 32) / 2;
+      if (a.x - hw < x1) x1 = a.x - hw;
+      if (a.x + hw > x2) x2 = a.x + hw;
+      if (a.y - hh < y1) y1 = a.y - hh;
+      if (a.y + hh > y2) y2 = a.y + hh;
+      return;
+    }
+    // Regular positioned node
+    if (a.x < x1) x1 = a.x;
+    if (a.x > x2) x2 = a.x;
+    if (a.y < y1) y1 = a.y;
+    if (a.y > y2) y2 = a.y;
+  });
+  return { x1, y1, x2, y2 };
 }
 
 /** Rotate all positioned nodes by degrees. Mutates in place. */
@@ -79,9 +108,37 @@ export function hstack(
   let cursor = x;
   for (const child of children) {
     const c = child.copy();
-    const b = bounds(c);
+    const b = compositeBounds(c);
     translate(c, cursor - b.x1, y - b.y1);
     cursor = b.x2 + (cursor - b.x1) + gap;
+    parent.import(c);
+  }
+}
+
+/**
+ * Lay out child graphs vertically with a gap, importing each into the parent.
+ * Copies children to avoid mutation. Mirror of hstack but top-to-bottom.
+ */
+export function vstack(
+  parent: Graph,
+  children: Graph[],
+  opts: { x?: number; y?: number; gap?: number; align?: 'left' | 'center' | 'right' } = {},
+): void {
+  const { x = 0, y = 0, gap = 50, align = 'left' } = opts;
+  let cursor = y;
+  for (const child of children) {
+    const c = child.copy();
+    const b = compositeBounds(c);
+    let dx: number;
+    if (align === 'center') {
+      dx = x - (b.x1 + b.x2) / 2;
+    } else if (align === 'right') {
+      dx = x - b.x2;
+    } else {
+      dx = x - b.x1;
+    }
+    translate(c, dx, cursor - b.y1);
+    cursor = b.y2 + (cursor - b.y1) + gap;
     parent.import(c);
   }
 }

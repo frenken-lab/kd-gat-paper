@@ -8,8 +8,9 @@ export interface FlatNode {
   x: number;
   y: number;
   r?: number;
-  fill: string;
-  stroke: string;
+  color: string;
+  fill?: string;
+  stroke?: string;
   label: string;
   group?: string;
   [key: string]: unknown;
@@ -23,8 +24,9 @@ export interface FlatBox {
   y1: number;
   x2: number;
   y2: number;
-  fill: string;
-  stroke: string;
+  color: string;
+  fill?: string;
+  stroke?: string;
   label: string;
   rx: number;
   [key: string]: unknown;
@@ -36,8 +38,8 @@ export interface FlatEdge {
   x2: number;
   y2: number;
   type: string;
-  stroke: string;
-  color?: string;
+  color: string;
+  stroke?: string;
   weight?: number;
   label?: string;
   style?: string;
@@ -49,8 +51,9 @@ export interface FlatContainer {
   y1: number;
   x2: number;
   y2: number;
-  fill: string;
-  stroke: string;
+  color: string;
+  fill?: string;
+  stroke?: string;
   label: string;
   group: string;
 }
@@ -72,15 +75,17 @@ const CONTAINER_PADDING = 30;
 const DOMAIN_PADDING = 40;
 
 /**
- * Flatten a graphology graph into arrays ready for SveltePlot marks.
+ * Extract spatial layout from a graphology graph into flat arrays.
+ *
+ * Returns raw role names in the `color` field (e.g., 'gat', 'vgae').
+ * `stroke` and `fill` are empty strings — use `decorate()` to resolve them.
  *
  * This function:
  * - Does NOT mutate the input graph
  * - Returns edges as a single flat array (filter by `type` in your template)
  * - Computes a padded domain from all positioned elements
- * - Resolves colors via palette in one pass
  */
-export function flatten(g: Graph, padding = DOMAIN_PADDING): FlatData {
+export function extractLayout(g: Graph, padding = DOMAIN_PADDING): FlatData {
   const nodes: FlatNode[] = [];
   const boxSpecs: Array<{ id: string; group: string; label: string; color: string; attrs: Record<string, unknown> }> = [];
   const containerSpecs: Array<{ id: string; group: string; label: string; color: string }> = [];
@@ -93,21 +98,21 @@ export function flatten(g: Graph, padding = DOMAIN_PADDING): FlatData {
     const nodeType = attrs.nodeType ?? (attrs.isBox ? 'box' : 'node');
 
     if (nodeType === 'container') {
-      containerSpecs.push({ id, group: attrs.group, label: attrs.label ?? '', color: attrs.color });
+      containerSpecs.push({ id, group: attrs.group, label: attrs.label ?? '', color: attrs.color ?? '' });
       return;
     }
 
     if (nodeType === 'box') {
-      boxSpecs.push({ id, group: attrs.group, label: attrs.label ?? '', color: attrs.color, attrs });
+      boxSpecs.push({ id, group: attrs.group, label: attrs.label ?? '', color: attrs.color ?? '', attrs });
       return;
     }
 
-    // Regular node
-    const { stroke, fill } = resolve(attrs.color);
+    // Regular node — carry raw color, leave stroke/fill empty
     nodes.push({
       ...attrs, id,
       x: attrs.x, y: attrs.y,
-      fill, stroke,
+      color: attrs.color ?? '',
+      fill: '', stroke: '',
       label: attrs.label ?? '',
       group: attrs.group,
       r: attrs.r,
@@ -158,11 +163,11 @@ export function flatten(g: Graph, padding = DOMAIN_PADDING): FlatData {
 
     boxPositions.set(spec.id, { x: cx, y: cy });
 
-    const { stroke, fill } = resolve(spec.color);
     boxes.push({
       id: spec.id, x: cx, y: cy,
       x1, y1, x2, y2,
-      fill, stroke,
+      color: spec.color,
+      fill: '', stroke: '',
       label: spec.label,
       rx: 6,
     });
@@ -175,7 +180,6 @@ export function flatten(g: Graph, padding = DOMAIN_PADDING): FlatData {
       continue;
     }
 
-    const { stroke, fill } = resolve(spec.color);
     containers.push({
       group: spec.group,
       label: spec.label,
@@ -183,7 +187,8 @@ export function flatten(g: Graph, padding = DOMAIN_PADDING): FlatData {
       y1: Math.min(...positions.ys) - CONTAINER_PADDING,
       x2: Math.max(...positions.xs) + CONTAINER_PADDING,
       y2: Math.max(...positions.ys) + CONTAINER_PADDING,
-      stroke, fill,
+      color: spec.color,
+      stroke: '', fill: '',
     });
   }
 
@@ -194,14 +199,14 @@ export function flatten(g: Graph, padding = DOMAIN_PADDING): FlatData {
     // For box nodes, use our locally computed center instead of graph attrs
     const srcPos = boxPositions.get(source) ?? { x: sourceAttrs.x, y: sourceAttrs.y };
     const tgtPos = boxPositions.get(target) ?? { x: targetAttrs.x, y: targetAttrs.y };
-    const { stroke } = resolve(attrs.color);
 
     edges.push({
       ...attrs,
       x1: srcPos.x, y1: srcPos.y,
       x2: tgtPos.x, y2: tgtPos.y,
       type: attrs.type ?? 'structural',
-      stroke,
+      color: attrs.color ?? '',
+      stroke: '',
     });
   });
 
@@ -220,4 +225,48 @@ export function flatten(g: Graph, padding = DOMAIN_PADDING): FlatData {
     : { x: [0, 100], y: [0, 100] };
 
   return { nodes, boxes, edges, containers, domain };
+}
+
+/**
+ * Resolve raw color role names in FlatData to {stroke, fill} via the palette.
+ *
+ * This is the rendering/decoration pass — call after extractLayout() to get
+ * visual-ready data. Mutates in place and returns the same reference.
+ */
+export function decorate(data: FlatData): FlatData {
+  for (const node of data.nodes) {
+    const { stroke, fill } = resolve(node.color);
+    node.stroke = stroke;
+    node.fill = fill;
+  }
+  for (const box of data.boxes) {
+    const { stroke, fill } = resolve(box.color);
+    box.stroke = stroke;
+    box.fill = fill;
+  }
+  for (const container of data.containers) {
+    const { stroke, fill } = resolve(container.color);
+    container.stroke = stroke;
+    container.fill = fill;
+  }
+  for (const edge of data.edges) {
+    const { stroke } = resolve(edge.color);
+    edge.stroke = stroke;
+  }
+  return data;
+}
+
+/**
+ * Flatten a graphology graph into arrays ready for SveltePlot marks.
+ *
+ * Convenience function: calls extractLayout() then decorate().
+ *
+ * This function:
+ * - Does NOT mutate the input graph
+ * - Returns edges as a single flat array (filter by `type` in your template)
+ * - Computes a padded domain from all positioned elements
+ * - Resolves colors via palette in one pass
+ */
+export function flatten(g: Graph, padding = DOMAIN_PADDING): FlatData {
+  return decorate(extractLayout(g, padding));
 }

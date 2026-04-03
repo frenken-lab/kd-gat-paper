@@ -11,7 +11,7 @@ export type EdgeSpec = [number, number, Record<string, unknown>?];
 export interface BuildGraphOptions {
   n: number;
   topology: Topology;
-  color: string;
+  color?: string;
   prefix: string;
   labels?: Labels;
   directed?: boolean;
@@ -19,7 +19,7 @@ export interface BuildGraphOptions {
   edges?: EdgeSpec[];
   group?: string;
   scale?: number;
-  container?: { label: string; color: string };
+  container?: { label: string; color?: string };
 }
 
 const SUBSCRIPTS = '₁₂₃₄₅₆₇₈₉';
@@ -36,7 +36,7 @@ function resolveLabels(labels: Labels | undefined, n: number): string[] {
  */
 export function buildGraph(opts: BuildGraphOptions): Graph {
   const {
-    n, topology, color, prefix,
+    n, topology, color = 'grey', prefix,
     labels: labelOpt,
     directed = false,
     positions,
@@ -102,5 +102,35 @@ export function buildGraph(opts: BuildGraphOptions): Graph {
     });
   }
 
+  return g;
+}
+
+// --- Box node factory ---
+
+export interface BoxNodeOptions {
+  id: string;
+  label: string;
+  color?: string;
+  width?: number;
+  height?: number;
+}
+
+/**
+ * Create a Graph containing a single box node at the origin.
+ * The box participates in hstack/vstack/pipeline composition like any buildGraph output.
+ */
+export function boxNode(opts: BoxNodeOptions): Graph {
+  const { id, label, color = 'grey', width = 90, height = 32 } = opts;
+  const g = new Graph({ multi: true, type: 'mixed' });
+  g.addNode(id, {
+    nodeType: 'box',
+    x: 0,
+    y: 0,
+    label,
+    color,
+    width,
+    height,
+    group: id,
+  });
   return g;
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildGraph } from '../buildGraph.ts';
+import { buildGraph, boxNode } from '../buildGraph.ts';
 
 describe('buildGraph', () => {
   it('creates n nodes with prefixed keys', () => {
@@ -102,5 +102,50 @@ describe('buildGraph', () => {
     const edgeAttrs = g.getEdgeAttributes('d_0', 'd_2');
     expect(edgeAttrs.type).toBe('flow');
     expect(edgeAttrs.weight).toBe(5);
+  });
+
+  it('color is optional and defaults to grey', () => {
+    const g = buildGraph({ n: 2, topology: 'none', prefix: 'opt' });
+    expect(g.getNodeAttribute('opt_0', 'color')).toBe('grey');
+  });
+
+  it('container color is optional', () => {
+    const g = buildGraph({
+      n: 2, topology: 'none', prefix: 'cc',
+      container: { label: 'Test' },
+    });
+    const cAttrs = g.getNodeAttributes('cc__container');
+    expect(cAttrs.label).toBe('Test');
+    // container.color is undefined when omitted
+    expect(cAttrs.color).toBeUndefined();
+  });
+});
+
+describe('boxNode', () => {
+  it('creates a graph with one box node at origin', () => {
+    const g = boxNode({ id: 'vgae_t', label: 'VGAE Teacher', color: 'vgae', width: 120 });
+    expect(g.order).toBe(1);
+    expect(g.hasNode('vgae_t')).toBe(true);
+    const attrs = g.getNodeAttributes('vgae_t');
+    expect(attrs.nodeType).toBe('box');
+    expect(attrs.x).toBe(0);
+    expect(attrs.y).toBe(0);
+    expect(attrs.label).toBe('VGAE Teacher');
+    expect(attrs.color).toBe('vgae');
+    expect(attrs.width).toBe(120);
+  });
+
+  it('uses default dimensions when unspecified', () => {
+    const g = boxNode({ id: 'b', label: 'B' });
+    const attrs = g.getNodeAttributes('b');
+    expect(attrs.width).toBe(90);
+    expect(attrs.height).toBe(32);
+    expect(attrs.color).toBe('grey');
+  });
+
+  it('creates a mixed multi-graph for composition', () => {
+    const g = boxNode({ id: 'b', label: 'B' });
+    expect(g.multi).toBe(true);
+    expect(g.type).toBe('mixed');
   });
 });

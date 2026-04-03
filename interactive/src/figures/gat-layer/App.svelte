@@ -7,6 +7,8 @@
     hstack,
     connectContainers,
     boundingBox,
+    labelAbove,
+    labelCenter,
   } from "../../lib/diagram";
   import Figure from "../../lib/Figure.svelte";
 
@@ -128,8 +130,8 @@
     />
     <Text
       data={data.containers}
-      x={(c) => (c.x1 + c.x2) / 2} y="y1"
-      text="label" fontSize={9} fill="#333" textAnchor="middle" dy={-8}
+      {...labelAbove}
+      text="label" fontSize={9} fill="#333"
     />
     <!-- Flow arrows between heads -->
     <Arrow
@@ -148,8 +150,8 @@
       fill="fill" stroke="stroke" strokeWidth={1.5}
     />
     <Text
-      data={data.nodes} x="x" y="y"
-      text="label" fontSize={8} fill="#333" textAnchor="middle" dy={1}
+      data={data.nodes} {...labelCenter}
+      text="label" fontSize={8} fill="#333"
     />
   </Plot>
   <p style="font-size: 11px; color: #999; margin: 2px 0 0; text-align: center;">
@@ -179,8 +181,8 @@
         />
         <Text
           data={detailData.containers}
-          x={(c) => (c.x1 + c.x2) / 2} y="y1"
-          text="label" fontSize={9} fill="#333" textAnchor="middle" dy={-8}
+          {...labelAbove}
+          text="label" fontSize={9} fill="#333"
         />
         <!-- Flow arrows between stages -->
         <Arrow
@@ -210,8 +212,8 @@
           fill="fill" stroke="stroke" strokeWidth={1.5}
         />
         <Text
-          data={detailData.nodes} x="x" y="y"
-          text="label" fontSize={8} fill="#333" textAnchor="middle" dy={1}
+          data={detailData.nodes} {...labelCenter}
+          text="label" fontSize={8} fill="#333"
         />
       </Plot>
     </div>

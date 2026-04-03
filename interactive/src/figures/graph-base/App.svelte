@@ -1,5 +1,5 @@
 <script>
-  import { buildGraph, flatten } from "../../lib/diagram";
+  import { buildGraph, flatten, labelCenter } from "../../lib/diagram";
   import { Plot, Dot, Text, Link, HTMLTooltip } from "svelteplot";
   import Figure from "../../lib/Figure.svelte";
 
@@ -44,13 +44,10 @@
     />
     <Text
       data={nodes}
-      x="x"
-      y="y"
+      {...labelCenter}
       text="label"
       fontSize={8}
       fill="#333"
-      textAnchor="middle"
-      dy={1}
       fontFamily="CMU Typewriter Text, monospace"
     />
     {#snippet overlay()}
