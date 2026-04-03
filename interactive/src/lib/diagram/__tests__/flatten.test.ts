@@ -192,6 +192,59 @@ describe('extractLayout', () => {
   });
 });
 
+describe('anchor nodes', () => {
+  it('positions anchors at container boundary midpoints', () => {
+    const g = new Graph({ multi: true, type: 'mixed' });
+    // 3 nodes in a group at known positions
+    g.addNode('n0', { nodeType: 'node', x: 0, y: 0, color: 'blue', label: '', group: 'g' });
+    g.addNode('n1', { nodeType: 'node', x: 100, y: 0, color: 'blue', label: '', group: 'g' });
+    g.addNode('n2', { nodeType: 'node', x: 50, y: 80, color: 'blue', label: '', group: 'g' });
+    // Container + anchors
+    g.addNode('g__container', { nodeType: 'container', group: 'g', label: 'G', color: 'blue' });
+    g.addNode('g__top', { nodeType: 'anchor', group: 'g', anchorSide: 'top' });
+    g.addNode('g__bottom', { nodeType: 'anchor', group: 'g', anchorSide: 'bottom' });
+    g.addNode('g__left', { nodeType: 'anchor', group: 'g', anchorSide: 'left' });
+    g.addNode('g__right', { nodeType: 'anchor', group: 'g', anchorSide: 'right' });
+    // External box
+    g.addNode('ext', { nodeType: 'box', x: 200, y: 40, label: 'Ext', color: 'blue', width: 60, height: 30, group: 'ext' });
+    // Edge from right anchor to external box
+    g.addDirectedEdge('g__right', 'ext', { type: 'flow', color: 'blue' });
+
+    const data = extractLayout(g);
+    // Anchors should not appear as visible nodes
+    expect(data.nodes.length).toBe(3);
+    // The edge should start at the right boundary of the container (x=100 + padding=30)
+    const edge = data.edges.find(e => e.type === 'flow');
+    expect(edge).toBeDefined();
+    expect(edge!.x1).toBe(130); // container x2 = max(0,100,50) + 30 padding
+    expect(edge!.y1).toBe(40);  // container midY = (-30 + 110) / 2 = 40
+  });
+
+  it('edges between two anchored containers connect at boundaries', () => {
+    const g = new Graph({ multi: true, type: 'mixed' });
+    // Group A
+    g.addNode('a0', { nodeType: 'node', x: 0, y: 0, color: 'blue', label: '', group: 'a' });
+    g.addNode('a__container', { nodeType: 'container', group: 'a', label: 'A', color: 'blue' });
+    g.addNode('a__bottom', { nodeType: 'anchor', group: 'a', anchorSide: 'bottom' });
+    // Group B
+    g.addNode('b0', { nodeType: 'node', x: 0, y: 100, color: 'blue', label: '', group: 'b' });
+    g.addNode('b__container', { nodeType: 'container', group: 'b', label: 'B', color: 'blue' });
+    g.addNode('b__top', { nodeType: 'anchor', group: 'b', anchorSide: 'top' });
+    // Connect bottom of A to top of B
+    g.addDirectedEdge('a__bottom', 'b__top', { type: 'flow', color: 'blue' });
+
+    const data = extractLayout(g);
+    const edge = data.edges[0];
+    // A bottom: y = max_y(a) + padding = 0 + 30 = 30
+    expect(edge.y1).toBe(30);
+    // B top: y = min_y(b) - padding = 100 - 30 = 70
+    expect(edge.y2).toBe(70);
+    // Both x should be the center of their single-node groups
+    expect(edge.x1).toBe(0);
+    expect(edge.x2).toBe(0);
+  });
+});
+
 describe('decorate', () => {
   it('resolves node colors via palette', () => {
     const g = new Graph();

@@ -88,17 +88,25 @@ const DOMAIN_PADDING = 40;
 export function extractLayout(g: Graph, padding = DOMAIN_PADDING): FlatData {
   const nodes: FlatNode[] = [];
   const boxSpecs: Array<{ id: string; group: string; label: string; color: string; attrs: Record<string, unknown> }> = [];
-  const containerSpecs: Array<{ id: string; group: string; label: string; color: string }> = [];
+  const containerSpecs: Array<{ id: string; group: string; label: string; color: string; explicitBounds?: { x1: number; y1: number; x2: number; y2: number } }> = [];
 
   // Group position tracking for group-derived boxes/containers
   const groupPositions = new Map<string, { xs: number[]; ys: number[] }>();
+
+  // Anchor nodes deferred until container bounds are known
+  const anchorSpecs: Array<{ id: string; group: string; side: string }> = [];
 
   // --- Pass 1: classify nodes ---
   g.forEachNode((id, attrs) => {
     const nodeType = attrs.nodeType ?? (attrs.isBox ? 'box' : 'node');
 
     if (nodeType === 'container') {
-      containerSpecs.push({ id, group: attrs.group, label: attrs.label ?? '', color: attrs.color ?? '' });
+      containerSpecs.push({ id, group: attrs.group, label: attrs.label ?? '', color: attrs.color ?? '', explicitBounds: attrs.explicitBounds });
+      return;
+    }
+
+    if (nodeType === 'anchor') {
+      anchorSpecs.push({ id, group: attrs.group, side: attrs.anchorSide });
       return;
     }
 
@@ -174,6 +182,22 @@ export function extractLayout(g: Graph, padding = DOMAIN_PADDING): FlatData {
   }
 
   for (const spec of containerSpecs) {
+    const eb = spec.explicitBounds;
+    if (eb) {
+      // Layout-level container with pre-computed bounds
+      containers.push({
+        group: spec.group,
+        label: spec.label,
+        x1: eb.x1 - CONTAINER_PADDING,
+        y1: eb.y1 - CONTAINER_PADDING,
+        x2: eb.x2 + CONTAINER_PADDING,
+        y2: eb.y2 + CONTAINER_PADDING,
+        color: spec.color,
+        stroke: '', fill: '',
+      });
+      continue;
+    }
+
     const positions = groupPositions.get(spec.group);
     if (!positions || positions.xs.length === 0) {
       console.warn(`[flatten] container '${spec.id}' references group '${spec.group}' which has no positioned nodes — skipping`);
@@ -192,13 +216,38 @@ export function extractLayout(g: Graph, padding = DOMAIN_PADDING): FlatData {
     });
   }
 
-  // --- Pass 3: edges (resolve endpoints from nodes, boxes, or raw graph) ---
+  // --- Pass 2b: position anchor nodes at container boundaries ---
+  const anchorPositions = new Map<string, { x: number; y: number }>();
+
+  // Build group → container bounds lookup (from both group-derived and explicit containers)
+  const groupBounds = new Map<string, { x1: number; y1: number; x2: number; y2: number }>();
+  for (const c of containers) {
+    groupBounds.set(c.group, { x1: c.x1, y1: c.y1, x2: c.x2, y2: c.y2 });
+  }
+
+  for (const anchor of anchorSpecs) {
+    const b = groupBounds.get(anchor.group);
+    if (!b) continue;
+    const cx = (b.x1 + b.x2) / 2;
+    const cy = (b.y1 + b.y2) / 2;
+    let pos: { x: number; y: number };
+    switch (anchor.side) {
+      case 'top':    pos = { x: cx, y: b.y1 }; break;
+      case 'bottom': pos = { x: cx, y: b.y2 }; break;
+      case 'left':   pos = { x: b.x1, y: cy }; break;
+      case 'right':  pos = { x: b.x2, y: cy }; break;
+      default:       pos = { x: cx, y: cy };
+    }
+    anchorPositions.set(anchor.id, pos);
+  }
+
+  // --- Pass 3: edges (resolve endpoints from nodes, boxes, anchors, or raw graph) ---
   const edges: FlatEdge[] = [];
 
   g.forEachEdge((_edge, attrs, source, target, sourceAttrs, targetAttrs) => {
-    // For box nodes, use our locally computed center instead of graph attrs
-    const srcPos = boxPositions.get(source) ?? { x: sourceAttrs.x, y: sourceAttrs.y };
-    const tgtPos = boxPositions.get(target) ?? { x: targetAttrs.x, y: targetAttrs.y };
+    // Resolve position: anchor > box > raw graph attrs
+    const srcPos = anchorPositions.get(source) ?? boxPositions.get(source) ?? { x: sourceAttrs.x, y: sourceAttrs.y };
+    const tgtPos = anchorPositions.get(target) ?? boxPositions.get(target) ?? { x: targetAttrs.x, y: targetAttrs.y };
 
     edges.push({
       ...attrs,

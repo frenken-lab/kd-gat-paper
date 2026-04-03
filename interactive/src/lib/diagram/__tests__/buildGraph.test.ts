@@ -59,12 +59,19 @@ describe('buildGraph', () => {
       n: 3, topology: 'none', color: 'blue', prefix: 'ct',
       container: { label: 'Box', color: 'grey' },
     });
-    expect(g.order).toBe(4); // 3 nodes + 1 container
+    expect(g.order).toBe(8); // 3 nodes + 1 container + 4 anchors
     const cAttrs = g.getNodeAttributes('ct__container');
     expect(cAttrs.nodeType).toBe('container');
     expect(cAttrs.label).toBe('Box');
     // Container should NOT have x/y from circular layout
     expect(cAttrs.x).toBeUndefined();
+    // Anchors should exist but have no position yet
+    for (const side of ['top', 'bottom', 'left', 'right']) {
+      const aAttrs = g.getNodeAttributes(`ct__${side}`);
+      expect(aAttrs.nodeType).toBe('anchor');
+      expect(aAttrs.anchorSide).toBe(side);
+      expect(aAttrs.x).toBeUndefined();
+    }
   });
 
   it('auto labels produce subscript characters', () => {

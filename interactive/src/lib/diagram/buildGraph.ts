@@ -100,6 +100,14 @@ export function buildGraph(opts: BuildGraphOptions): Graph {
       label: container.label,
       color: container.color,
     });
+    // Anchor nodes at container boundary edges (positioned during flatten)
+    for (const side of ['top', 'bottom', 'left', 'right'] as const) {
+      g.addNode(`${prefix}__${side}`, {
+        nodeType: 'anchor',
+        group,
+        anchorSide: side,
+      });
+    }
   }
 
   return g;

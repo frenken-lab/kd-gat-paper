@@ -31,10 +31,10 @@ layout:
           gap: 50
 
 bridges:
-  # Input → VGAE encoder
+  # Input → VGAE encoder (input graph has no container, use node directly)
   - { from: input_0, to: vgae_t.input_0, type: flow, color: grey }
   # VGAE output → GAT input
-  - { from: vgae_t.output_0, to: gat_t.L0_0, type: flow, color: grey, label: "hard samples" }
+  - { from: vgae_t.output_0, to: gat_t.L0__left, type: flow, color: grey, label: "hard samples" }
   # GAT output → DQN
   - { from: gat_t.fc, to: dqn, type: flow, color: grey, label: "classification" }
   # VGAE recon error → DQN
@@ -43,12 +43,12 @@ bridges:
   - { from: vgae_s, to: dqn, type: flow, color: grey, style: dashed }
   - { from: gat_s,  to: dqn, type: flow, color: grey, style: dashed }
   # Knowledge distillation edges
-  - { from: vgae_t.enc1_0, to: vgae_s, type: kd, color: kd, label: KD }
+  - { from: vgae_t.enc1__bottom, to: vgae_s, type: kd, color: kd, label: KD }
   - { from: gat_t.jk, to: gat_s, type: kd, color: kd, label: KD }
 
 assertions:
   prefixMap: { input: in }
   checks:
     - "input_0: left-of vgae_t.input_0"
-    - "vgae_t.output_0: left-of gat_t.L0_0"
-    - "vgae_t.enc1_0: above vgae_s"
+    - "vgae_t.output_0: left-of gat_t.L0__left"
+    - "vgae_t.enc1__bottom: above vgae_s"

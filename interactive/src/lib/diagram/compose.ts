@@ -9,7 +9,7 @@ import { hstack, vstack } from './transforms.ts';
 function anchorKey(g: Graph): string {
   for (const key of g.nodes()) {
     const attrs = g.getNodeAttributes(key);
-    if (attrs.nodeType !== 'container') return key;
+    if (attrs.nodeType !== 'container' && attrs.nodeType !== 'anchor') return key;
   }
   throw new Error('Cannot resolve anchor: graph has no non-container nodes');
 }

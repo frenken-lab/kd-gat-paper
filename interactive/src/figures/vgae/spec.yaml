@@ -5,8 +5,8 @@ components:
   input: { type: graph, n: 5, topology: sparse, color: data, labels: auto, scale: 50 }
 
   # Encoder: 2 GATv2Conv layers (vertical stack)
-  enc0: { type: graph, n: 5, topology: sparse, color: vgae, labels: auto, scale: 60 }
-  enc1: { type: graph, n: 5, topology: sparse, color: vgae, labels: auto, scale: 50 }
+  enc0: { type: graph, n: 5, topology: sparse, color: vgae, labels: auto, scale: 60, container: { label: "GATv2Conv Enc0", color: vgae } }
+  enc1: { type: graph, n: 5, topology: sparse, color: vgae, labels: auto, scale: 50, container: { label: "GATv2Conv Enc1", color: vgae } }
 
   # Latent: mu + logvar heads → reparameterize
   mu:    { type: box, label: "μ",     color: vgae, width: 50, height: 30 }
@@ -14,8 +14,8 @@ components:
   z:     { type: box, label: "z",     color: vgae, width: 50, height: 30 }
 
   # Decoder: 2 GATv2Conv layers (vertical stack, mirror of encoder)
-  dec0: { type: graph, n: 5, topology: sparse, color: vgae, labels: auto, scale: 50 }
-  dec1: { type: graph, n: 5, topology: sparse, color: vgae, labels: auto, scale: 60 }
+  dec0: { type: graph, n: 5, topology: sparse, color: vgae, labels: auto, scale: 50, container: { label: "GATv2Conv Dec0", color: vgae } }
+  dec1: { type: graph, n: 5, topology: sparse, color: vgae, labels: auto, scale: 60, container: { label: "GATv2Conv Dec1", color: vgae } }
 
   # Reconstructed output
   output: { type: graph, n: 5, topology: sparse, color: vgae, labels: auto, scale: 50 }
@@ -27,17 +27,20 @@ components:
 layout:
   type: hstack
   gap: 60
+  container: { label: "VGAE Autoencoder", color: vgae }
   children:
     - input
     # Encoder layers stacked vertically
     - type: vstack
       gap: 60
       align: center
+      container: { label: "Encoder", color: vgae }
       children: [enc0, enc1]
     # Latent block: mu/sigma side by side, z below
     - type: vstack
       gap: 40
       align: center
+      container: { label: "Latent", color: vgae }
       children:
         - type: hstack
           gap: 20
@@ -47,6 +50,7 @@ layout:
     - type: vstack
       gap: 60
       align: center
+      container: { label: "Decoder", color: vgae }
       children: [dec0, dec1]
     - output
     # Auxiliary heads stacked vertically at the end
@@ -57,21 +61,21 @@ layout:
 
 bridges:
   # Input → encoder
-  - { from: input_0, to: enc0_0, type: flow, color: grey, label: "X, A" }
+  - { from: input_0, to: enc0__left, type: flow, color: grey, label: "X, A" }
   # Encoder layer-to-layer
-  - { from: enc0_0, to: enc1_3, type: flow, color: vgae }
+  - { from: enc0__bottom, to: enc1__top, type: flow, color: vgae }
   # Encoder → latent heads
-  - { from: enc1_0, to: mu,    type: flow, color: vgae }
-  - { from: enc1_0, to: sigma, type: flow, color: vgae }
+  - { from: enc1__right, to: mu,    type: flow, color: vgae }
+  - { from: enc1__right, to: sigma, type: flow, color: vgae }
   # Heads → z (reparameterize)
   - { from: mu,    to: z, type: flow, color: vgae }
   - { from: sigma, to: z, type: flow, color: vgae }
   # z → decoder
-  - { from: z, to: dec0_0, type: flow, color: vgae }
+  - { from: z, to: dec0__left, type: flow, color: vgae }
   # Decoder layer-to-layer
-  - { from: dec0_0, to: dec1_3, type: flow, color: vgae }
+  - { from: dec0__bottom, to: dec1__top, type: flow, color: vgae }
   # Decoder → output
-  - { from: dec1_0, to: output_0, type: flow, color: vgae, label: "X̂" }
+  - { from: dec1__right, to: output_0, type: flow, color: vgae, label: "X̂" }
   # z → auxiliary heads
   - { from: z, to: canid, type: flow, color: grey, style: dashed }
   - { from: z, to: nbr,   type: flow, color: grey, style: dashed }

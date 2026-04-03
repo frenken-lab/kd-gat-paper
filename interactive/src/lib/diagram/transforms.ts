@@ -1,9 +1,9 @@
 import type Graph from 'graphology';
 import { rotation } from 'graphology-layout';
 
-/** Nodes that carry spatial positions (excludes containers and boxes). */
+/** Nodes that carry spatial positions (excludes containers, boxes, and anchors). */
 function isPositioned(attrs: Record<string, unknown>): boolean {
-  return attrs.nodeType !== 'container' && attrs.nodeType !== 'box' && !attrs.isBox;
+  return attrs.nodeType !== 'container' && attrs.nodeType !== 'box' && attrs.nodeType !== 'anchor' && !attrs.isBox;
 }
 
 /** Bounding box of all positioned nodes in the graph. */

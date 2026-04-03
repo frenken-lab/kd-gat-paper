@@ -7,7 +7,7 @@
   import Figure from '../../lib/Figure.svelte';
 
   const { graph } = buildFromSpec(spec, { specs: { gat: gatSpec, vgae: vgaeSpec } });
-  const { nodes, edges, boxes, domain } = flatten(graph);
+  const { nodes, edges, boxes, containers, domain } = flatten(graph);
 
   const flowEdges = edges.filter(e => e.type === 'flow');
   const kdEdges = edges.filter(e => e.type === 'kd');
@@ -18,6 +18,14 @@
 <Figure>
   <Plot width={1100} height={550} grid={false} axes={false} frame={false}
     x={{ domain: domain.x }} y={{ domain: domain.y }} inset={10}>
+    <!-- Layer 0: Containers (model/section boundaries) -->
+    <Rect data={containers} x1="x1" y1="y1" x2="x2" y2="y2"
+      fill="fill" fillOpacity={0.06} stroke="stroke" strokeWidth={1}
+      strokeDasharray="4 3" rx={10} />
+    <Text data={containers}
+      x={d => d.x1 + 6} y={d => d.y1 + 4}
+      text="label" fontSize={7} fill="stroke" fontWeight="bold"
+      textAnchor="start" dominantBaseline="hanging" />
     <!-- Layer 1: Structural edges (sub-graph topologies) -->
     <Link data={structuralEdges} x1="x1" y1="y1" x2="x2" y2="y2"
       stroke="stroke" strokeOpacity={0.4} strokeWidth={1} />

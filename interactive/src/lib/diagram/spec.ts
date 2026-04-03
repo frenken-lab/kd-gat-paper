@@ -1,7 +1,7 @@
 import Graph from 'graphology';
 import { buildGraph, boxNode, type Topology, type Labels, type EdgeSpec } from './buildGraph.ts';
 import { pipeline, bridge, type BridgeSpec } from './compose.ts';
-import { hstack, vstack, scaleComposite } from './transforms.ts';
+import { hstack, vstack, scaleComposite, compositeBounds } from './transforms.ts';
 
 // --- Spec types ---
 
@@ -42,6 +42,7 @@ export interface LayoutNode {
   direction?: 'horizontal' | 'vertical';
   flowColor?: string;
   flowLabels?: (string | undefined)[];
+  container?: { label: string; color?: string };
 }
 
 export interface FigureSpec {
@@ -109,6 +110,8 @@ function buildComponent(
   });
 }
 
+let _layoutContainerId = 0;
+
 function walkLayout(
   node: string | LayoutNode,
   components: Map<string, Graph>,
@@ -125,21 +128,35 @@ function walkLayout(
   }
   const children = childSpecs.map(c => walkLayout(c, components));
 
+  let parent: Graph;
   if (node.type === 'pipeline') {
-    return pipeline(children, {
+    parent = pipeline(children, {
       gap: node.gap,
       direction: node.direction,
       flowColor: node.flowColor,
       flowLabels: node.flowLabels,
     });
+  } else {
+    parent = new Graph({ multi: true, type: 'mixed' });
+    if (node.type === 'hstack') {
+      hstack(parent, children, { gap: node.gap });
+    } else {
+      vstack(parent, children, { gap: node.gap, align: node.align });
+    }
   }
 
-  const parent = new Graph({ multi: true, type: 'mixed' });
-  if (node.type === 'hstack') {
-    hstack(parent, children, { gap: node.gap });
-  } else {
-    vstack(parent, children, { gap: node.gap, align: node.align });
+  if (node.container) {
+    const b = compositeBounds(parent);
+    const containerId = `__layout_container_${_layoutContainerId++}`;
+    parent.addNode(containerId, {
+      nodeType: 'container',
+      group: containerId,
+      label: node.container.label,
+      color: node.container.color ?? '',
+      explicitBounds: { x1: b.x1, y1: b.y1, x2: b.x2, y2: b.y2 },
+    });
   }
+
   return parent;
 }
 

@@ -1,9 +1,9 @@
 figure: gat
 
 components:
-  L0: { type: graph, n: 5, topology: sparse, color: gat, labels: auto, scale: 80 }
-  L1: { type: graph, n: 5, topology: sparse, color: gat, labels: auto, scale: 80 }
-  L2: { type: graph, n: 5, topology: sparse, color: gat, labels: auto, scale: 80 }
+  L0: { type: graph, n: 5, topology: sparse, color: gat, labels: auto, scale: 80, container: { label: "GATv2Conv L0", color: gat } }
+  L1: { type: graph, n: 5, topology: sparse, color: gat, labels: auto, scale: 80, container: { label: "GATv2Conv L1", color: gat } }
+  L2: { type: graph, n: 5, topology: sparse, color: gat, labels: auto, scale: 80, container: { label: "GATv2Conv L2", color: gat } }
   jk: { type: box, label: "JK Concat", color: gat }
   fc: { type: box, label: "FC → class", color: gat }
 
@@ -11,6 +11,7 @@ layout:
   type: vstack
   gap: 60
   align: center
+  container: { label: "GAT Classifier", color: gat }
   children:
     - type: vstack
       gap: 100
@@ -23,8 +24,10 @@ layout:
       flowColor: gat
 
 bridges:
-  - { from: L0_0, to: L1_3, type: flow, color: gat }
-  - { from: L1_0, to: L2_3, type: flow, color: gat }
-  - { from: L0_4, to: jk, type: flow, color: gat }
-  - { from: L1_4, to: jk, type: flow, color: gat }
-  - { from: L2_4, to: jk, type: flow, color: gat }
+  # Layer-to-layer flow (container boundary → container boundary)
+  - { from: L0__bottom, to: L1__top, type: flow, color: gat }
+  - { from: L1__bottom, to: L2__top, type: flow, color: gat }
+  # JK skip connections from each layer
+  - { from: L0__right, to: jk, type: flow, color: gat }
+  - { from: L1__right, to: jk, type: flow, color: gat }
+  - { from: L2__right, to: jk, type: flow, color: gat }

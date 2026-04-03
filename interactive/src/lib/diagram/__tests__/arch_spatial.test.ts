@@ -9,7 +9,7 @@ describe('architecture composition', () => {
   const { graph } = buildFromSpec(archSpec, { specs: { gat: gatSpec, vgae: vgaeSpec } });
 
   it('produces expected node counts', () => {
-    const nodesByType = { node: 0, box: 0, container: 0 };
+    const nodesByType = { node: 0, box: 0, container: 0, anchor: 0 };
     graph.forEachNode((_id, attrs) => {
       const t = attrs.nodeType ?? 'node';
       nodesByType[t as keyof typeof nodesByType]++;
@@ -27,7 +27,7 @@ describe('architecture composition', () => {
   it('has positioned all nodes', () => {
     const unpositioned: string[] = [];
     graph.forEachNode((id, attrs) => {
-      if (attrs.nodeType === 'container') return;
+      if (attrs.nodeType === 'container' || attrs.nodeType === 'anchor') return;
       if (attrs.x == null || attrs.y == null) unpositioned.push(id);
     });
     if (unpositioned.length > 0) {

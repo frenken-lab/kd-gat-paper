@@ -244,6 +244,163 @@ describe('buildFromSpec', () => {
     });
   });
 
+  describe('layout-level containers', () => {
+    it('adds a container to an hstack layout', () => {
+      const spec: FigureSpec = {
+        figure: 'test',
+        components: {
+          a: { type: 'box', label: 'A', width: 80 },
+          b: { type: 'box', label: 'B', width: 80 },
+        },
+        layout: {
+          type: 'hstack',
+          children: ['a', 'b'],
+          gap: 40,
+          container: { label: 'My Group', color: 'gat' },
+        },
+      };
+      const { graph } = buildFromSpec(spec);
+      const data = flatten(graph);
+      expect(data.containers.length).toBe(1);
+      expect(data.containers[0].label).toBe('My Group');
+    });
+
+    it('container bounds enclose all children', () => {
+      const spec: FigureSpec = {
+        figure: 'test',
+        components: {
+          a: { type: 'box', label: 'A', width: 80 },
+          b: { type: 'box', label: 'B', width: 80 },
+        },
+        layout: {
+          type: 'hstack',
+          children: ['a', 'b'],
+          gap: 40,
+          container: { label: 'Wrapper', color: 'vgae' },
+        },
+      };
+      const { graph } = buildFromSpec(spec);
+      const data = flatten(graph);
+      const c = data.containers[0];
+      // Container should enclose all boxes
+      for (const box of data.boxes) {
+        expect(c.x1).toBeLessThan(box.x1);
+        expect(c.y1).toBeLessThan(box.y1);
+        expect(c.x2).toBeGreaterThan(box.x2);
+        expect(c.y2).toBeGreaterThan(box.y2);
+      }
+    });
+
+    it('vstack layout container works', () => {
+      const spec: FigureSpec = {
+        figure: 'test',
+        components: {
+          a: { type: 'box', label: 'A' },
+          b: { type: 'box', label: 'B' },
+          c: { type: 'box', label: 'C' },
+        },
+        layout: {
+          type: 'vstack',
+          gap: 30,
+          align: 'center',
+          container: { label: 'Stack', color: 'gat' },
+          children: ['a', 'b', 'c'],
+        },
+      };
+      const { graph } = buildFromSpec(spec);
+      const data = flatten(graph);
+      expect(data.containers.length).toBe(1);
+      expect(data.containers[0].label).toBe('Stack');
+    });
+
+    it('nested layout containers create multiple containers', () => {
+      const spec: FigureSpec = {
+        figure: 'test',
+        components: {
+          a: { type: 'box', label: 'A' },
+          b: { type: 'box', label: 'B' },
+          c: { type: 'box', label: 'C' },
+        },
+        layout: {
+          type: 'hstack',
+          gap: 40,
+          container: { label: 'Outer', color: 'data' },
+          children: [
+            {
+              type: 'vstack',
+              gap: 30,
+              container: { label: 'Inner', color: 'gat' },
+              children: ['a', 'b'],
+            },
+            'c',
+          ],
+        },
+      };
+      const { graph } = buildFromSpec(spec);
+      const data = flatten(graph);
+      expect(data.containers.length).toBe(2);
+      const labels = data.containers.map(c => c.label).sort();
+      expect(labels).toEqual(['Inner', 'Outer']);
+    });
+
+    it('pipeline layout container works', () => {
+      const spec: FigureSpec = {
+        figure: 'test',
+        components: {
+          a: { type: 'box', label: 'A' },
+          b: { type: 'box', label: 'B' },
+        },
+        layout: {
+          type: 'pipeline',
+          elements: ['a', 'b'],
+          gap: 40,
+          container: { label: 'Pipeline Group', color: 'vgae' },
+        },
+      };
+      const { graph } = buildFromSpec(spec);
+      const data = flatten(graph);
+      expect(data.containers.length).toBe(1);
+      expect(data.containers[0].label).toBe('Pipeline Group');
+    });
+
+    it('layout without container produces no containers', () => {
+      const spec: FigureSpec = {
+        figure: 'test',
+        components: {
+          a: { type: 'box', label: 'A' },
+          b: { type: 'box', label: 'B' },
+        },
+        layout: { type: 'hstack', children: ['a', 'b'] },
+      };
+      const { graph } = buildFromSpec(spec);
+      const data = flatten(graph);
+      expect(data.containers.length).toBe(0);
+    });
+
+    it('per-layer container coexists with layout container', () => {
+      const spec: FigureSpec = {
+        figure: 'test',
+        components: {
+          layer: { type: 'graph', n: 3, topology: 'sparse', color: 'gat', labels: 'auto', scale: 40, container: { label: 'Layer 0', color: 'gat' } },
+          out: { type: 'box', label: 'Out', color: 'gat' },
+        },
+        layout: {
+          type: 'vstack',
+          gap: 40,
+          align: 'center',
+          container: { label: 'Model', color: 'gat' },
+          children: ['layer', 'out'],
+        },
+      };
+      const { graph } = buildFromSpec(spec);
+      const data = flatten(graph);
+      // 1 per-layer container + 1 layout container
+      expect(data.containers.length).toBe(2);
+      const labels = data.containers.map(c => c.label).sort();
+      expect(labels).toEqual(['Layer 0', 'Model']);
+    });
+  });
+
   describe('type: spec components', () => {
     // A simple sub-spec to embed
     const subSpec: FigureSpec = {
