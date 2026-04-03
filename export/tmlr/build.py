@@ -133,7 +133,7 @@ def _h_details(n: dict) -> str:
             body_parts.append(serialize(c))
     body = "\n".join(body_parts)
     return (
-        f'\n<details{open_attr}>\n'
+        f'\n<details{open_attr} markdown="1">\n'
         f'<summary markdown="1">{summary}</summary>\n\n'
         f'{body}\n'
         f'</details>\n'
@@ -141,31 +141,20 @@ def _h_details(n: dict) -> str:
 
 
 def _h_tab_set(n: dict) -> str:
-    """Convert MyST {tab-set} → Bootstrap 4 nav-tabs."""
+    """Convert MyST {tab-set} → sequential sections with bold headers.
+
+    Bootstrap nav-tabs don't work inside Distill's <d-article> (template.v2.js
+    rewrites the DOM).  Render each tab as a visible section instead.
+    """
     tabs = [c for c in n.get("children", []) if c.get("type") == "tabItem"]
     if not tabs:
         return _C(n)
-    # Build unique IDs from tab titles
-    tab_ids = [re.sub(r"[^a-z0-9]", "-", t.get("title", f"tab-{i}").lower())
-               for i, t in enumerate(tabs)]
-    # Nav header
-    nav = '<ul class="nav nav-tabs" role="tablist">\n'
-    for i, (tab, tid) in enumerate(zip(tabs, tab_ids)):
-        active = " active" if i == 0 else ""
-        title = tab.get("title", f"Tab {i+1}")
-        nav += (f'  <li class="nav-item">'
-                f'<a class="nav-link{active}" data-toggle="tab" '
-                f'href="#tab-{tid}" role="tab">{title}</a></li>\n')
-    nav += '</ul>\n'
-    # Tab panes
-    panes = '<div class="tab-content">\n'
-    for i, (tab, tid) in enumerate(zip(tabs, tab_ids)):
-        active = " active" if i == 0 else ""
+    parts: list[str] = []
+    for tab in tabs:
+        title = tab.get("title", "")
         body = _children(tab.get("children", []))
-        panes += (f'<div class="tab-pane{active}" id="tab-{tid}" '
-                  f'role="tabpanel" markdown="1">\n{body}\n</div>\n')
-    panes += '</div>\n'
-    return f'\n{nav}{panes}\n'
+        parts.append(f"\n**{title}**\n{body}")
+    return "\n".join(parts) + "\n"
 
 
 def _h_admonition(n: dict) -> str:
@@ -178,10 +167,21 @@ def _h_admonition(n: dict) -> str:
             body_parts.append(serialize(c).strip())
 
     if "algorithm" in n.get("class", ""):
-        box = "border:1px solid #ccc; border-radius:6px; padding:16px 20px; margin:16px 0; background:#fafafa;"
-        cap = "font-weight:600; font-size:14px; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ddd;"
+        box = "border:1px solid #4a86c8; border-radius:4px; padding:16px 20px; margin:24px 0; background:#f8faff; font-family:'Times New Roman',serif;"
+        cap = "font-weight:700; font-size:14px; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ccd9f0; color:#0066cc; font-family:system-ui,-apple-system,sans-serif;"
+        algo_css = (
+            '<style>'
+            '.algorithm table { width:100%; border-collapse:collapse; }'
+            '.algorithm th { display:none; }'
+            '.algorithm td { border:none; padding:2px 8px; vertical-align:top; line-height:1.6; }'
+            '.algorithm td:first-child { width:2em; text-align:right; color:#8899aa; font-size:0.85em; padding-right:12px; }'
+            '.algorithm td:last-child { text-align:right; color:#6688aa; font-style:italic; font-size:0.9em; white-space:nowrap; }'
+            '.algorithm tr:hover td { background:#e8f0ff; transition:background 0.15s; }'
+            '.algorithm tr:hover td:first-child { color:#0066cc; }'
+            '</style>\n'
+        )
         return (
-            f'\n<div class="algorithm" style="{box}" markdown="1">\n'
+            f'\n{algo_css}<div class="algorithm" style="{box}" markdown="1">\n'
             f'<p style="{cap}">{title}</p>\n\n'
             f'{"".join(body_parts)}\n\n</div>\n'
         )
@@ -326,6 +326,14 @@ def copy_assets(out: Path) -> None:
         for f in figures_dir.iterdir():
             if f.suffix == ".html":
                 shutil.copy2(f, out / "assets" / "html" / "submission" / f.name)
+
+    # Copy static images (PNG, SVG, PDF)
+    images_dir = ROOT / "images"
+    if images_dir.is_dir():
+        (out / "assets" / "images").mkdir(parents=True, exist_ok=True)
+        for f in images_dir.iterdir():
+            if f.suffix in (".png", ".svg", ".pdf") and not f.name.endswith(":Zone.Identifier"):
+                shutil.copy2(f, out / "assets" / "images" / f.name)
 
 
 def main() -> None:

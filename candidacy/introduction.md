@@ -22,13 +22,13 @@ These three challenges are often addressed independently. This work takes the po
 
 ### Technical Approach
 
-To address these challenges, we propose a multi-stage graph neural network (GNN)-based framework that combines a Variational Graph Autoencoder (VGAE) for unsupervised anomaly detection with a Graph Attention Network (GAT) for supervised attack classification. A Deep Q-Network (DQN) learns to adaptively weight these experts on a per-sample basis, selecting the most informative representation for each message context. The ensemble is distilled into a lightweight student model suitable for embedded deployment via knowledge distillation, while a curriculum learning training strategy improves robustness under severe class imbalance.
+To address these challenges, we propose a multi-stage graph neural network (GNN)-based framework that combines a Variational Graph Autoencoder (VGAE) for unsupervised anomaly detection with a Graph Attention Network (GAT) for supervised attack classification. A fusion agent---evaluated as both a Deep Q-Network (DQN) and a Neural-LinUCB contextual bandit---learns to adaptively weight these experts on a per-sample basis, selecting the most informative representation for each message context. Each ensemble component (GAT, VGAE, fusion) is individually distilled into a lightweight student model via knowledge distillation, while a curriculum learning training strategy improves robustness under severe class imbalance.
 
 Key design decisions reflect this framing:
 
 1. **Complementary Experts**: VGAE excels at detecting structural deviations and out-of-distribution anomalies (robustness to unknown attacks), while GAT excels at learning message-level relationships and fine-grained classification (high accuracy on known attacks). Their combination mitigates the single-model brittleness problem.
 
-2. **Sample-Specific Fusion**: Rather than fixed static fusion (e.g., averaging), the DQN learns when each expert is most reliable. This adaptive weighting improves accuracy on imbalanced datasets and provides interpretability: the learned policy reveals which expert dominates for each attack type, enabling operators to understand model behavior.
+2. **Sample-Specific Fusion**: Rather than fixed static fusion (e.g., averaging), the fusion agent learns when each expert is most reliable. We evaluate both a DQN and a Neural-LinUCB contextual bandit for this role. The adaptive weighting improves accuracy on imbalanced datasets and provides interpretability: the learned policy reveals which expert dominates for each attack type, enabling operators to understand model behavior.
 
 3. **Hardware-Aware Knowledge Distillation**: The ensemble is distilled into a student model using logit-level and latent-space KD, achieving a $\sim$20$\times$ parameter reduction (designed from automotive hardware constraints) while retaining detection performance. This principled compression bridges the gap between high-accuracy models and resource-constrained automotive gateways.
 
@@ -65,25 +65,29 @@ Building on the current framework, we propose the following extensions to addres
 :::{table} Contributions Addressing each Fundamental Problem
 :label: tab:contributions
 
-| **Contribution** | **Problem 1** *Brittleness* | **Problem 2** *Resources* | **Problem 3** *Explainability (Trust)* |
+| **Contribution** | **Brittleness** | **Resources** | **Explainability** |
 |---|---|---|---|
 | *Current Framework* | | | |
-| GAT + VGAE Ensemble | ✓ | | ✓ |
-| Knowledge Distillation (KD) | | ✓ | |
-| Multi-level Visuals | | | ✓ |
-| CWD | ✓ | | |
+| GAT + VGAE Ensemble | ◉ | | ◐ |
+| Adaptive Fusion (DQN / Bandit) | ◉ | | ◉ |
+| Curriculum Learning | ◉ | | |
+| Knowledge Distillation | | ◉ | |
+| Cross-Dataset Evaluation | ◐ | | ◐ |
+| Attention & Fusion Visualization | | | ◉ |
 | *Proposed Extensions* | | | |
-| PINN Physics Module | ✓ | | ✓ |
-| DQN Adaptive Weighting | ✓ | | ✓ |
-| Intelligent KD | | ✓ | ✓ |
-| Advanced XAI | | | ✓ |
-| Cross-Domain Validation | ✓ | | |
-| **Integrated Framework** | ✓ | ✓ | ✓ |
+| PINN Physics Module | ◉ | | ◉ |
+| CWD Temporal Detector | ◉ | | |
+| Intelligent KD (Scaling Laws) | | ◉ | |
+| Advanced XAI (LIME, SHAP, TCAV) | ◐ | | ◉ |
+| Cross-Domain Validation | ◉ | | ◐ |
+| **Integrated Framework** | ◉ | ◉ | ◉ |
+
+◉ = primary contribution, ◐ = secondary contribution.
 :::
 
 ### Ensemble Architecture: Multi-Expert Model Selection
 
-Automotive anomaly detection requires robust detection across diverse attack vectors distributed across temporal sequences, structural message relationships, payload dynamics, and unknown attack variants. Rather than relying on a single detection paradigm, we employ a four-expert ensemble (GAT, VGAE, PINN, CWD) with DQN-weighted fusion. This section justifies each expert selection based on complementary strengths.
+Automotive anomaly detection requires robust detection across diverse attack vectors distributed across temporal sequences, structural message relationships, payload dynamics, and unknown attack variants. Rather than relying on a single detection paradigm, we design a multi-expert ensemble with adaptive fusion. The current framework implements GAT and VGAE with DQN/bandit-weighted fusion; proposed extensions add PINN and CWD to form a four-expert ensemble. This section justifies each expert selection based on complementary strengths.
 
 1. **Graph Attention Networks (GAT):** Message-ID relationships are crucial; adversarial attacks often exploit inter-node communication patterns. GAT excels at capturing structural anomalies where there are unusual transitions between ECUs. GAT's attention mechanism learns which message pairs are anomalous, providing precision against targeted injection attacks. GAT weaknesses: long time frames.
 2. **Variational Graph Autoencoders (VGAE):** Beyond structure, message frequency distributions and aggregate statistics carry anomaly signals. VGAE operates on the latent generative structure of the message graph, learning a probabilistic model of "normal" CAN topology. Unlike GAT's discriminative attention, VGAE's probabilistic framework excels at detecting out-of-distribution anomalies and unknown attacks. VGAE's weakness: physical grounding, minute structural changes.
@@ -95,17 +99,18 @@ In summary, each expert targets a distinct attack surface: GAT captures structur
 
 We propose the first unified framework to reconcile the distinct paradigms of graph topology, physical dynamics, and temporal rhythm into a single coherent defense. This synthesis is both robust and trustworthy through explainability. Finally distilling the multi-expert ensemble in its lightweight form bridges the gap between high-performance deep learning and the resource constraints of edge computing.
 
-:::{table} Ensemble Expert Strengths Across Attack Vectors
+:::{table} Expert Coverage Across Detection Dimensions
 :label: tab:ensemble_experts
 
-| **Expert** | **Primary Strength** | **Temporal** | **Structural** | **Physics** | **UnkAtk** |
+| **Expert** | **Status** | **Relational** | **Distributional** | **Temporal** | **Physical** |
 |---|---|---|---|---|---|
-| **GAT** | Message-ID patterns | - | ++ | X | $\sim$ |
-| **VGAE** | Distributional | $\sim$ | + | X | ++ |
-| **PINN** | Physical feasibility | + | $\sim$ | ++ | $\sim$ |
-| **CWD** | Temporal rhythm | ++ | - | X | $\sim$ |
-| **DQN** | Fusion | ++ | ++ | ++ | ++ |
+| **GAT** | Current | ◉ | ○ | ○ | — |
+| **VGAE** | Current | ◐ | ◉ | ○ | — |
+| **PINN** | Proposed | ○ | ○ | ◐ | ◉ |
+| **CWD** | Proposed | ○ | ○ | ◉ | — |
 
-**Column Legend:** Temporal = Temporal anomaly detection, Structural = ID-to-ID patterns, Physics = Physics constraints, UnkAtk = Unknown attack robustness.
-**Value Legend:** ++ = excellent, + = strong, $\sim$ = moderate, -- = weak, X = N/A.
+**Dimensions:** Relational = message-ID transition patterns and edge-level attention; Distributional = statistical deviations from learned normal (byte profiles, reconstruction error); Temporal = cross-window sequential patterns (replay, drift, periodicity); Physical = violations of vehicle dynamics constraints.
+◉ = primary strength, ◐ = partial coverage, ○ = weak, — = not applicable.
 :::
+
+**Emergent properties.** Detection dimensions interact with deployment-relevant properties that cannot be reduced to per-expert ratings. *Generalization to unknown attacks* arises primarily from the distributional and physical dimensions: VGAE flags any deviation from learned normal topology regardless of attack mechanism, while PINN rejects physically infeasible states without requiring attack-specific training. Relational and temporal dimensions are more dependent on training coverage but contribute complementary signals when novel attacks perturb message patterns or timing. *Interpretability* similarly varies by dimension: GAT attention weights and fusion policy weights are directly inspectable, PINN provides physics-grounded explanations via constraint violations, while VGAE's latent-space anomaly scores require post-hoc analysis. The adaptive fusion agent amplifies these properties by learning *which expert to trust* for each sample, providing a decision audit trail that no single expert offers alone.

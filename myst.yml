@@ -34,8 +34,8 @@ project:
     - title: Main Paper
       children:
         - file: content/introduction.md
-        - file: content/background.md
         - file: content/related-work.md
+        - file: content/background.md
         - file: content/methodology.md
         - file: content/experiments.md
         - file: content/results.md

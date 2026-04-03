@@ -14,21 +14,22 @@ CAN messages are broadcast by Electronic Control Units (ECUs); CAN IDs identify 
 :::{admonition} Algorithm 1: Graph Construction from CAN Stream
 :class: algorithm
 
-**Require:** CAN stream $M = \{m_t = (\text{ID}_t, \text{payload}_t)\}$, window size $W$
-**Ensure:** Graphs $\mathcal{G} = \{G_t = (V_t, E_t, X_t, y_t)\}$
-
-1. **for** $t = W$ **to** $|M|$ **do**
-    a. $W_t \leftarrow M[t-W+1 : t]$ $\triangleright$ extract window
-    b. $\text{source} \leftarrow W_t[:, -3]$; $\text{target} \leftarrow W_t[:, -2]$ $\triangleright$ CAN IDs
-    c. $\text{edges} \leftarrow \text{stack}(\text{source}, \text{target})$
-    d. $(\text{unique\_edges}, \text{counts}) \leftarrow \text{unique}(\text{edges})$ $\triangleright$ transitions
-    e. $V_t \leftarrow \text{unique}(\text{source} \cup \text{target})$ $\triangleright$ unique nodes
-    f. $\text{node\_map} \leftarrow \{v \mapsto \text{idx} \mid v \in V_t\}$ $\triangleright$ node indexing
-    g. $E_t \leftarrow [(\text{node\_map}[\text{src}], \text{node\_map}[\text{tgt}])$ for $(\text{src}, \text{tgt}) \in \text{unique\_edges}]$
-    h. Compute node features: $X_t \in \mathbb{R}^{|V_t| \times 35}$
-    i. Compute edge features: $F_t \in \mathbb{R}^{|E_t| \times 11}$
-    j. $y_t \leftarrow 1$ if any attack ID $\in W_t$ else $0$ $\triangleright$ label
-2. **end for**
+|   |   |   |
+|--:|---|---|
+|   | **Input:** CAN stream $M = \{m_t = (\text{ID}_t, \text{payload}_t)\}$, window size $W$ |   |
+|   | **Output:** Graphs $\mathcal{G} = \{G_t = (V_t, E_t, X_t, y_t)\}$ |   |
+| . | **for** $t = W$ **to** $\lvert M \rvert$ **do** |   |
+| . | $\quad W_t \leftarrow M[t\!-\!W\!+\!1 : t]$ | extract window |
+| . | $\quad \text{source} \leftarrow W_t[:, -3]$; $\text{target} \leftarrow W_t[:, -2]$ | CAN IDs |
+| . | $\quad \text{edges} \leftarrow \text{stack}(\text{source}, \text{target})$ |   |
+| . | $\quad (\text{unique\_edges}, \text{counts}) \leftarrow \text{unique}(\text{edges})$ | transitions |
+| . | $\quad V_t \leftarrow \text{unique}(\text{source} \cup \text{target})$ | unique nodes |
+| . | $\quad \text{node\_map} \leftarrow \{v \mapsto \text{idx} \mid v \in V_t\}$ | node indexing |
+| . | $\quad E_t \leftarrow [(\text{node\_map}[\text{src}], \text{node\_map}[\text{tgt}])$ for $(\text{src}, \text{tgt}) \in \text{unique\_edges}]$ |   |
+| . | $\quad$ Compute node features: $X_t \in \mathbb{R}^{\lvert V_t \rvert \times 35}$ |   |
+| . | $\quad$ Compute edge features: $F_t \in \mathbb{R}^{\lvert E_t \rvert \times 11}$ |   |
+| . | $\quad y_t \leftarrow 1$ if any attack ID $\in W_t$ else $0$ | label |
+| . | **end for** |   |
 
 :::
 
@@ -42,15 +43,16 @@ Node features (35 dimensions) are computed via Polars group-by aggregation over 
 :::{admonition} Algorithm 2: VGAE-Based Hard Sample Selection
 :class: algorithm
 
-**Require:** Trained VGAE model on normal graphs
-**Ensure:** Hard-selected training dataset for Stage 2
-
-1. Train VGAE on normal graphs until convergence
-2. **for each** normal graph $G_i$ **do**
-    a. $R_i \leftarrow \|\mathbf{A}_i - \hat{\mathbf{A}}_i\|_F^2 / |V_i|^2$ $\triangleright$ reconstruction error
-3. **end for**
-4. Rank by $R_i$ in descending order; select top-$k$ as hard negatives
-5. Combine hard normal samples with all attack samples
+|   |   |   |
+|--:|---|---|
+|   | **Input:** Trained VGAE model on normal graphs |   |
+|   | **Output:** Hard-selected training dataset for Stage 2 |   |
+| . | Train VGAE on normal graphs until convergence |   |
+| . | **for each** normal graph $G_i$ **do** |   |
+| . | $\quad R_i \leftarrow \lVert \mathbf{A}_i - \hat{\mathbf{A}}_i \rVert_F^2 / \lvert V_i \rvert^2$ | reconstruction error |
+| . | **end for** |   |
+| . | Rank by $R_i$ descending; select top-$k$ as hard negatives |   |
+| . | Combine hard normal samples with all attack samples |   |
 
 :::
 
@@ -92,21 +94,14 @@ B_t = (1 - p_t) B_{\text{bal}} + p_t B_{\text{nat}} + \alpha_{\text{buf}} B_{\te
 
 where $B_{\text{bal}}$ is class-balanced, $B_{\text{nat}}$ reflects natural imbalance, $B_{\text{hard}}$ contains highest-error samples from VGAE buffer ($\alpha_{\text{buf}} = 0.2$), and buffer is refreshed every 100 steps. This prevents premature majority bias while maintaining natural distribution awareness.
 
-**Knowledge Distillation:** Student GAT mimics pre-trained teacher via logit-level distillation:
-
-```{math}
-:label: eq-kd-loss
-\mathcal{L}_{\text{KD}} = (1 - \lambda) \mathcal{L}_{\text{CE}} + \lambda T^2 \text{KL}(p_{\text{student}} \| p_{\text{teacher}})
-```
-
-where $T$ is temperature (softening factor) and $\lambda$ is mixing coefficient. No intermediate feature distillation applied.
+**Knowledge Distillation:** Student GAT mimics the pre-trained teacher via logit-level distillation (Eq. {eq}`eq-kd-total-loss`), using temperature-scaled soft targets (Eq. {eq}`eq-temperature-scaling`) with $T=4$ and mixing coefficient $\lambda=0.7$. No intermediate feature distillation is applied.
 
 :::{dropdown} Architectural Enhancements to GAT
 :open:
 
 *GATv2 Attention.* As with the VGAE encoder, all GAT convolution layers use GATv2Conv [@brody2022attentive] with dynamic attention. GATv2Conv additionally accepts edge features via the `edge_dim` parameter, incorporating the 11-dimensional edge attributes (inter-arrival time, per-byte differences, bidirectionality, edge frequency) into the attention computation. This enables attention-weighted message passing that is conditioned on both node and edge information.
 
-*LSTM Jumping Knowledge.* Layer outputs are aggregated via LSTM-based Jumping Knowledge [@xu2018jk] rather than concatenation. Concatenation-mode JK (`mode="cat"`) applies the same linear combination of layer representations to all nodes, and output dimensionality grows linearly with depth. LSTM-mode JK learns a per-node adaptive combination via a bidirectional LSTM with attention over the sequence of layer outputs, allowing each CAN node (ECU) to draw information from the most informative depth. This also reduces the classifier input dimension from $L \times d$ to $d$ (where $L$ is the number of layers and $d$ is the hidden dimension), decreasing parameters in the fully connected head.
+*LSTM Jumping Knowledge.* Layer outputs are aggregated via LSTM-based Jumping Knowledge (Eq. {eq}`eq-jk-lstm`) rather than concatenation, enabling per-node adaptive depth selection while keeping the output dimension at $d$.
 
 *GPS Graph Transformer (Ablation).* As an ablation, the local GATv2Conv layers can be replaced with GPS layers [@rampasek2022gps], which combine local message passing with global multi-head self-attention and a feed-forward network in each layer. For CAN bus graphs (20--50 nodes), the global attention component is computationally inexpensive and captures long-range message dependencies that multi-hop local attention may miss. GPS layers are selectable via `conv_type="gps"` in the pipeline configuration.
 

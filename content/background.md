@@ -10,6 +10,12 @@ This section covers fundamental concepts of the CAN protocol, GNNs, VGAE, DQN, a
 
 The CAN is a robust serial protocol enabling real-time communication between ECUs in vehicles. In a CAN bus, nodes broadcast messages, while receivers filter and process relevant ones. Each CAN data frame includes a Start-of-Frame, Arbitration, Control, Data, CRC, Acknowledgment, and End-of-Frame field.
 
+:::{figure} ../images/CANframe.pdf
+:label: fig-can-frame
+:width: 100%
+Structure of a standard CAN 2.0B data frame. The 29-bit arbitration field determines message priority, while the 0--8 byte data field carries the payload used for feature extraction in our graph construction pipeline.
+:::
+
 ### Graph Neural Networks
 
 A graph is a data structure consisting of a set of nodes $V$ and a set of edges $E$ that connect pairs of nodes. A graph can be defined as $G = (V,E)$, where $V = \{v_1, v_2, ..., v_n\}$ is a node set with $n$ nodes, and $E = \{e_1, e_2, ..., e_m\}$ is an edge set with $m$ edges.
@@ -49,7 +55,7 @@ The attention function computes a scalar weight for each neighbor of node $v_i$,
 \right)
 ```
 
-where $\sigma$ is the activation function, normally ELU or ReLU.
+where $\sigma$ is the activation function, normally ELU or ReLU. GATv2 [@brody2022attentive] later addressed a static-attention limitation of this formulation; our architecture adopts GATv2 as detailed in the Methodology.
 
 The Jumping Knowledge (JK) module [@xu2018jk] enhances GATs by aggregating intermediate layer representations. In this work, we adopt LSTM-based JK aggregation, where a bidirectional LSTM with attention processes the sequence of per-layer embeddings and produces a single adaptive combination per node. Let $\mathbf{h}_v^{(l)}$ denote the representation of node $v$ at layer $l \in \{1, \dots, L\}$. The LSTM reads the layer sequence and outputs a weighted combination:
 
@@ -103,16 +109,14 @@ While VGAE effectively captures global graph structure, its full-graph decoding 
 (sec-dqn)=
 ### Deep Q-Network
 
-Deep Q-Networks (DQNs) combine Q-learning with neural networks to handle high-dimensional state spaces [@mnih2013playingatarideepreinforcement]. In traditional Q-learning, an agent learns a Q-table mapping with a (state, action) pair and is given a reward after an action. DQNs replace the Q-table with a neural network that approximates Q-values, enabling learning in more complex environments.
-
-In this framework, the DQN agent learns an optimal weighting policy $\pi(s)$ that dynamically assigns importance scores $\alpha = [\alpha_{\text{GAT}}, \alpha_{\text{VGAE}}]$ to each expert model based on the current CAN message state $s_t$. The state $s_t$ is defined as the concatenation of anomaly scores and confidence scores from both experts. At each step $t$, the agent selects an action $a_t$ corresponding to a weight vector adjustment to minimize the detection loss. The network is trained by minimizing the temporal difference error using the Bellman equation:
+Deep Q-Networks (DQNs) combine Q-learning with neural networks to handle high-dimensional state spaces [@mnih2013playingatarideepreinforcement]. In traditional Q-learning, an agent learns a Q-table mapping each (state, action) pair to an expected reward. DQNs replace the Q-table with a neural network that approximates Q-values, enabling learning in continuous or high-dimensional state spaces. The network is trained by minimizing the temporal difference error using the Bellman equation:
 
 ```{math}
 :label: eq-bellman
 L(\theta) = \mathbb{E}_{(s,a,r,s') \sim \mathcal{D}} \left[ \left( r + \gamma \max_{a'} Q(s', a'; \theta^-) - Q(s, a; \theta) \right)^2 \right]
 ```
 
-where $\mathcal{D}$ is the experience replay buffer, $\theta$ represents the current network weights, $\theta^-$ are the target network weights, $\gamma$ is the discount factor, and $r$ is the reward derived from correct anomaly classification. Because each CAN window graph is classified independently—the fusion decision for one window does not affect the next—the discount factor is set to $\gamma = 0$, reducing the Bellman target to $r$ alone (pure reward maximization with no bootstrapping). This simplification is appropriate when there is no sequential dependency between fusion decisions; temporal extensions that introduce inter-window state transitions would restore $\gamma > 0$. This formulation allows the ensemble to adaptively prioritize the most reliable expert for specific attack patterns (e.g., up-weighting VGAE for fuzzy attack vs. up-weighting GAT for gear attack), maximizing detection F1-score across diverse scenarios.
+where $\mathcal{D}$ is the experience replay buffer, $\theta$ represents the current network weights, $\theta^-$ are the target network weights, $\gamma$ is the discount factor, and $r$ is the observed reward. Stabilization techniques include experience replay (sampling uniformly from past transitions) and a periodically updated target network $\theta^-$ (Double DQN).
 
 ### Knowledge Distillation
 

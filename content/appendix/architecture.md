@@ -70,54 +70,47 @@ Fusion agent for multi-model state aggregation, combining features from the VGAE
 
 ### GAT Architecture
 
-:::::{tab-set}
-::::{tab-item} Teacher (1.100 M)
-3 GATv2Conv layers with 4 attention heads, 64 hidden channels, 8-dimensional CAN ID embeddings, and 48-dimensional feature projection. LSTM-based Jumping Knowledge aggregates multi-scale features into a 4-layer FC classification head (2 outputs: normal/attack). Dropout is set to 0.11.
-::::
-::::{tab-item} Student (55 K)
-2 GATv2Conv layers with 4 attention heads, 24 hidden channels, 8-dimensional CAN ID embeddings, and 32-dimensional feature projection. LSTM-based Jumping Knowledge with a 2-layer FC head. Dropout is set to 0.1.
-::::
-:::::
+| Parameter | Teacher (1.100 M) | Student (55 K) |
+|---|---|---|
+| GATv2Conv layers | 3 | 2 |
+| Attention heads | 4 | 4 |
+| Hidden channels | 64 | 24 |
+| CAN ID embeddings | 8-d | 8-d |
+| Feature projection | 48-d | 32-d |
+| JK aggregation | LSTM | LSTM |
+| FC head layers | 4 | 2 |
+| Dropout | 0.11 | 0.1 |
 
 ### VGAE Architecture
 
 Our VGAE encoder progressively compresses the input through multiple GATv2Conv layers.
 
-:::::{tab-set}
-::::{tab-item} Teacher (1.710 M)
-Starting with 35-dimensional node features (48-dimensional projection) and 32-dimensional CAN ID embeddings:
+| Parameter | Teacher (1.710 M) | Student (86 K) |
+|---|---|---|
+| Input features | 35-d (48-d projection) | 35-d (32-d projection) |
+| CAN ID embeddings | 32-d | 4-d |
+| Attention heads | 4 | 1 |
+| Encoder schedule | $480 \to 240 \to 64$ | $80 \to 40 \to 16$ |
+| Latent dim ($\mathbf{z}$) | 64 | 16 |
+| Decoder | mirror ($[64, 240, 480]$) | mirror ($[16, 40, 80]$) |
+| Neighborhood decoder | MLP | compact MLP |
 
-- Layer 1: GATv2Conv($\to 480$, heads=4) with multi-head attention
-- Layer 2: GATv2Conv($480 \to 240$, heads=4) with multi-head refinement
-- Layer 3: GATv2Conv($240 \to 64$, heads=4) with progressive compression
-- Bottleneck: Linear projection to latent distribution ($\mu$, $\sigma$ for 64-d $\mathbf{z}$)
+Both models employ the variational reparameterization trick and masked feature reconstruction ($\rho = 0.3$). The CAN ID is separately classified from the latent representation.
 
-The decoder mirrors this structure, reconstructing the continuous node features from the sampled latent code. The CAN ID is separately classified from the latent representation via an MLP neighborhood decoder.
-::::
-::::{tab-item} Student (86 K)
-Starting with 35-dimensional node features (32-dimensional projection) and 4-dimensional CAN ID embeddings:
-
-- Layer 1: GATv2Conv($\to 80$, heads=1) with single-head attention
-- Layer 2: GATv2Conv($80 \to 40$, heads=1) with single-head refinement
-- Layer 3: GATv2Conv($40 \to 16$, heads=1) with progressive compression
-- Bottleneck: Linear projection to latent distribution ($\mu$, $\sigma$ for 16-d $\mathbf{z}$)
-
-The decoder mirrors the encoder ($[16, 40, 80]$) and uses a compact MLP neighborhood decoder.
-::::
-:::::
-
-### DQN Architecture
+### Fusion Agent Architecture
 
 Both DQN and bandit variants take a 15-dimensional state vector (8 VGAE features + 7 GAT features): VGAE features (8D) comprise 3 reconstruction error components (node, neighbor, CAN ID), 4 latent statistics (mean, std, max, min of $\mathbf{z}$), and 1 confidence score; GAT features (7D) comprise 2 class probabilities, 4 embedding statistics (mean, std, max, min), and 1 confidence score.
 
-:::::{tab-set}
-::::{tab-item} Teacher (687 K)
-3 hidden layers with 256 units each, LayerNorm, ReLU, and 0.2 dropout. Output: 21 Q-values (DQN) or 21 reward estimates (bandit) corresponding to $\alpha \in \{0, 0.05, \ldots, 1.0\}$. DQN: $\gamma = 0$, target network updates every 100 steps. Bandit: per-arm ridge regression with UCB exploration ($\beta = 1.0$).
-::::
-::::{tab-item} Student (32 K)
-3 hidden layers with 128 units each, LayerNorm, ReLU, and 0.2 dropout. DQN: epsilon-greedy exploration ($\epsilon = 0.2$, decay $= 0.995$, $\epsilon_{\min} = 0.01$), target network updates every 100 steps, $\gamma = 0$. Bandit: backbone retraining every 50 episodes, UCB exploration ($\beta = 1.0$).
-::::
-:::::
+| Parameter | Teacher (687 K) | Student (32 K) |
+|---|---|---|
+| Hidden layers | 3 $\times$ 256 | 3 $\times$ 128 |
+| Normalization | LayerNorm | LayerNorm |
+| Dropout | 0.2 | 0.2 |
+| Actions ($|A|$) | 21 | 21 |
+| DQN target updates | every 100 steps | every 100 steps |
+| DQN $\gamma$ | 0 | 0 |
+| DQN exploration | — | $\epsilon = 0.2$, decay $= 0.995$, $\epsilon_{\min} = 0.01$ |
+| Bandit exploration | UCB ($\beta = 1.0$) | UCB ($\beta = 1.0$), retrain every 50 ep. |
 
 ## Distillation Training
 

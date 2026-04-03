@@ -1,23 +1,82 @@
 /* Algorithm blocks — styled admonitions for pseudocode */
 .admonition.algorithm {
-  border-left: 4px solid #0066cc;
-  background: #f0f6ff;
+  border: 1px solid #0066cc;
+  border-radius: 4px;
+  background: #f8faff;
   font-family: 'Computer Modern', 'Latin Modern Roman', 'Times New Roman', serif;
   padding: 1em 1.2em;
+  margin: 1.5em 0;
 }
 
 .admonition.algorithm .admonition-title {
   font-family: system-ui, -apple-system, sans-serif;
-  font-weight: 600;
+  font-weight: 700;
   color: #0066cc;
   font-size: 0.95em;
-  margin-bottom: 0.5em;
-}
-
-.admonition.algorithm ol {
-  padding-left: 1.5em;
+  margin-bottom: 0.6em;
+  padding-bottom: 0.4em;
+  border-bottom: 1px solid #ccd9f0;
 }
 
 .admonition.algorithm p {
-  margin: 0.3em 0;
+  margin: 0.25em 0;
+}
+
+/* Algorithm table layout */
+.admonition.algorithm table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.4em 0;
+  counter-reset: algo-line;
+}
+
+.admonition.algorithm th {
+  display: none;
+}
+
+.admonition.algorithm td {
+  border: none;
+  padding: 2px 8px;
+  vertical-align: top;
+  line-height: 1.6;
+}
+
+/* Line number column — auto-numbered via CSS counter */
+.admonition.algorithm td:first-child {
+  width: 2em;
+  text-align: right;
+  color: #8899aa;
+  font-size: 0.85em;
+  padding-right: 12px;
+  user-select: none;
+}
+
+.admonition.algorithm td:first-child:not(:empty) {
+  counter-increment: algo-line;
+  font-size: 0;
+}
+
+.admonition.algorithm td:first-child:not(:empty)::after {
+  content: counter(algo-line);
+  font-size: 0.85rem;
+}
+
+/* Comment column */
+.admonition.algorithm td:last-child {
+  width: auto;
+  text-align: right;
+  color: #6688aa;
+  font-style: italic;
+  font-size: 0.9em;
+  white-space: nowrap;
+}
+
+/* Hover highlighting */
+.admonition.algorithm tr:hover td {
+  background: #e8f0ff;
+  transition: background 0.15s;
+}
+
+.admonition.algorithm tr:hover td:first-child {
+  color: #0066cc;
 }

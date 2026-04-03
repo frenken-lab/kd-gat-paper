@@ -5,11 +5,17 @@ project:
   authors:
     - name: Robert Frenken
       affiliation: The Ohio State University
-    - name: Hanqin Zhang
+  committee:
+    - name: Qadeer Ahmed
+      role: Primary Advisor
       affiliation: The Ohio State University
     - name: Sidra Ghayour Bhatti
       affiliation: The Ohio State University
-    - name: Qadeer Ahmed
+    - name: Andrew Perrault
+      affiliation: The Ohio State University
+    - name: Anish Arora
+      affiliation: The Ohio State University
+    - name: Jia (Kevin) Liu
       affiliation: The Ohio State University
   keywords:
     - Machine Learning
@@ -40,9 +46,9 @@ project:
       articles:
         - candidacy/index.md
         - candidacy/introduction.md
+        - content/related-work.md
         - content/background.md
         - candidacy/background.md
-        - content/related-work.md
         - content/methodology.md
         - content/experiments.md
         - content/results.md

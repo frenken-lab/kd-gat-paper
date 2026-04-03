@@ -1,0 +1,14 @@
+{
+  "algorithms": [
+    {
+      "id": "graph-construction",
+      "title": "Graph Construction from CAN Stream",
+      "body": "\\begin{algorithmic}\n\\REQUIRE CAN stream $M = \\{m_t = (\\text{ID}_t, \\text{payload}_t)\\}$, window size $W$\n\\ENSURE Graphs $\\mathcal{G} = \\{G_t = (V_t, E_t, X_t, y_t)\\}$\n\\FOR{$t = W$ \\TO $|M|$}\n  \\STATE $W_t \\leftarrow M[t-W+1 : t]$ \\COMMENT{extract window}\n  \\STATE $\\text{source} \\leftarrow W_t[:, -3]$; $\\text{target} \\leftarrow W_t[:, -2]$ \\COMMENT{CAN IDs}\n  \\STATE $\\text{edges} \\leftarrow \\text{stack}(\\text{source}, \\text{target})$\n  \\STATE $(\\text{unique\\_edges}, \\text{counts}) \\leftarrow \\text{unique}(\\text{edges})$ \\COMMENT{transitions}\n  \\STATE $V_t \\leftarrow \\text{unique}(\\text{source} \\cup \\text{target})$ \\COMMENT{unique nodes}\n  \\STATE $\\text{node\\_map} \\leftarrow \\{v \\mapsto \\text{idx} \\mid v \\in V_t\\}$ \\COMMENT{node indexing}\n  \\STATE $E_t \\leftarrow [(\\text{node\\_map}[\\text{src}], \\text{node\\_map}[\\text{tgt}])$ for $(\\text{src}, \\text{tgt}) \\in \\text{unique\\_edges}]$\n  \\STATE Compute node features: $X_t \\in \\mathbb{R}^{|V_t| \\times 35}$\n  \\STATE Compute edge features: $F_t \\in \\mathbb{R}^{|E_t| \\times 11}$\n  \\STATE $y_t \\leftarrow 1$ if any attack ID $\\in W_t$ else $0$ \\COMMENT{label}\n\\ENDFOR\n\\end{algorithmic}"
+    },
+    {
+      "id": "hard-sample",
+      "title": "VGAE-Based Hard Sample Selection",
+      "body": "\\begin{algorithmic}\n\\REQUIRE Trained VGAE model on normal graphs\n\\ENSURE Hard-selected training dataset for Stage 2\n\\STATE Train VGAE on normal graphs until convergence\n\\FOR{\\textbf{each} normal graph $G_i$}\n  \\STATE $R_i \\leftarrow \\|\\mathbf{A}_i - \\hat{\\mathbf{A}}_i\\|_F^2 / |V_i|^2$ \\COMMENT{reconstruction error}\n\\ENDFOR\n\\STATE Rank by $R_i$ descending; select top-$k$ as hard negatives\n\\STATE Combine hard normal samples with all attack samples\n\\end{algorithmic}"
+    }
+  ]
+}
