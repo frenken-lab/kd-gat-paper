@@ -37,7 +37,7 @@ tmlr-anon: site
 	uv run python tools/tmlr/build.py --output _build/submission/ --anonymous
 
 # Merge submission into TMLR author kit and preview with Docker
-preview:
+preview: tmlr
 	cp _build/submission/submission.md tmlr_do_not_modify/_under_review/submission.md
 	cp -r _build/submission/assets/* tmlr_do_not_modify/assets/ 2>/dev/null || true
 	cd tmlr_do_not_modify && bash ./bin/docker_run.sh
