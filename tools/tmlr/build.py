@@ -133,9 +133,11 @@ def _h_details(n: dict) -> str:
             body_parts.append(serialize(c))
     body = "\n".join(body_parts)
     return (
-        f'\n<details{open_attr} markdown="1">\n'
-        f'<summary markdown="1">{summary}</summary>\n\n'
+        f'\n<details{open_attr}>\n'
+        f'<summary>{summary}</summary>\n'
+        f'<div markdown="1">\n\n'
         f'{body}\n'
+        f'</div>\n'
         f'</details>\n'
     )
 
