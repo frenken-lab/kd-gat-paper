@@ -59,3 +59,5 @@ utility:
   on-light: "#333333"
   surface-dark: "#666666"
   on-dark: "#FFFFFF"
+  surface-blue: "#EEEEEF"
+  on-blue: "#00002E"
