@@ -1,5 +1,6 @@
-# MyST build output
+# Build outputs
 _build/
+_figures/
 
 # Node
 node_modules/
