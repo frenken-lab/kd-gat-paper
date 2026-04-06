@@ -2,11 +2,11 @@
 
 MyST Markdown paper with interactive SveltePlot figures. Three build targets from the same source tree:
 
-| Target | Config | Output | Deployed to |
-|--------|--------|--------|-------------|
-| **Paper** | `myst.yml` | TMLR Distill-layout site | [GitHub Pages](https://frenken-lab.github.io/kd-gat-paper/) |
-| **Candidacy** | `myst.candidacy.yml` | Superset report (web) | [rob.curve.space](https://rob.curve.space) |
-| **Candidacy PDF** | `myst.candidacy.yml` | Typst book (US letter) | CI artifact download |
+| Target            | Config               | Output                   | Deployed to                                                 |
+| ----------------- | -------------------- | ------------------------ | ----------------------------------------------------------- |
+| **Paper**         | `myst.yml`           | TMLR Distill-layout site | [GitHub Pages](https://frenken-lab.github.io/kd-gat-paper/) |
+| **Candidacy**     | `myst.candidacy.yml` | Superset report (web)    | [rob.curve.space](https://rob.curve.space)                  |
+| **Candidacy PDF** | `myst.candidacy.yml` | Typst book (US letter)   | CI artifact download                                        |
 
 The candidacy build includes all paper content plus extended sections (introduction, CWD background, proposed research, broader impact, physics appendix).
 
@@ -60,6 +60,15 @@ paper/references/   data/csv/   interactive/src/
       v
   tmlr_do_not_modify/ (receives submission for Jekyll build)
 ```
+
+## Local Setup
+
+Before running anything locally, install these prerequisites:
+
+- [Python 3.11+](https://www.python.org/downloads/)
+- [Docker](https://docs.docker.com/get-docker/)
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) (Python package manager)
+- [Node.js 20+](https://nodejs.org/)
 
 ## Quick Start
 
@@ -127,6 +136,7 @@ make figures                    # Builds all figures via build.js (sequential vi
 Each build produces a single self-contained HTML file (JS + CSS + data inlined via vite-plugin-singlefile).
 
 **Key conventions:**
+
 - Figures are dumb renderers. All data transforms (sampling, ROC computation, layout) happen in the KD-GAT export pipeline, not in `.svelte` files.
 - Use SveltePlot marks only -- no D3 or other chart libraries.
 - Handle empty data: show "Awaiting data export" when `data.json` is `[]` or `{}`.
@@ -146,12 +156,12 @@ Data flows from the [KD-GAT](https://github.com/frenken-lab/KD-GAT) evaluation a
 
 ## Deployment
 
-| Target | What | How |
-|--------|------|-----|
-| [GitHub Pages](https://frenken-lab.github.io/kd-gat-paper/) | TMLR Distill site + figures (iframe src) | Jekyll build + `deploy-pages` in CI |
-| [rob.curve.space](https://rob.curve.space) | Candidacy report (MyST SPA) | `curvenote deploy` in CI |
-| TMLR submission | Anonymous self-contained folder | `tools/tmlr/build.py`, uploaded as CI artifact |
-| Candidacy PDF | Typst book with page numbers | `myst build --pdf`, uploaded as CI artifact |
+| Target                                                      | What                                     | How                                            |
+| ----------------------------------------------------------- | ---------------------------------------- | ---------------------------------------------- |
+| [GitHub Pages](https://frenken-lab.github.io/kd-gat-paper/) | TMLR Distill site + figures (iframe src) | Jekyll build + `deploy-pages` in CI            |
+| [rob.curve.space](https://rob.curve.space)                  | Candidacy report (MyST SPA)              | `curvenote deploy` in CI                       |
+| TMLR submission                                             | Anonymous self-contained folder          | `tools/tmlr/build.py`, uploaded as CI artifact |
+| Candidacy PDF                                               | Typst book with page numbers             | `myst build --pdf`, uploaded as CI artifact    |
 
 Figures require iframe isolation (Svelte apps need `<script>` execution) and curve.space's SPA can't serve static HTML, so GitHub Pages hosts the figure files separately. The TMLR build rewrites all iframe paths to `assets/html/submission/` so no external URLs leak into the anonymous submission.
 

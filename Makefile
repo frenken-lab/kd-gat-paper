@@ -1,19 +1,19 @@
 .PHONY: data validate figures figures-static tables site dev candidacy-site candidacy-dev candidacy-pdf tmlr tmlr-anon preview deploy sync bib test all clean
 
 data:
-	uv run --with polars --with pyyaml --with scipy python tools/pull_data.py
+	uv run python tools/pull_data.py
 
 validate:
-	python tools/validate_data.py
+	uv run python tools/validate_data.py
 
 figures: data
-	cd interactive && npm run build
+	cd interactive && npm i && npm run build
 
 figures-static: figures
 	node tools/pdf/extract-svg.js
 
 tables: data
-	python tools/tables/build.py
+	uv run python tools/tables/build.py
 
 site: figures tables
 	myst build --site
@@ -31,10 +31,10 @@ candidacy-pdf: figures tables
 	myst build --pdf --config myst.candidacy.yml
 
 tmlr: site
-	python tools/tmlr/build.py --output _build/submission/
+	uv run python tools/tmlr/build.py --output _build/submission/
 
 tmlr-anon: site
-	python tools/tmlr/build.py --output _build/submission/ --anonymous
+	uv run python tools/tmlr/build.py --output _build/submission/ --anonymous
 
 # Merge submission into TMLR author kit and preview with Docker
 preview: tmlr
@@ -52,7 +52,7 @@ sync:
 	@echo "Review changes with: git diff"
 
 bib:
-	python tools/validate_bib.py
+	uv run python tools/validate_bib.py
 
 test:
 	uv run python -m pytest tests/ -v
