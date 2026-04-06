@@ -94,13 +94,43 @@
   color: var(--utility-on-light);
 }
 
+/*
+ * 2×2 grid layout for a main plot with top and right marginals.
+ *
+ * Structure expected in markup:
+ *   <div class="plot-with-marginal">
+ *     <div class="marginal-top">   <!-- top histogram, spans col 2 only -->
+ *     <div class="marginal-main">  <!-- main scatter plot              -->
+ *     <div class="marginal-right"> <!-- right histogram                -->
+ *   </div>
+ *
+ * Column widths and row heights are set by the plot SVGs themselves
+ * (via their width/height props), so the axes align automatically.
+ * The corner spacer cell is implicit (grid-auto-flow fills it).
+ */
 .figure .plot-with-marginal {
-  display: flex;
-  align-items: flex-start;
+  display: inline-grid;
+  grid-template-columns: auto auto; /* col 1 = main plot width, col 2 = right marginal width */
+  grid-template-rows: auto auto;    /* row 1 = top marginal height, row 2 = main plot height */
+  align-items: start;
 }
 
-.figure .plot-with-marginal > :first-child {
-  flex: 1;
+/* Top marginal sits in row 1, col 2 (col 1 is the implicit spacer corner) */
+.figure .plot-with-marginal .marginal-top {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+/* Main plot: row 2, col 1 */
+.figure .plot-with-marginal .marginal-main {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+/* Right marginal: row 2, col 2 */
+.figure .plot-with-marginal .marginal-right {
+  grid-column: 2;
+  grid-row: 2;
 }
 
 .figure .tooltip {
