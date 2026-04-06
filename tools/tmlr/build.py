@@ -122,6 +122,17 @@ def _h_iframe(n: dict) -> str:
     )
 
 
+def _h_image(n: dict) -> str:
+    src = Path(urlparse(n.get("urlSource") or n.get("url", "")).path).name
+    path = f"assets/images/{src}"
+    width = n.get("width", "100%")
+    alt = n.get("alt", "")
+    url_expr = f"{{{{ '{path}' | relative_url }}}}"
+    if src.lower().endswith(".pdf"):
+        return f'<embed src="{url_expr}" type="application/pdf" style="width:{width}; height:400px; display:block; margin:0 auto;" title="{alt}" />'
+    return f'<img src="{url_expr}" style="width:{width}; display:block; margin:0 auto;" alt="{alt}" />'
+
+
 def _h_details(n: dict) -> str:
     """Convert MyST {dropdown} → HTML5 <details>/<summary>."""
     open_attr = " open" if n.get("open") else ""
@@ -227,6 +238,7 @@ HANDLERS: dict[str, callable] = {
     "link":           _h_link,
     "list":           _h_list,
     "container":      _h_container,
+    "image":          _h_image,
     "iframe":         _h_iframe,
     "admonition":     _h_admonition,
     # Collapsible / tabbed content
