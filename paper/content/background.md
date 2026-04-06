@@ -10,7 +10,7 @@ This section covers fundamental concepts of the CAN protocol, GNNs, VGAE, DQN, a
 
 The CAN is a robust serial protocol enabling real-time communication between ECUs in vehicles. In a CAN bus, nodes broadcast messages, while receivers filter and process relevant ones. Each CAN data frame includes a Start-of-Frame, Arbitration, Control, Data, CRC, Acknowledgment, and End-of-Frame field.
 
-:::{figure} ../../images/CANframe.pdf
+:::{figure} https://frenken-lab.github.io/kd-gat-paper/assets/images/CANframe.pdf
 :label: fig-can-frame
 :width: 100%
 Structure of a standard CAN 2.0B data frame. The 29-bit arbitration field determines message priority, while the 0--8 byte data field carries the payload used for feature extraction in our graph construction pipeline.
@@ -107,6 +107,7 @@ where the first term encourages accurate reconstruction of the observed adjacenc
 While VGAE effectively captures global graph structure, its full-graph decoding may be suboptimal for detecting localized anomalies, especially in sparse or noisy graphs. To address this, @zhou2023gadnr introduced GAD-NR, which replaces full adjacency reconstruction with localized neighborhood prediction. This modification enhances sensitivity to topological deviations at the node-level, making it suitable for intrusion detection in systems like CAN networks. Inspired by this, our architecture adopts neighborhood-level reconstruction via masked decoding over the graph of each CAN window.
 
 (sec-dqn)=
+
 ### Deep Q-Network
 
 Deep Q-Networks (DQNs) combine Q-learning with neural networks to handle high-dimensional state spaces [@mnih2013playingatarideepreinforcement]. In traditional Q-learning, an agent learns a Q-table mapping each (state, action) pair to an expected reward. DQNs replace the Q-table with a neural network that approximates Q-values, enabling learning in continuous or high-dimensional state spaces. The network is trained by minimizing the temporal difference error using the Bellman equation:
