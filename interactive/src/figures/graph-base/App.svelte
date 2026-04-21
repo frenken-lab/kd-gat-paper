@@ -1,64 +1,26 @@
 <script>
-  import { buildGraph, flatten, labelCenter } from "../../lib/diagram";
-  import { Plot, Dot, Text, Link, HTMLTooltip } from "svelteplot";
-  import Figure from "../../lib/Figure.svelte";
+  import { specToFlow, DiagramCanvas } from '../../lib/flow';
 
-  const g = buildGraph({
-    n: 5,
-    topology: "sparse",
-    color: "vgae",
-    labels: "auto",
-    prefix: "n",
-  });
+  const spec = {
+    figure: 'graph-base',
+    components: {
+      input: { type: 'graph', n: 5, topology: 'sparse', color: 'vgae', labels: 'auto', scale: 80 },
+    },
+    layout: { type: 'hstack', children: ['input'] },
+  };
 
-  const { nodes, edges, domain } = flatten(g);
+  const { nodes: rawNodes, edges: rawEdges } = specToFlow(spec);
+
+  let nodes = $state.raw(rawNodes);
+  let edges = $state.raw(rawEdges);
 </script>
 
-<Figure title="CAN Bus Graph">
-  <Plot
-    grid={false}
-    axes={false}
-    frame={false}
-    x={{ domain: domain.x }}
-    y={{ domain: domain.y }}
-    inset={10}
-  >
-    <Link
-      data={edges}
-      x1="x1"
-      y1="y1"
-      x2="x2"
-      y2="y2"
-      stroke="stroke"
-      strokeOpacity={0.5}
-      strokeWidth={1.5}
-    />
-    <Dot
-      data={nodes}
-      x="x"
-      y="y"
-      r={18}
-      fill="fill"
-      stroke="stroke"
-      strokeWidth={1.5}
-    />
-    <Text
-      data={nodes}
-      {...labelCenter}
-      text="label"
-      fontSize={8}
-      fill="#333"
-      fontFamily="CMU Typewriter Text, monospace"
-    />
-    {#snippet overlay()}
-      <HTMLTooltip data={nodes} x="x" y="y">
-        {#snippet children({ datum })}
-          <div class="tooltip">
-            <div>X: {datum.x}</div>
-            <div>Y: {datum.y}</div>
-          </div>
-        {/snippet}
-      </HTMLTooltip>
-    {/snippet}
-  </Plot>
-</Figure>
+<div class="figure">
+  <h3>CAN Bus Graph</h3>
+  <DiagramCanvas bind:nodes bind:edges width="100%" height="350px" />
+</div>
+
+<style>
+  .figure { font-family: system-ui, -apple-system, sans-serif; }
+  h3 { font-size: 14px; margin: 0 0 8px; color: #333; }
+</style>

@@ -92,13 +92,15 @@ for (const fig of figures) {
       env: { ...process.env, FIGURE: fig },
       stdio: "inherit",
     });
-    // Vite writes to _figures/index.html (root-relative outDir) — rename to _figures/<name>.html
+    // Vite outputs to outDir/src/figures/<name>/index.html — rename to outDir/<name>.html
+    const nestedHtml = resolve(outDir, "src", "figures", fig, "index.html");
     const rootIndexHtml = resolve(outDir, "index.html");
-    if (existsSync(rootIndexHtml)) {
-      renameSync(rootIndexHtml, resolve(outDir, `${fig}.html`));
+    const outputHtml = existsSync(nestedHtml) ? nestedHtml : existsSync(rootIndexHtml) ? rootIndexHtml : null;
+    if (outputHtml) {
+      renameSync(outputHtml, resolve(outDir, `${fig}.html`));
       passed.push(fig);
     } else {
-      console.error(`  ERROR: ${fig} — vite produced no output (expected index.html)`);
+      console.error(`  ERROR: ${fig} — vite produced no output`);
       failed.push(fig);
     }
   } catch (err) {
@@ -107,8 +109,9 @@ for (const fig of figures) {
   }
 }
 
-// Clean up any stray root index.html
+// Clean up stray files from the nested output path
 rmSync(resolve(outDir, "index.html"), { force: true });
+rmSync(resolve(outDir, "src"), { recursive: true, force: true });
 
 // Summary
 console.log(`\nBuild complete: ${passed.length} passed, ${failed.length} failed`);

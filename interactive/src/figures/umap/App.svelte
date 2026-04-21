@@ -2,7 +2,7 @@
   import Figure from "../../lib/Figure.svelte";
   import { Plot, Dot, Contour, Line, RectY, RectX } from "svelteplot";
   import { useToggleFilter } from "../../lib/useToggleFilter.svelte.js";
-  import { resolve } from "../../lib/diagram/palette.ts";
+  import { resolve } from "../../lib/flow/palette.ts";
   import data from "./data.json";
 
   // data.json shape: { points, bounds, density, hulls, marginals, metrics }

@@ -13,7 +13,7 @@
     AxisY,
   } from "svelteplot";
   import { useToggleFilter } from "../../lib/useToggleFilter.svelte.js";
-  import { resolve } from "../../lib/diagram/palette.ts";
+  import { resolve } from "../../lib/flow/palette.ts";
   import data from "./data.json";
 
   const isEmpty = !data?.kde;

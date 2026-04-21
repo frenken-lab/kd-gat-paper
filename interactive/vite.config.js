@@ -121,9 +121,17 @@ const devNavPlugin = {
 export default defineConfig(({ command }) => {
   const isServe = command === "serve";
 
-  const rollupInput = Object.fromEntries(
-    figures.map((f) => [f, resolve(figuresDir, f, "index.html")])
-  );
+  // When FIGURE env is set (by build.js), build only that figure.
+  // vite-plugin-singlefile requires inlineDynamicImports = single entry point.
+  const singleFig = process.env.FIGURE;
+
+  // Single figure: string input -> output is index.html at outDir root.
+  // All figures: object input -> used by dev server for multi-page routing.
+  const rollupInput = singleFig
+    ? resolve(figuresDir, singleFig, "index.html")
+    : Object.fromEntries(
+        figures.map((f) => [f, resolve(figuresDir, f, "index.html")])
+      );
 
   return {
     plugins: [

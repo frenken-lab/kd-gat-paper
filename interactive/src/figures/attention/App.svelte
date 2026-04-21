@@ -1,7 +1,7 @@
 <script>
   import Figure from "../../lib/Figure.svelte";
   import { Plot, Arrow, Dot, Text, HTMLTooltip } from "svelteplot";
-  import { resolve } from "../../lib/diagram/palette.ts";
+  import { resolve } from "../../lib/flow/palette.ts";
   import data from "./data.json";
 
   const isEmpty = !Array.isArray(data) || data.length === 0;
