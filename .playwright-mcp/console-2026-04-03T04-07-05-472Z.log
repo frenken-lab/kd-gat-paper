@@ -1,0 +1,2 @@
+[      32ms] [ERROR] svelteplot: Please use new setPlotDefaults hook instead of 'svelteplot/defaults' context @ http://localhost:8792/umap.html:15
+[      33ms] [ERROR] svelteplot: Please use new setPlotDefaults hook instead of 'svelteplot/defaults' context @ http://localhost:8792/umap.html:15

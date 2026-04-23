@@ -1,0 +1,10 @@
+- generic [ref=e3]:
+  - heading "UMAP Projections of GAT Embeddings" [level=3] [ref=e4]
+  - generic [ref=e5]:
+    - button "✓ Normal" [ref=e6] [cursor=pointer]
+    - button "✓ Attack" [ref=e7] [cursor=pointer]
+  - figure [ref=e8]:
+    - img [ref=e10]:
+      - generic [ref=e11]:
+        - generic [ref=e13]: UMAP 1
+        - generic [ref=e14]: UMAP 2

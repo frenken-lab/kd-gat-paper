@@ -1,0 +1,3 @@
+[    6309ms] [ERROR] svelteplot: Please use new setPlotDefaults hook instead of 'svelteplot/defaults' context @ http://localhost:8792/umap.html:15
+[    6309ms] [ERROR] svelteplot: Please use new setPlotDefaults hook instead of 'svelteplot/defaults' context @ http://localhost:8792/umap.html:15
+[    6366ms] [ERROR] Failed to load resource: the server responded with a status of 404 (File not found) @ http://localhost:8792/favicon.ico:0
