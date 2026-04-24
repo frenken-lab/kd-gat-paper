@@ -9,10 +9,32 @@ import yaml from "js-yaml";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const figuresDir = resolve(__dirname, "src/figures");
 
-const figures = readdirSync(figuresDir, { withFileTypes: true })
-  .filter((d) => d.isDirectory())
-  .map((d) => d.name)
-  .sort();
+// Figures live under src/figures/{data,diagrams}/<name>/. Build outputs stay
+// flat (_build/figures/<name>.html), so name uniqueness across categories is
+// required — enforced implicitly by the existing figure names.
+const FIGURE_CATEGORIES = ["data", "diagrams"];
+
+const figureEntries = FIGURE_CATEGORIES.flatMap((category) => {
+  const catDir = resolve(figuresDir, category);
+  try {
+    return readdirSync(catDir, { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      .map((d) => ({ name: d.name, category }));
+  } catch {
+    return [];
+  }
+}).sort((a, b) => a.name.localeCompare(b.name));
+
+const figures = figureEntries.map((f) => f.name);
+const figureCategoryByName = Object.fromEntries(
+  figureEntries.map((f) => [f.name, f.category]),
+);
+
+function figureSrcPath(name) {
+  const category = figureCategoryByName[name];
+  if (!category) return null;
+  return resolve(figuresDir, category, name);
+}
 
 // ---------------------------------------------------------------------------
 // Plugin: import .yaml/.yml files as parsed JS objects
@@ -80,7 +102,7 @@ const devNavPlugin = {
 
         if (!isHtml) return originalEnd(chunk, ...args);
 
-        const match = req.url.match(/\/src\/figures\/([^/]+)/);
+        const match = req.url.match(/\/src\/figures\/(?:data|diagrams)\/([^/]+)/);
         const active = match ? match[1] : figures[0];
 
         const navHtml = `
@@ -91,7 +113,7 @@ const devNavPlugin = {
   >${active} &#9662;</button>
   <div style="display:none;margin-top:2px;background:#fff;border:1px solid #ccc;border-radius:3px;box-shadow:0 2px 8px rgba(0,0,0,0.12);overflow:hidden;">
     ${figures.map((f) => `<a
-      href="/src/figures/${f}/"
+      href="/src/figures/${figureCategoryByName[f]}/${f}/"
       style="display:block;padding:4px 10px;text-decoration:none;color:${f === active ? "#000" : "#444"};background:${f === active ? "#f0f0f0" : "#fff"};font-weight:${f === active ? "bold" : "normal"};"
       onmouseover="this.style.background='#f0f0f0'"
       onmouseout="this.style.background='${f === active ? "#f0f0f0" : "#fff"}'"
@@ -116,6 +138,33 @@ const devNavPlugin = {
 };
 
 // ---------------------------------------------------------------------------
+// Plugin: stable /figures/<name>.html alias for the dev server
+//
+// The MyST paper hardcodes iframe URLs like "…/submission/umap.html". In dev
+// mode the MyST plugin `dev-iframes.mjs` rewrites those to
+// "http://localhost:5173/figures/<name>.html". This middleware maps that path
+// to the Vite route for each figure (/src/figures/<name>/), so the URL shape
+// matches production while HMR still works.
+// ---------------------------------------------------------------------------
+const figureAliasPlugin = {
+  name: "figure-alias",
+  configureServer(server) {
+    server.middlewares.use((req, _res, next) => {
+      const m = req.url && req.url.match(/^\/figures\/([^/?#]+)\.html(\?.*)?$/);
+      if (m) {
+        const name = m[1];
+        const qs = m[2] || "";
+        const category = figureCategoryByName[name];
+        if (category) {
+          req.url = `/src/figures/${category}/${name}/${qs}`;
+        }
+      }
+      next();
+    });
+  },
+};
+
+// ---------------------------------------------------------------------------
 // Vite config
 // ---------------------------------------------------------------------------
 export default defineConfig(({ command }) => {
@@ -128,21 +177,24 @@ export default defineConfig(({ command }) => {
   // Single figure: string input -> output is index.html at outDir root.
   // All figures: object input -> used by dev server for multi-page routing.
   const rollupInput = singleFig
-    ? resolve(figuresDir, singleFig, "index.html")
+    ? resolve(figureSrcPath(singleFig) ?? figuresDir, "index.html")
     : Object.fromEntries(
-        figures.map((f) => [f, resolve(figuresDir, f, "index.html")])
+        figures.map((f) => [f, resolve(figureSrcPath(f), "index.html")])
       );
+
+  const firstFig = figures[0];
+  const firstFigCategory = figureCategoryByName[firstFig];
 
   return {
     plugins: [
       yamlImportPlugin,
       stylesVirtualPlugin,
       svelte(),
-      ...(isServe ? [devNavPlugin] : [viteSingleFile()]),
+      ...(isServe ? [devNavPlugin, figureAliasPlugin] : [viteSingleFile()]),
     ],
     root: __dirname,
     server: {
-      open: `/src/figures/${figures[0]}/`,
+      open: `/src/figures/${firstFigCategory}/${firstFig}/`,
       fs: {
         allow: [resolve(__dirname, "..")],
       },

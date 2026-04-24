@@ -1,6 +1,6 @@
 # Interactive Figure Spec Sheet
 
-Complete catalog of all interactive figures in `interactive/src/figures/`. Audited 2026-04-03.
+Complete catalog of all interactive figures under `interactive/src/figures/{data,diagrams}/`. Audited 2026-04-03; reorganised into `data/` + `diagrams/` subtrees 2026-04-23. Data-driven plots live under `data/`, SvelteFlow architecture diagrams under `diagrams/`.
 
 ## Data-Driven Figures
 

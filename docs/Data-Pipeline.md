@@ -9,7 +9,7 @@ KD-GAT eval artifacts
   → export_paper_data.py (in KD-GAT)
   → ESS exports/paper/ (_manifest.json + _provenance.json)
   → pull_data.py (this repo, validates schemas.yaml)
-  → data/csv/ + interactive/src/figures/*/data.json
+  → data/csv/ + interactive/src/figures/data/*/data.json
   → make figures → _build/figures/*.html
   → make tables → _build/tables/*.md
   → myst build → paper site
@@ -29,7 +29,7 @@ For each declared CSV, `tools/validate_data.py` checks:
 ### JSON Validation (Figure Data)
 
 For each declared JSON file:
-- Resolves path via `schemas.file_map` (e.g., `figures/umap/data.json` → `interactive/src/figures/umap/data.json`)
+- Resolves path via `schemas.file_map` (e.g., `figures/umap/data.json` → `interactive/src/figures/data/umap/data.json`)
 - **Array type**: checks it's a list, validates `min_items`, checks `item_keys` in first item
 - **Object type**: checks it's a dict, validates `required_keys`
 
@@ -54,4 +54,4 @@ For each declared JSON file:
 
 3. Run `make data` to pull and validate.
 
-4. If it's figure data, add a `file_map` entry in `schemas.yaml` pointing to the JSON path under `interactive/src/figures/`.
+4. If it's figure data, add a `file_map` entry in `schemas.yaml` pointing to the JSON path under `interactive/src/figures/data/`.

@@ -15,6 +15,13 @@ dependencies = [
 test = [
     "pytest>=8",
 ]
+notebooks = [
+    "altair>=5",
+    "vl-convert-python",
+    "scikit-image",
+    "jupyter",
+    "shapely>=2",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

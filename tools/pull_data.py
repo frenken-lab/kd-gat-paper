@@ -3,7 +3,7 @@
 
 Downloads from buckeyeguy/GraphIDS dataset and produces:
   - data/csv/*.csv          (table source data)
-  - interactive/src/figures/*/data.json  (figure plot data)
+  - interactive/src/figures/data/*/data.json  (figure plot data)
 
 Usage:
     python tools/pull_data.py                          # default run
@@ -319,11 +319,11 @@ def main() -> None:
 
     umap_data = build_umap(run_id)
     if umap_data and umap_data.get("points"):
-        write_json(ROOT / "interactive" / "src" / "figures" / "umap" / "data.json", umap_data, dry_run=args.dry_run)
+        write_json(ROOT / "interactive" / "src" / "figures" / "data" / "umap" / "data.json", umap_data, dry_run=args.dry_run)
 
     cka_data = build_cka(kd_run)
     if cka_data:
-        write_json(ROOT / "interactive" / "src" / "figures" / "cka" / "data.json", cka_data, dry_run=args.dry_run)
+        write_json(ROOT / "interactive" / "src" / "figures" / "data" / "cka" / "data.json", cka_data, dry_run=args.dry_run)
 
     # fusion: dqn_policy.parquet lacks per-graph labels, so we can't produce
     # the full format (alpha + label + attack_type). Keep existing data.json.

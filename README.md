@@ -55,10 +55,7 @@ paper/references/   data/csv/   interactive/src/
   build.py
       |
       v
-  _build/submission/
-      |
-      v
-  tmlr_do_not_modify/ (receives submission for Jekyll build)
+  tmlr_do_not_modify/ (submission.md + assets/ written in place for Jekyll)
 ```
 
 ## Local Setup
@@ -83,9 +80,12 @@ pip install pyyaml tabulate    # Python build deps
 ```bash
 # Paper build
 make site           # Build MyST paper site (depends on figures + tables)
-make dev            # Live-reload dev server
-make tmlr           # Build TMLR Beyond PDF submission
-make tmlr-anon      # Build anonymous TMLR submission
+make dev            # Live-reload dev server (prose only; iframes hit prod URLs)
+make dev-figures    # Vite dev server for figures (HMR on Svelte edits)
+make dev-all        # Both servers; MyST iframes point at localhost for HMR
+make tmlr           # Build TMLR Beyond PDF submission (into tmlr_do_not_modify/)
+make tmlr-anon      # Build anonymous TMLR submission (into kit)
+make submission-zip # Flat anonymous submission.zip for OpenReview upload
 
 # Candidacy build
 make candidacy-site # Build candidacy report site
@@ -103,15 +103,19 @@ make bib            # Validate bibliography
 make all            # data --> figures --> tables --> site
 make clean          # rm -rf _build
 make sync           # Pull Curvenote editor changes
-make deploy         # Merge submission into TMLR author kit
 ```
 
 ## Developing Interactive Figures
 
-Each figure is a self-contained Svelte app in `interactive/src/figures/<name>/`:
+Figures are split by kind under `interactive/src/figures/`:
+
+- `data/<name>/` — data-driven plots that consume `data.json`
+- `diagrams/<name>/` — SvelteFlow architecture diagrams driven by `spec.yaml`
+
+Each figure is a self-contained Svelte app. Example:
 
 ```
-interactive/src/figures/umap/
+interactive/src/figures/data/umap/
   App.svelte    Renderer (SveltePlot marks, no data transforms)
   data.json     Pre-computed data (from KD-GAT export pipeline)
   index.html    Entry point

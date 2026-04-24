@@ -14,6 +14,25 @@ import { execSync } from "child_process";
 const srcDir = resolve(import.meta.dirname, "src/figures");
 const outDir = resolve(import.meta.dirname, "..", "_build", "figures");
 
+// Figures live under src/figures/{data,diagrams}/<name>/. Output names stay
+// flat (_build/figures/<name>.html) so iframe URLs in MyST/TMLR are unchanged.
+const CATEGORIES = ["data", "diagrams"];
+
+function discoverFigures() {
+  const found = [];
+  for (const category of CATEGORIES) {
+    const catDir = resolve(srcDir, category);
+    if (!existsSync(catDir)) continue;
+    for (const d of readdirSync(catDir, { withFileTypes: true })) {
+      if (!d.isDirectory()) continue;
+      const figDir = resolve(catDir, d.name);
+      if (!existsSync(resolve(figDir, "App.svelte"))) continue;
+      found.push({ name: d.name, category, dir: figDir });
+    }
+  }
+  return found;
+}
+
 /** Generate index.html for a figure if it doesn't already exist. */
 function ensureIndexHtml(figDir, name) {
   const dest = resolve(figDir, "index.html");
@@ -55,17 +74,15 @@ mount(App, { target: document.getElementById('app') });
   console.log(`  generated main.js for ${name}`);
 }
 
-const figures = readdirSync(srcDir, { withFileTypes: true })
-  .filter(
-    (d) => d.isDirectory() && existsSync(resolve(srcDir, d.name, "App.svelte")),
-  )
-  .map((d) => d.name);
+const figures = discoverFigures();
 
-console.log(`Building ${figures.length} figures: ${figures.join(", ")}`);
+console.log(
+  `Building ${figures.length} figures: ${figures.map((f) => `${f.category}/${f.name}`).join(", ")}`,
+);
 
 // Remove stale outputs from figures no longer in src/
 if (existsSync(outDir)) {
-  const figSet = new Set(figures);
+  const figSet = new Set(figures.map((f) => f.name));
   for (const f of readdirSync(outDir)) {
     if (f.endsWith(".html") && f !== "index.html" && !figSet.has(f.replace(/\.html$/, ""))) {
       console.log(`  removing stale output: ${f}`);
@@ -77,35 +94,34 @@ if (existsSync(outDir)) {
 const passed = [];
 const failed = [];
 
-for (const fig of figures) {
-  const figDir = resolve(srcDir, fig);
-  ensureIndexHtml(figDir, fig);
-  ensureMainJs(figDir, fig);
+for (const { name, category, dir: figDir } of figures) {
+  ensureIndexHtml(figDir, name);
+  ensureMainJs(figDir, name);
 
   // Remove stale output so the new build isn't merged with old content
-  rmSync(resolve(outDir, `${fig}.html`), { force: true });
+  rmSync(resolve(outDir, `${name}.html`), { force: true });
 
-  console.log(`  ${fig}...`);
+  console.log(`  ${category}/${name}...`);
   try {
     execSync(`npx vite build`, {
       cwd: import.meta.dirname,
-      env: { ...process.env, FIGURE: fig },
+      env: { ...process.env, FIGURE: name, FIGURE_CATEGORY: category },
       stdio: "inherit",
     });
-    // Vite outputs to outDir/src/figures/<name>/index.html — rename to outDir/<name>.html
-    const nestedHtml = resolve(outDir, "src", "figures", fig, "index.html");
+    // Vite outputs to outDir/src/figures/<category>/<name>/index.html — rename to outDir/<name>.html
+    const nestedHtml = resolve(outDir, "src", "figures", category, name, "index.html");
     const rootIndexHtml = resolve(outDir, "index.html");
     const outputHtml = existsSync(nestedHtml) ? nestedHtml : existsSync(rootIndexHtml) ? rootIndexHtml : null;
     if (outputHtml) {
-      renameSync(outputHtml, resolve(outDir, `${fig}.html`));
-      passed.push(fig);
+      renameSync(outputHtml, resolve(outDir, `${name}.html`));
+      passed.push(name);
     } else {
-      console.error(`  ERROR: ${fig} — vite produced no output`);
-      failed.push(fig);
+      console.error(`  ERROR: ${name} — vite produced no output`);
+      failed.push(name);
     }
   } catch (err) {
-    console.error(`  ERROR: ${fig} — build failed: ${err.message}`);
-    failed.push(fig);
+    console.error(`  ERROR: ${name} — build failed: ${err.message}`);
+    failed.push(name);
   }
 }
 

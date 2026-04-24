@@ -48,7 +48,7 @@ cd interactive
 FIGURE=umap npx vite dev    # Live-reload one figure at localhost:5173
 ```
 
-Replace `umap` with any figure directory name under `interactive/src/figures/`.
+Replace `umap` with any figure directory name under `interactive/src/figures/{data,diagrams}/`.
 
 ### PDF Export
 
@@ -65,9 +65,10 @@ paper/                    All authored content
   content/                  Shared paper sections (both builds use these)
   candidacy/                Candidacy-only content + combined page wrappers
   references/               Split .bib files by topic
-interactive/              SveltePlot figures (Svelte + Vite)
-  src/figures/<name>/       One directory per figure
-  src/lib/diagram/          Architecture diagram library
+interactive/              SveltePlot figures + SvelteFlow diagrams (Svelte + Vite)
+  src/figures/data/<name>/       Data-driven plots (consume data.json)
+  src/figures/diagrams/<name>/   Architecture diagrams (spec.yaml → SvelteFlow)
+  src/lib/flow/                  Shared SvelteFlow + palette helpers
 data/
   csv/                    Source data files
   schemas.yaml            Validation schemas

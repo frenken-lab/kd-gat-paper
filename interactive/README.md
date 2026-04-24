@@ -11,7 +11,12 @@ npm install
 
 ## Running a figure in dev mode
 
-Figures are served one at a time. Set the `FIGURE` env var to the directory name under `src/figures/`:
+Figures live under `src/figures/` in two categories:
+
+- **`data/`** — data-driven plots consuming `data.json`: `algorithm`, `attention`, `cka`, `fusion`, `reconstruction`, `results-table`, `umap`
+- **`diagrams/`** — SvelteFlow architecture diagrams driven by `spec.yaml` (or inline graph construction): `architecture`, `dqn`, `gat`, `gat-layer`, `graph-base`, `kd-gat`, `kd-vgae`, `vgae`
+
+Figures are served one at a time. Set the `FIGURE` env var to the directory name (category is resolved automatically from the layout):
 
 ```bash
 FIGURE=umap npm run dev
@@ -25,8 +30,6 @@ cp .env.example .env
 npm run dev
 ```
 
-Available figures: `algorithm`, `architecture`, `attention`, `cka`, `dqn`, `fusion`, `gat`, `gat-layer`, `graph-base`, `kd-gat`, `kd-vgae`, `reconstruction`, `results-table`, `umap`, `vgae`.
-
 ## Building all figures
 
 ```bash
@@ -35,7 +38,7 @@ npm run build
 make figures
 ```
 
-`build.js` iterates over every directory in `src/figures/` that contains an `App.svelte`, builds each one in a separate Vite pass, and writes the output to `_build/figures/<name>.html`. `index.html` and `main.js` are auto-generated for any figure that doesn't already have them.
+`build.js` walks `src/figures/{data,diagrams}/*/` for directories containing `App.svelte`, builds each one in a separate Vite pass, and writes the output to a flat `_build/figures/<name>.html`. Figure names must be unique across categories so the output filename is unambiguous. `index.html` and `main.js` are auto-generated for any figure that doesn't already have them.
 
 ## Global styles from `styles.yml`
 

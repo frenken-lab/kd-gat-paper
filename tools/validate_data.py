@@ -40,7 +40,7 @@ def validate_csv(name: str, spec: dict) -> list[str]:
 
 def validate_json(name: str, spec: dict, schemas: dict) -> list[str]:
     file_map = schemas.get("file_map", {})
-    rel = file_map.get(f"figures/{name}/data.json", f"interactive/src/figures/{name}/data.json")
+    rel = file_map.get(f"figures/{name}/data.json", f"interactive/src/figures/data/{name}/data.json")
     path = ROOT / rel
     if not path.exists():
         return [f"JSON {name}: file not found at {rel}"]

@@ -28,12 +28,15 @@ make validate      # Validate committed data only (no ESS, used in CI)
 make figures       # cd interactive && npm run build → _build/figures/*.html
 make tables        # Build markdown tables from CSV + spec.yaml
 make site          # myst build (depends on figures + tables)
-make dev           # myst start (live reload)
-make tmlr          # Convert to TMLR Beyond PDF submission
-make tmlr-anon     # Build anonymous TMLR submission
-make preview       # Merge submission into author kit + Jekyll preview (Docker)
-make deploy        # Merge submission into TMLR author kit (push to deploy via Pages)
-make candidacy-site # myst build --config myst.candidacy.yml (superset)
+make dev           # myst start (prose live reload; iframes hit production URLs)
+make dev-figures   # vite dev server for figures only (HMR on Svelte edits)
+make dev-all       # both servers, iframes rewritten to localhost for HMR integration
+make tmlr          # Build TMLR submission directly into tmlr_do_not_modify/
+make tmlr-anon     # Build anonymous TMLR submission (into kit, for review-check)
+make preview       # Build submission + Jekyll preview via Docker
+make submission-zip # Flat anonymous submission.zip for OpenReview upload
+make candidacy      # myst build --all → site + Typst PDF in one pass (uses exports: in myst.candidacy.yml)
+make candidacy-site # myst build --site --config myst.candidacy.yml (superset, skip PDF)
 make candidacy-dev  # myst start --config myst.candidacy.yml (live reload)
 make candidacy-pdf  # myst build --pdf via Typst → _build/exports/candidacy-report.pdf
 make sync          # Pull Curvenote editor changes into repo
@@ -48,11 +51,11 @@ make clean         # rm -rf _build
 ```
 KD-GAT eval artifacts
   → export_paper_data.py → ESS exports/paper/ (_manifest.json + _provenance.json)
-  → validate_data.py (checks schemas.yaml) → data/csv/ + interactive/src/figures/*/data.json
+  → validate_data.py (checks schemas.yaml) → data/csv/ + interactive/src/figures/data/*/data.json
   → npm run build → _build/figures/*.html
   → myst build → _build/ → curvenote deploy → rob.curve.space
                           → GitHub Pages (figures only) → frenken-lab.github.io/kd-gat-paper/
-  → tools/tmlr/build.py (reads _build/site/ AST) → _build/submission/ (self-contained)
+  → tools/tmlr/build.py (reads _build/site/ AST) → tmlr_do_not_modify/_under_review/submission.md (+ assets/)
 ```
 
 ## Deployment
@@ -82,7 +85,7 @@ curve.space is an SPA that can't serve static HTML files. Figures require iframe
 - **Dumb renderers**: Figures import `data.json` and plot it. No data transforms in `.svelte` files.
 - All preprocessing (sampling, flattening, ROC computation, layout) happens in `export_paper_data.py`.
 - Use SveltePlot marks (`<Cell>`, `<RectY>`, `<Line>`, `<Dot>`, `<Arrow>`). No D3.
-- Each figure: `interactive/src/figures/<name>/App.svelte` + `data.json` + `index.html` + `main.js`
+- Figures live under `interactive/src/figures/{data,diagrams}/<name>/`. Data-driven plots go in `data/`; SvelteFlow architecture diagrams go in `diagrams/`. Each figure: `App.svelte` + `data.json` (data) or `spec.yaml` (diagrams) + `index.html` + `main.js`. Build outputs stay flat at `_build/figures/<name>.html` — names must be unique across categories.
 - Handle empty data: show "Awaiting data export" when data is `[]` or `{}`
 - Figures build one-at-a-time via `interactive/build.js` (vite-plugin-singlefile requires single entry per build)
 - **Colors/fonts**: `styles.yml` is the single source of truth. Exposed at build time via `virtual:styles` (JS object) and `virtual:theme-vars.css` (CSS custom properties). Use role names (`vgae`, `gat`, `kd`) not hex colors.

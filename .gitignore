@@ -21,3 +21,8 @@ interactive/.env
 
 # OS
 .DS_Store
+
+# Spike outputs — regenerable from the notebook, some SVGs exceed GitHub size limits
+tools/spikes/*.html
+tools/spikes/*.svg
+tools/spikes/*.spec.json

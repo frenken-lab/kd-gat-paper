@@ -6,7 +6,7 @@ All architecture diagrams in this repo are **spec-driven**: you write a YAML spe
 
 ### 1. Write a spec
 
-Create `interactive/src/figures/<name>/spec.yaml`:
+Create `interactive/src/figures/diagrams/<name>/spec.yaml`:
 
 ```yaml
 figure: my-figure
