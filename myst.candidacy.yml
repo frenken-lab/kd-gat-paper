@@ -1,5 +1,7 @@
 version: 1
 project:
+  plugins:
+    - tools/myst-plugins/dev-iframes.mjs
   title: "Adaptive Fusion of Graph-Based Ensembles for Automotive Intrusion Detection"
   subtitle: "PhD Candidacy Report"
   authors:
@@ -56,6 +58,11 @@ project:
         - paper/content/explainability.md
         - paper/candidacy/proposed-research.md
         - paper/candidacy/broader-impact.md
+        - paper/candidacy/committee-questions/index.md
+        - paper/candidacy/committee-questions/physics-dynamics.md
+        - paper/candidacy/committee-questions/interpretability-calibration.md
+        - paper/candidacy/committee-questions/federated-optimization.md
+        - paper/candidacy/committee-questions/reinforcement-learning.md
         - paper/content/conclusion.md
         - paper/content/appendix/architecture.md
         - paper/content/appendix/figures.md
@@ -69,6 +76,12 @@ project:
     - file: paper/candidacy/index.md
     - file: paper/candidacy/current-framework.md
     - file: paper/candidacy/proposed-combined.md
+    - file: paper/candidacy/committee-questions/index.md
+      children:
+        - file: paper/candidacy/committee-questions/physics-dynamics.md
+        - file: paper/candidacy/committee-questions/interpretability-calibration.md
+        - file: paper/candidacy/committee-questions/federated-optimization.md
+        - file: paper/candidacy/committee-questions/reinforcement-learning.md
     - file: paper/content/conclusion.md
     - file: paper/candidacy/appendix-combined.md
 
