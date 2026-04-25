@@ -84,29 +84,28 @@ def build_umap(run_id: str) -> dict:
     """Build umap/data.json from embeddings.parquet.
 
     Filters to GAT embeddings for the given run, maps label to attack_type.
-    Returns {points, bounds, density, hulls, marginals, metrics} where:
-      - points: 500 sampled records for the scatter layer
-      - bounds: shared {x1, y1, x2, y2} for Plot domain + Contour placement
-      - density: per-class 100x100 KDE grids computed from ALL points
-      - hulls: per-class convex hull vertices (ordered polygon)
-      - marginals: per-class 1D KDE along each axis (100 points each)
+    Returns {points, bounds, metrics}:
+      - points: every GAT embedding {x, y, label, attack_type} (raw input
+        for svelteplot's <Density>, densityX/Y transforms, and Dot)
+      - bounds: padded {x1, y1, x2, y2} used to pin the Plot domain so
+        toggling classes doesn't reflow the axes
       - metrics: overlap integral, Wasserstein distance, energy distance
+
+    All KDE/contour/histogram work happens client-side in svelteplot now;
+    Python only ships raw points + the three separability scalars.
     """
     import numpy as np
-    from scipy.spatial import ConvexHull
     from scipy.stats import gaussian_kde, energy_distance, wasserstein_distance_nd
 
     df = read_parquet("embeddings.parquet")
-    subset = df.filter(
-        (pl.col("run_id") == run_id) & (pl.col("model") == "gat")
-    ).with_columns(
+    subset = df.filter((pl.col("run_id") == run_id) & (pl.col("model") == "gat")).with_columns(
         pl.col("label").replace_strict({0: "Normal", 1: "Attack"}).alias("attack_type")
     )
     if subset.is_empty():
         print(f"  WARN: no GAT embeddings for run_id={run_id}", file=sys.stderr)
         return {}
 
-    # --- Shared bounds from ALL points (with 5% padding) ---
+    # Padded bounds for axis pinning (5% on each side).
     x_min, x_max = subset["x"].min(), subset["x"].max()
     y_min, y_max = subset["y"].min(), subset["y"].max()
     pad_x = (x_max - x_min) * 0.05
@@ -114,109 +113,26 @@ def build_umap(run_id: str) -> dict:
     x1, x2 = x_min - pad_x, x_max + pad_x
     y1, y2 = y_min - pad_y, y_max + pad_y
 
-    # --- KDE density grids per class (from ALL points) ---
-    grid_size = 100
-    density_floor = 0.05  # mask values below this to reduce visual noise
-    xi = np.linspace(x1, x2, grid_size)
-    yi = np.linspace(y1, y2, grid_size)  # natural order: row 0 = y_min
-    xx, yy = np.meshgrid(xi, yi)
-    grid_coords = np.vstack([xx.ravel(), yy.ravel()])
-
-    # Build KDEs and density grids per class
-    kdes: dict[str, gaussian_kde] = {}
-    density = {}
-    class_points: dict[str, np.ndarray] = {}
-
-    for attack_type in sorted(subset["attack_type"].unique()):
-        cls = subset.filter(pl.col("attack_type") == attack_type)
-        xy = np.vstack([cls["x"].to_numpy(), cls["y"].to_numpy()])
-        class_points[attack_type] = xy
-
-        kde = gaussian_kde(xy)
-        kdes[attack_type] = kde
-        z = kde(grid_coords)
-        z_max = z.max()
-        if z_max > 0:
-            z = z / z_max
-        # Floor low-density values to zero to reduce visual noise between clusters
-        z[z < density_floor] = 0.0
-        density[attack_type] = {
-            "grid": np.round(z, 4).tolist(),
-            "width": grid_size,
-            "height": grid_size,
-        }
-
-    # --- Convex hulls per class ---
-    hulls = {}
-    for attack_type, xy in class_points.items():
-        pts = xy.T  # (n, 2)
-        hull = ConvexHull(pts)
-        # Vertices in order, closed polygon (repeat first point)
-        verts = pts[hull.vertices].tolist()
-        verts.append(verts[0])
-        hulls[attack_type] = [{"x": round(v[0], 3), "y": round(v[1], 3)} for v in verts]
-
-    # --- Marginal 1D distributions per class (histogram bins + KDE curve) ---
-    marginal_grid = 100
-    n_bins = 30
-    mx = np.linspace(x1, x2, marginal_grid)
-    my = np.linspace(y1, y2, marginal_grid)
-    # Shared bin edges so histograms align across classes
-    x_edges = np.linspace(x1, x2, n_bins + 1)
-    y_edges = np.linspace(y1, y2, n_bins + 1)
-
-    marginals = {}
-    for attack_type, kde in kdes.items():
-        xy = class_points[attack_type]  # (2, n)
-        kde_x = kde.marginal(0)
-        kde_y = kde.marginal(1)
-
-        # Histogram: bin counts normalized to density (area = 1) for KDE overlay
-        x_counts, _ = np.histogram(xy[0], bins=x_edges, density=True)
-        y_counts, _ = np.histogram(xy[1], bins=y_edges, density=True)
-
-        marginals[attack_type] = {
-            "x": {
-                "kde_values": mx.tolist(),
-                "kde_density": np.round(kde_x(mx), 6).tolist(),
-                "bin_edges": np.round(x_edges, 3).tolist(),
-                "bin_density": np.round(x_counts, 6).tolist(),
-            },
-            "y": {
-                "kde_values": my.tolist(),
-                "kde_density": np.round(kde_y(my), 6).tolist(),
-                "bin_edges": np.round(y_edges, 3).tolist(),
-                "bin_density": np.round(y_counts, 6).tolist(),
-            },
-        }
-
-    # --- Class separability metrics ---
-    types = sorted(class_points.keys())
+    # Separability metrics (computed from full point sets).
     metrics = {}
+    types = sorted(subset["attack_type"].unique())
     if len(types) == 2:
         a, b = types
-        xy_a = class_points[a].T  # (n, 2)
-        xy_b = class_points[b].T  # (n, 2)
-
-        # KDE overlap: integral of product of the two density estimates
-        metrics["overlap_integral"] = round(float(kdes[a].integrate_kde(kdes[b])), 6)
-
-        # Wasserstein distance (earth-mover) in 2D
-        metrics["wasserstein_2d"] = round(float(wasserstein_distance_nd(xy_a, xy_b)), 4)
-
-        # Energy distance
+        cls_a = subset.filter(pl.col("attack_type") == a)
+        cls_b = subset.filter(pl.col("attack_type") == b)
+        xy_a = np.vstack([cls_a["x"].to_numpy(), cls_a["y"].to_numpy()])  # (2, n_a)
+        xy_b = np.vstack([cls_b["x"].to_numpy(), cls_b["y"].to_numpy()])  # (2, n_b)
+        kde_a = gaussian_kde(xy_a)
+        kde_b = gaussian_kde(xy_b)
+        metrics["overlap_integral"] = round(float(kde_a.integrate_kde(kde_b)), 6)
+        metrics["wasserstein_2d"] = round(float(wasserstein_distance_nd(xy_a.T, xy_b.T)), 4)
         metrics["energy_distance"] = round(float(energy_distance(xy_a.ravel(), xy_b.ravel())), 4)
 
-    # --- Sample points for scatter layer ---
-    points_df = subset.sample(n=min(500, len(subset)), seed=42)
-    points = points_df.select("x", "y", "label", "attack_type").to_dicts()
+    points = subset.select("x", "y", "label", "attack_type").to_dicts()
 
     return {
         "points": points,
         "bounds": {"x1": round(x1, 2), "y1": round(y1, 2), "x2": round(x2, 2), "y2": round(y2, 2)},
-        "density": density,
-        "hulls": hulls,
-        "marginals": marginals,
         "metrics": metrics,
     }
 
@@ -291,7 +207,9 @@ def write_csv(path: Path, df: pl.DataFrame, *, dry_run: bool = False) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--run", default=DEFAULT_RUN, help="Run ID to extract (default: %(default)s)")
+    parser.add_argument(
+        "--run", default=DEFAULT_RUN, help="Run ID to extract (default: %(default)s)"
+    )
     parser.add_argument("--dry-run", action="store_true", help="Show what would be written")
     args = parser.parse_args()
 
@@ -319,11 +237,19 @@ def main() -> None:
 
     umap_data = build_umap(run_id)
     if umap_data and umap_data.get("points"):
-        write_json(ROOT / "interactive" / "src" / "figures" / "data" / "umap" / "data.json", umap_data, dry_run=args.dry_run)
+        write_json(
+            ROOT / "interactive" / "src" / "figures" / "data" / "umap" / "data.json",
+            umap_data,
+            dry_run=args.dry_run,
+        )
 
     cka_data = build_cka(kd_run)
     if cka_data:
-        write_json(ROOT / "interactive" / "src" / "figures" / "data" / "cka" / "data.json", cka_data, dry_run=args.dry_run)
+        write_json(
+            ROOT / "interactive" / "src" / "figures" / "data" / "cka" / "data.json",
+            cka_data,
+            dry_run=args.dry_run,
+        )
 
     # fusion: dqn_policy.parquet lacks per-graph labels, so we can't produce
     # the full format (alpha + label + attack_type). Keep existing data.json.
@@ -339,7 +265,8 @@ def main() -> None:
 
     result = subprocess.run(
         [sys.executable, str(ROOT / "tools" / "validate_data.py")],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     print(result.stdout, end="")
     if result.stderr:

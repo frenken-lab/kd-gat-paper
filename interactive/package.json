@@ -13,7 +13,7 @@
     "@xyflow/svelte": "^1.5.2",
     "katex": "^0.16.44",
     "pseudocode": "^2.4.1",
-    "svelteplot": "^0.13.0"
+    "svelteplot": "^0.14.2"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^5.0.0",

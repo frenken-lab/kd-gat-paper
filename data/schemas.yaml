@@ -20,13 +20,12 @@ csv:
 json:
   umap:
     type: object
-    required_keys: [points, bounds, density, hulls, marginals, metrics]
-    # points: [{x, y, label, attack_type}] — sampled scatter (500 pts)
-    # bounds: {x1, y1, x2, y2} — shared domain for Plot + Contour
-    # density: {<attack_type>: {grid: [...], width, height}} — 100x100 KDE per class
-    # hulls: {<attack_type>: [{x, y}...]} — convex hull vertices (closed polygon)
-    # marginals: {<attack_type>: {x: {values, density}, y: {values, density}}} — 1D KDE per axis
-    # metrics: {overlap_integral, wasserstein_2d, energy_distance} — class separability
+    required_keys: [points, bounds, metrics]
+    # points: [{x, y, label, attack_type}] — every GAT embedding; svelteplot's
+    #         <Density> + densityX/Y compute KDE/contours/marginals client-side.
+    # bounds: {x1, y1, x2, y2} — pinned Plot domain so toggling classes doesn't
+    #         reflow the axes.
+    # metrics: {overlap_integral, wasserstein_2d, energy_distance} — class separability.
 
   reconstruction:
     type: object

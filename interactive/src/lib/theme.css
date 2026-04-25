@@ -78,6 +78,27 @@
   border-radius: 4px;
 }
 
+/* Slider row — used alongside .controls for figures with continuous knobs.
+   The <label> wraps "Name: <strong>value</strong>" and the range input. */
+.figure .controls.sliders label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #666;
+}
+
+.figure .controls.sliders label strong {
+  color: var(--utility-on-light);
+  min-width: 2.4em; /* keeps slider position stable as the readout's digit count changes */
+  display: inline-block;
+}
+
+.figure .controls.sliders input[type="range"] {
+  width: 110px;
+  accent-color: var(--utility-on-blue);
+}
+
 .figure .meta {
   color: #666;
 }
