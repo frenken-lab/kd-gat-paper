@@ -30,6 +30,7 @@ SITE_CONFIG = ROOT / "_build" / "site" / "config.json"
 # AST → Distill Markdown serializer
 # ---------------------------------------------------------------------------
 
+
 def _children(children: list[dict]) -> str:
     return "".join(serialize(c) for c in children)
 
@@ -51,26 +52,28 @@ def _serialize_table(rows: list[dict]) -> str:
     """Render tableRow nodes as a pipe table via tabulate."""
     grid = [
         [_children(cell.get("children", [])).strip() for cell in row.get("children", [])]
-        for row in rows if row.get("type") == "tableRow"
+        for row in rows
+        if row.get("type") == "tableRow"
     ]
     return _tabulate(grid[1:], headers=grid[0], tablefmt="github") if len(grid) >= 2 else ""
 
 
 # --- Named handlers (only for multi-line logic) ---
 
+
 def _h_cross_reference(n: dict) -> str:
     template, enum = n.get("template", ""), n.get("enumerator", "")
     if template and enum:
         return template.replace("%s", str(enum))
     inner = _C(n)
-    return inner if inner else f'[{n.get("identifier", "")}]'
+    return inner if inner else f"[{n.get('identifier', '')}]"
 
 
 def _h_link(n: dict) -> str:
     url = n.get("url", "")
     if url.startswith("/") and "." not in url:
         url = f"#{url.strip('/')}"
-    return f'[{_C(n)}]({url})'
+    return f"[{_C(n)}]({url})"
 
 
 def _h_list(n: dict) -> str:
@@ -89,7 +92,7 @@ def _h_container(n: dict) -> str:
     kind, children = n.get("kind", ""), n.get("children", [])
     if kind == "figure":
         id_attr = f' id="{n["identifier"]}"' if n.get("identifier") else ""
-        return f'\n<figure{id_attr}>\n{_children(children)}\n</figure>\n'
+        return f"\n<figure{id_attr}>\n{_children(children)}\n</figure>\n"
     if kind == "table":
         cap, body = "", ""
         for c in children:
@@ -115,7 +118,7 @@ def _h_iframe(n: dict) -> str:
     src = Path(urlparse(raw_src).path).name
     path = f"assets/html/submission/{src}"
     return (
-        f'<iframe src="{{{{ \'{path}\' | relative_url }}}}" '
+        f"<iframe src=\"{{{{ '{path}' | relative_url }}}}\" "
         f'width="100%" height="500" '
         f'style="border:none; border-radius:12px; box-shadow:0 4px 10px rgba(0,0,0,0.1);" '
         f'title="{Path(src).stem}"></iframe>'
@@ -130,7 +133,9 @@ def _h_image(n: dict) -> str:
     url_expr = f"{{{{ '{path}' | relative_url }}}}"
     if src.lower().endswith(".pdf"):
         return f'<embed src="{url_expr}" type="application/pdf" style="width:{width}; height:400px; display:block; margin:0 auto;" title="{alt}" />'
-    return f'<img src="{url_expr}" style="width:{width}; display:block; margin:0 auto;" alt="{alt}" />'
+    return (
+        f'<img src="{url_expr}" style="width:{width}; display:block; margin:0 auto;" alt="{alt}" />'
+    )
 
 
 def _h_details(n: dict) -> str:
@@ -144,12 +149,12 @@ def _h_details(n: dict) -> str:
             body_parts.append(serialize(c))
     body = "\n".join(body_parts)
     return (
-        f'\n<details{open_attr}>\n'
-        f'<summary>{summary}</summary>\n'
+        f'\n<details{open_attr} markdown="1">\n'
+        f"<summary>{summary}</summary>\n"
         f'<div markdown="1">\n\n'
-        f'{body}\n'
-        f'</div>\n'
-        f'</details>\n'
+        f"{body}\n"
+        f"</div>\n"
+        f"</details>\n"
     )
 
 
@@ -183,69 +188,76 @@ def _h_admonition(n: dict) -> str:
         box = "border:1px solid #4a86c8; border-radius:4px; padding:16px 20px; margin:24px 0; background:#f8faff; font-family:'Times New Roman',serif;"
         cap = "font-weight:700; font-size:14px; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #ccd9f0; color:#0066cc; font-family:system-ui,-apple-system,sans-serif;"
         algo_css = (
-            '<style>'
-            '.algorithm table { width:100%; border-collapse:collapse; }'
-            '.algorithm th { display:none; }'
-            '.algorithm td { border:none; padding:2px 8px; vertical-align:top; line-height:1.6; }'
-            '.algorithm td:first-child { width:2em; text-align:right; color:#8899aa; font-size:0.85em; padding-right:12px; }'
-            '.algorithm td:last-child { text-align:right; color:#6688aa; font-style:italic; font-size:0.9em; white-space:nowrap; }'
-            '.algorithm tr:hover td { background:#e8f0ff; transition:background 0.15s; }'
-            '.algorithm tr:hover td:first-child { color:#0066cc; }'
-            '</style>\n'
+            "<style>"
+            ".algorithm table { width:100%; border-collapse:collapse; }"
+            ".algorithm th { display:none; }"
+            ".algorithm td { border:none; padding:2px 8px; vertical-align:top; line-height:1.6; }"
+            ".algorithm td:first-child { width:2em; text-align:right; color:#8899aa; font-size:0.85em; padding-right:12px; }"
+            ".algorithm td:last-child { text-align:right; color:#6688aa; font-style:italic; font-size:0.9em; white-space:nowrap; }"
+            ".algorithm tr:hover td { background:#e8f0ff; transition:background 0.15s; }"
+            ".algorithm tr:hover td:first-child { color:#0066cc; }"
+            "</style>\n"
         )
         return (
             f'\n{algo_css}<div class="algorithm" style="{box}" markdown="1">\n'
             f'<p style="{cap}">{title}</p>\n\n'
-            f'{"".join(body_parts)}\n\n</div>\n'
+            f"{''.join(body_parts)}\n\n</div>\n"
         )
 
     body = "\n".join(f"> {l}" if l else ">" for p in body_parts for l in p.split("\n"))
-    return f'\n> **{title}**\n>\n{body}\n' if title else f'\n{body}\n'
+    return f"\n> **{title}**\n>\n{body}\n" if title else f"\n{body}\n"
 
 
 # --- Dispatch table ---
 
 HANDLERS: dict[str, callable] = {
     # Leaf nodes
-    "text":           lambda n: re.sub(r"\s*\{#[^}]+\}\s*$", "", _V(n)),
-    "inlineMath":     lambda n: f'${_V(n)}$',
-    "math":           lambda n: f'\n$$\n{_V(n)}\n$$\n',
-    "inlineCode":     lambda n: f'`{_V(n)}`',
-    "code":           lambda n: f'\n```{n.get("lang", "")}\n{_V(n)}\n```\n',
-    "html":           _V,
-    "raw":            _V,
-    "comment":        lambda _: "",
-    "thematicBreak":  lambda _: "\n---\n",
+    "text": lambda n: re.sub(r"\s*\{#[^}]+\}\s*$", "", _V(n)),
+    "inlineMath": lambda n: f"${_V(n)}$",
+    "math": lambda n: f"\n$$\n{_V(n)}\n$$\n",
+    "inlineCode": lambda n: f"`{_V(n)}`",
+    "code": lambda n: f"\n```{n.get('lang', '')}\n{_V(n)}\n```\n",
+    "html": _V,
+    "raw": _V,
+    "comment": lambda _: "",
+    "thematicBreak": lambda _: "\n---\n",
     # Citations
-    "citeGroup":      lambda n: "".join(
-                          f'<d-cite key="{c.get("label", c["identifier"])}"></d-cite>'
-                          for c in n.get("children", []) if c.get("type") == "cite"),
-    "cite":           lambda n: f'<d-cite key="{n.get("label", n["identifier"])}"></d-cite>',
+    "citeGroup": lambda n: "".join(
+        f'<d-cite key="{c.get("label", c["identifier"])}"></d-cite>'
+        for c in n.get("children", [])
+        if c.get("type") == "cite"
+    ),
+    "cite": lambda n: f'<d-cite key="{n.get("label", n["identifier"])}"></d-cite>',
     # Structure
-    "heading":        lambda n: f'\n{"#" * n.get("depth", 2)} {_C(n)}\n',
-    "paragraph":      lambda n: f'\n{_C(n)}\n',
-    "strong":         lambda n: f'**{_C(n)}**',
-    "emphasis":       lambda n: f'*{_C(n)}*',
-    "caption":        lambda n: f'\n<figcaption>{_C(n)}</figcaption>',
-    "captionNumber":  lambda n: _C(n) + " ",
+    "heading": lambda n: f"\n{'#' * n.get('depth', 2)} {_C(n)}\n",
+    "paragraph": lambda n: f"\n{_C(n)}\n",
+    "strong": lambda n: f"**{_C(n)}**",
+    "emphasis": lambda n: f"*{_C(n)}*",
+    "caption": lambda n: f"\n<figcaption>{_C(n)}</figcaption>",
+    "captionNumber": lambda n: _C(n) + " ",
     # Tables
-    "table":          lambda n: "\n" + _serialize_table(n.get("children", [])) + "\n",
+    "table": lambda n: "\n" + _serialize_table(n.get("children", [])) + "\n",
     # Passthrough (just recurse into children)
-    "root": _C, "block": _C, "include": _C, "listItem": _C,
-    "legend": _C, "outputs": _C, "admonitionTitle": lambda _: "",
+    "root": _C,
+    "block": _C,
+    "include": _C,
+    "listItem": _C,
+    "legend": _C,
+    "outputs": _C,
+    "admonitionTitle": lambda _: "",
     # Multi-line logic
     "crossReference": _h_cross_reference,
-    "link":           _h_link,
-    "list":           _h_list,
-    "container":      _h_container,
-    "image":          _h_image,
-    "iframe":         _h_iframe,
-    "admonition":     _h_admonition,
+    "link": _h_link,
+    "list": _h_list,
+    "container": _h_container,
+    "image": _h_image,
+    "iframe": _h_iframe,
+    "admonition": _h_admonition,
     # Collapsible / tabbed content
-    "details":        _h_details,
-    "summary":        lambda n: _C(n),  # handled by _h_details; standalone fallback
-    "tabSet":         _h_tab_set,
-    "tabItem":        lambda n: _C(n),  # handled by _h_tab_set; standalone fallback
+    "details": _h_details,
+    "summary": lambda n: _C(n),  # handled by _h_details; standalone fallback
+    "tabSet": _h_tab_set,
+    "tabItem": lambda n: _C(n),  # handled by _h_tab_set; standalone fallback
 }
 
 
@@ -268,6 +280,7 @@ def serialize(node: dict) -> str:
 # Build orchestration
 # ---------------------------------------------------------------------------
 
+
 def build_frontmatter(proj: dict, anonymous: bool) -> str:
     """Build TMLR YAML frontmatter from site config metadata."""
     # Abstract from index page AST
@@ -283,7 +296,9 @@ def build_frontmatter(proj: dict, anonymous: bool) -> str:
                 abstract_ast = json.loads(abstract_ast)
             abstract = _text_of(abstract_ast)
         else:
-            warnings.warn("abstract not found in index.json frontmatter — description will be empty")
+            warnings.warn(
+                "abstract not found in index.json frontmatter — description will be empty"
+            )
 
     # Authors
     if anonymous:
@@ -299,14 +314,17 @@ def build_frontmatter(proj: dict, anonymous: bool) -> str:
                 }
             authors.append(entry)
 
-    return yaml.dump({
-        "layout": "distill",
-        "title": proj.get("title", ""),
-        "description": abstract,
-        "htmlwidgets": True,
-        "authors": authors,
-        "bibliography": "submission.bib",
-    }, sort_keys=False)
+    return yaml.dump(
+        {
+            "layout": "distill",
+            "title": proj.get("title", ""),
+            "description": abstract,
+            "htmlwidgets": True,
+            "authors": authors,
+            "bibliography": "submission.bib",
+        },
+        sort_keys=False,
+    )
 
 
 def build_toc(content: str) -> list[dict]:
@@ -316,9 +334,7 @@ def build_toc(content: str) -> list[dict]:
         if line.startswith("## ") and not line.startswith("### "):
             entries.append({"name": line[3:].strip()})
         elif line.startswith("### ") and entries:
-            entries[-1].setdefault("subsections", []).append(
-                {"name": line[4:].strip()}
-            )
+            entries[-1].setdefault("subsections", []).append({"name": line[4:].strip()})
     return entries
 
 
