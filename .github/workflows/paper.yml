@@ -26,9 +26,20 @@ jobs:
       - run: python tools/validate_data.py
       - run: python tools/validate_bib.py
 
+  # Fast TMLR-converter regression check, parallel to validate. Fails fast on
+  # paper-content edits that would break the load-bearing AST walker.
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install pyyaml tabulate pytest
+      - run: python -m pytest tests/ -v
+
   figures:
     runs-on: ubuntu-latest
-    needs: validate
+    needs: [validate, test]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

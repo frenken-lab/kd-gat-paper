@@ -1,0 +1,14 @@
+# Entrypoints required to be Read before any Write/Edit in this project.
+# Enforced by ~/.claude/hooks/require-entrypoint-reads.py.
+# CLAUDE.md is auto-loaded by Claude Code — not listed here.
+#
+# This list exists because the 2026-04-24 paper-tooling session prescribed
+# migration off MyST without ever opening tools/tmlr/build.py — the 415-line
+# custom AST walker that consumes MyST's mdast and makes MyST load-bearing.
+# See ~/paper-tooling-evidence.md lines 257-291 for the post-mortem.
+
+README.md
+myst.yml
+Makefile
+tools/tmlr/build.py
+tools/pdf/extract-svg.js

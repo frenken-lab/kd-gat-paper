@@ -1,0 +1,41 @@
+# Install: uv tool install pre-commit && pre-commit install
+# Run on demand: pre-commit run --all-files
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^tmlr_do_not_modify/
+      - id: end-of-file-fixer
+        exclude: ^tmlr_do_not_modify/
+      - id: check-yaml
+        exclude: ^tmlr_do_not_modify/
+      - id: check-added-large-files
+        args: ["--maxkb=1024"]
+        exclude: ^tmlr_do_not_modify/
+
+  - repo: local
+    hooks:
+      # The TMLR converter (tools/tmlr/build.py) is a 415-line MyST-AST → Distill
+      # serializer. Re-run its tests whenever paper content or the converter changes.
+      - id: pytest-tmlr
+        name: pytest tools/tmlr
+        language: system
+        entry: uv run python -m pytest tests/ -q
+        files: '^(paper/(content|candidacy)/.*\.md|tools/tmlr/.*\.py|tests/.*\.py)$'
+        pass_filenames: false
+
+      - id: validate-bib
+        name: validate bibliography
+        language: system
+        entry: uv run python tools/validate_bib.py
+        files: '^paper/references/.*\.bib$'
+        pass_filenames: false
+
+      - id: validate-data
+        name: validate data schemas
+        language: system
+        entry: uv run python tools/validate_data.py
+        files: '^(data/csv/.*\.csv|data/schemas\.yaml)$'
+        pass_filenames: false

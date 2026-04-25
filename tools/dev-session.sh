@@ -50,6 +50,16 @@ tmux send-keys -t "$SESSION:figures" "npm run dev -- --port 5173" Enter
 tmux new-window -t "$SESSION" -n "shell" -c "$REPO_ROOT"
 tmux send-keys -t "$SESSION:shell" "echo 'Paper: http://localhost:3000  Figures: http://localhost:5173'" Enter
 
+# Window 4: Tables auto-rebuild on data/spec change (degrades gracefully without entr)
+tmux new-window -t "$SESSION" -n "tables" -c "$REPO_ROOT"
+if command -v entr &>/dev/null; then
+    tmux send-keys -t "$SESSION:tables" \
+        "find data/csv data/schemas.yaml tools/tables/spec.yaml | entr -r make tables" Enter
+else
+    tmux send-keys -t "$SESSION:tables" \
+        "echo 'entr not installed — tables will not auto-rebuild. Run: make tables'" Enter
+fi
+
 # Focus on shell window
 tmux select-window -t "$SESSION:shell"
 
@@ -57,7 +67,7 @@ echo ""
 echo "Dev session ready:"
 echo "  Paper preview:  http://localhost:3000"
 echo "  Figure HMR:     http://localhost:5173"
-echo "  tmux session:   $SESSION (3 windows: paper, figures, shell)"
+echo "  tmux session:   $SESSION (4 windows: paper, figures, shell, tables)"
 echo ""
 echo "VS Code: Ctrl+Shift+P → 'Simple Browser: Show' → localhost:3000"
 echo ""
