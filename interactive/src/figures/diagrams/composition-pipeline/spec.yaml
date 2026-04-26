@@ -1,0 +1,68 @@
+figure: composition-pipeline
+
+# Five-stage deployment-time decision pipeline composing the candidacy answers:
+#   trust gates (Q1.1) → simplex policy (Q4.2) → safety shield (Q4.1)
+#                     → UCB deferral (Q4.1) → conformal abstain (Q2.1)
+# Each stage targets a distinct failure mode; the composition is the
+# integrative claim of the thesis.
+
+components:
+  # Input
+  state: { type: box, label: "State s_t (15-d)", color: data, width: 140, height: 36 }
+
+  # Stage 1: Trust gates (Q1.1) — three conjunctive gates
+  gate_r: { type: box, label: "V_regime",   color: vgae, width: 90, height: 28 }
+  gate_s: { type: box, label: "V_signal",   color: vgae, width: 90, height: 28 }
+  gate_d: { type: box, label: "V_residual", color: vgae, width: 90, height: 28 }
+
+  # Stage 2: Simplex policy (Q4.2)
+  policy: { type: box, label: "Simplex policy α∈Δ", color: dqn, width: 150, height: 36 }
+
+  # Stage 3: Safety shield (Q4.1) — projects α onto λ_phys-feasible subset
+  shield: { type: box, label: "Shield α_phys ≤ λ", color: kd, width: 150, height: 36 }
+
+  # Stage 4: UCB deferral (Q4.1) — bandit confidence on whole policy
+  ucb: { type: box, label: "UCB deferral", color: attention, width: 130, height: 36 }
+
+  # Stage 5: Conformal abstain (Q2.1) — distribution-free coverage
+  conformal: { type: box, label: "Conformal abstain", color: data, width: 150, height: 36 }
+
+  # Outputs
+  act:   { type: box, label: "Detect / Act",   color: gat, width: 110, height: 32 }
+  defer: { type: box, label: "Defer to Human", color: kd,  width: 130, height: 32 }
+
+layout:
+  type: hstack
+  gap: 50
+  align: center
+  children:
+    - state
+    - type: vstack
+      gap: 16
+      align: center
+      container: { label: "Trust gates (Q1.1)", color: vgae }
+      children: [gate_r, gate_s, gate_d]
+    - policy
+    - shield
+    - ucb
+    - conformal
+    - type: vstack
+      gap: 36
+      align: center
+      children: [act, defer]
+
+bridges:
+  # Backbone flow — solid grey for normal-path information flow
+  - { from: state,     to: gate_r,    type: flow, color: grey }
+  - { from: state,     to: gate_s,    type: flow, color: grey }
+  - { from: state,     to: gate_d,    type: flow, color: grey }
+  - { from: gate_d,    to: policy,    type: flow, color: grey, label: "all pass" }
+  - { from: policy,    to: shield,    type: flow, color: grey }
+  - { from: shield,    to: ucb,       type: flow, color: grey }
+  - { from: ucb,       to: conformal, type: flow, color: grey }
+  - { from: conformal, to: act,       type: flow, color: grey, label: "confident" }
+
+  # Recovery / abstain paths — dashed kd to mark "this is the safe-side branch"
+  - { from: gate_r,    to: defer, type: flow, color: kd, style: dashed, label: "any V fails" }
+  - { from: ucb,       to: defer, type: flow, color: kd, style: dashed, label: "high UCB" }
+  - { from: conformal, to: defer, type: flow, color: kd, style: dashed, label: "wide set" }

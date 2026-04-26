@@ -13,7 +13,7 @@ A model "knows what it doesn't know" when its probabilistic output separates two
 - **Aleatoric uncertainty** is irreducible noise inherent in the data — two CAN windows with identical byte profiles but different attack labels (class overlap near the decision boundary). No amount of additional data can collapse this. The correct behaviour is a softmax probability near 0.5 for binary classification, which a well-calibrated classifier produces automatically.
 - **Epistemic uncertainty** is reducible ignorance about model parameters, arising from finite training data or from inputs that fall outside the training distribution (OOD samples). A model that has never seen a masquerade attack should output a low *confidence*, not a confident wrong prediction. Out-of-distribution detection is the operational form of this requirement [@OODSurvey; @OODDetection].
 
-For a CAN IDS these map cleanly onto attack-type coverage: aleatoric uncertainty flags ambiguous benign/attack boundary cases; epistemic uncertainty flags attacks we have not seen during training — exactly the "specialist weakness" failure mode that motivates the ensemble ([](#fig-framework), [@OODFailures]).
+For a CAN IDS these map cleanly onto attack-type coverage: aleatoric uncertainty flags ambiguous benign/attack boundary cases; epistemic uncertainty flags attacks we have not seen during training — exactly the "specialist weakness" failure mode that motivates the ensemble [@OODFailures].
 
 A model that *fails* to know what it doesn't know tends to produce high-confidence wrong predictions on OOD inputs. @guo2017calibration documents this as a systemic property of modern deep networks: they are *overconfident*, their maximum-softmax probability systematically exceeds their empirical accuracy, and the gap widens with model depth and capacity. @ovadia2019trust extend this to distribution shift: every post-hoc calibration method they tested (temperature scaling, ensembles, Bayesian methods) degrades under shift, but the *ranking* is preserved — deep ensembles and MC-dropout degrade most gracefully, isotonic regression degrades worst. Both results directly motivate the ensemble design used here.
 
@@ -67,16 +67,79 @@ Three pieces are missing and correspond to the open questions below: formal cali
 
 > When multiple explainability methods produce different explanations for the same prediction, how should a practitioner determine which explanation to trust and for whom?
 
-**Thesis.** There is no universally correct explanation. Trustworthiness depends on three independent criteria — *faithfulness* (does the explanation track what the model actually uses?), *stability* (does it persist under small input perturbations?), and *audience fit* (does the abstraction level match the consumer's decision?). Triangulate across explainers rather than picking one; disagreement between explainers is informative, not noise.
+### What "trustworthy explanation" means, formally
 
-**Anchors in the current framework.**
+There is no universally correct explanation; trustworthiness factors into three independent criteria. Conflating them is the most common error in XAI practice [@ModelInterpretability].
 
-- Multiple inspection layers already exist and can serve as a natural triangulation set: GAT attention weights (`paper/content/explainability.md` §GAT Attention, [](#fig-attention)), UMAP embedding clusters (§UMAP, [](#fig-umap)), VGAE composite reconstruction error (§Composite VGAE), DQN fusion-weight distributions (§DQN-Fusion Analysis, [](#fig-fusion)).
-- The proposed XAI extension in `paper/candidacy/proposed-research.md` §Explainable AI (lines 206–228) enumerates LIME [@LIME], SHAP [@SHAP], TCAV [@TCAV], counterfactual explanations [@CFGNNExplainer; @CounterfactualExplainability], and ProtoPNet [@ProtoPNet]. Each targets a different audience: LIME/SHAP for feature-level attribution (developer/operator), TCAV for concept-level behaviour (safety engineer), prototypes for case-based reasoning (fleet analyst).
+**1. Faithfulness — does the explanation track what the model actually uses?** Writing $f$ for the model, $x$ for the input, and $E(x)$ for an explanation that ranks input components by importance, the standard operationalisations are:
 
-**Open questions.**
+$$
+\mathrm{AUC}_{\text{del}}(E, f, x) = \int_0^1 f\bigl(x \setminus E_{\le k}\bigr)\,dk
+\qquad
+\mathrm{AUC}_{\text{ins}}(E, f, x) = \int_0^1 f\bigl(\emptyset \cup E_{\le k}\bigr)\,dk
+$$
 
-- **Faithfulness is not measured.** Standard metrics — deletion-AUC, insertion-AUC, and the @adebayo2018sanity model- and data-randomization sanity checks — should be added. An explanation that survives model randomization is *not* faithful and must be rejected.
-- **Stability is not measured.** Perturbation-robustness (e.g., Lipschitz bounds of the explainer) is unreported for GAT attention.
-- **Audience mapping is not written.** Required: a table mapping each audience (fleet operator, safety engineer, developer, ISO auditor) to the explainer that answers their decision-relevant question, with the faithfulness/stability scores attached.
-- **Disagreement-as-signal.** Explainer disagreement is informative of both model uncertainty and explainer unreliability; no protocol currently disambiguates the two. A principled approach: when GAT-attention and SHAP disagree, check fusion confidence — high confidence + disagreement implicates the explainer; low confidence + disagreement implicates the model (ties to Q2.1).
+— deletion-AUC drops the top-$k$ components ranked by $E$ and measures how fast the prediction collapses; insertion-AUC adds them back and measures how fast it recovers. A faithful explanation has *low* deletion-AUC and *high* insertion-AUC. An *unfaithful* explanation passes the model-randomisation and data-randomisation **sanity checks** of @adebayo2018sanity: if the explanation looks the same when the model's weights are randomised, the "explanation" is decorative — it tracks input statistics rather than model behaviour. This is the disqualifying test, applied first.
+
+**2. Stability — does it persist under small input perturbations?** A useful explanation should not change discontinuously when $x$ is perturbed to $x + \delta$ for small $\delta$. The Lipschitz formulation:
+
+$$
+\mathrm{Stab}(E, f, x; r) = \max_{\|\delta\|\le r}\;\frac{\bigl\|E(x + \delta) - E(x)\bigr\|}{\|\delta\|}
+$$
+
+Low Lipschitz constant means stable; large means brittle. For graph models, $\delta$ should respect the graph structure (small edge perturbations on the input graph, not arbitrary feature noise). Stability is necessary but not sufficient for trust — a constant explanation is perfectly stable and perfectly useless.
+
+**3. Audience fit — does the abstraction level match the consumer's decision?** This is a stakeholder-engineering criterion, not a mathematical one. A fleet operator deciding whether to dispatch a tow truck needs a case-based explanation ("this CAN sequence resembles known DoS prototypes"); a developer debugging a false positive needs feature attribution ("removing the engine-RPM signal would have flipped the decision"); an ISO 26262 auditor [@ISO26262Part1; @ISO26262SafetyCase] needs concept-level evidence ("the model's response to high-frequency injection scales linearly with frequency, as expected"). The same prediction warrants different explanations for these three audiences; an explanation that is faithful and stable but mis-targeted is operationally useless.
+
+A useful explanation requires *all three*: pass the sanity check, satisfy a stability bound, match the audience's decision granularity. Most explainers in the literature [@LIME; @SHAP; @TCAV; @ProtoPNet; @CFGNNExplainer] provide one or two; none provides all three by construction.
+
+### A triangulation protocol for disagreement
+
+Rather than picking a single explainer, evaluate multiple and treat disagreement as a *signal*. The diagnostic move is to cross-reference explainer agreement with Q2.1's calibration framework:
+
+| Fusion confidence | Explainer agreement | Diagnostic interpretation | Operational action |
+|---|---|---|---|
+| High | High | Trustworthy decision and explanation | Surface to operator |
+| High | Low | Model is confident but explainers disagree → likely **explainer unreliability** | Run @adebayo2018sanity sanity checks; cross-validate explainers on a calibration set; do not blame the model |
+| Low | High | Model is uncertain but explainers agree on *what little signal exists* → **honest epistemic uncertainty** | Defer to human review (selective-prediction action of Q2.1) |
+| Low | Low | Model is uncertain *and* explainers disagree → **OOD input** | Conformal-prediction abstain / route to PINN safety shield (Q4.1) |
+
+This 2×2 is the operational core of "disagreement is informative, not noise." Notably, only the *high-confidence + low-agreement* cell unambiguously implicates the explainer; the other failure modes implicate the model or the input. The protocol therefore protects the model's reputation against unfaithful explainers — important under ISO 26262 review where a single brittle explainer can otherwise force unwarranted model rejection.
+
+A complementary aggregation move under disagreement is to require *consensus on the disqualification direction* — if any explainer flags an input feature as critical and another flags it as irrelevant, the conservative move is to assume both, i.e., treat the input as one whose decision relies on a contested feature. This is the dual of disagreement-as-signal: agreement is informative *for trust*; disagreement is informative *for caution*.
+
+### Audience-explainer mapping
+
+Each XAI method targets a distinct level of abstraction; matching the level to the consumer's decision is what audience fit means in practice.
+
+| Audience | Decision they need to make | Required abstraction | Recommended explainer | Faithfulness handle | Stability handle |
+|---|---|---|---|---|---|
+| Fleet operator | "Is this alert real or noise?" | Case-based — match against known patterns | Prototype-based [@ProtoPNet; @PrototypeLearning] | Inherent (model literally uses prototypes) | High by construction (prototypes are fixed) |
+| Developer | "Why did the model fire? Which feature drove it?" | Feature-level attribution | LIME [@LIME], SHAP [@SHAP] | Deletion-/insertion-AUC; @adebayo2018sanity sanity checks | Lipschitz on perturbations of $x$ |
+| Safety engineer | "Does the model behave correctly across a *concept* (e.g., DoS frequency response)?" | Concept-level | TCAV [@TCAV] | Concept-vector statistical testing (built into TCAV) | Concept-vector stability across user-defined concepts |
+| ISO 26262 auditor [@ISO26262SafetyCase] | "Where is the failure-mode boundary?" | Counterfactual — "what's the smallest perturbation that flips the decision?" | CF-GNNExplainer [@CFGNNExplainer; @CounterfactualExplainability] | Built-in: counterfactual is, by definition, an action on the model | Boundary smoothness; small input changes should yield small counterfactuals |
+| NIST AI RMF [@NISTAIRisk] | "Does the model meet trustworthy-AI characteristics?" | Aggregate (multiple methods) | Triangulation across all of the above | Documented per-method | Documented per-method |
+
+**Layered rendering of the same prediction.** The framework should produce, for any flagged CAN sequence, *all five* explanations and surface them in a single audit-ready report. The fleet operator reads only the prototype panel; the auditor reads all five. This is a presentation-layer commitment, not an architectural one — the model produces the same outputs in either case.
+
+### How this framework's existing layers form a triangulation set
+
+The existing inspection layers already span multiple abstractions; mapping them onto standard XAI categories shows the framework is a triangulation set today, even before the proposed XAI extension lands.
+
+| Existing layer | Where | What it shows | Standard category |
+|---|---|---|---|
+| GAT attention weights | `paper/content/explainability.md` §GAT Attention, [](#fig-attention) | Per-edge importance on the CAN graph | Native graph attribution (analogue to gradient-times-input) |
+| VGAE composite reconstruction error | `paper/content/explainability.md` §Composite VGAE, [](#fig-reconstruction) | Per-component decomposition: node, neighbour, CAN-ID | Reconstruction-error attribution |
+| UMAP of GAT penultimate-layer embeddings | `paper/content/explainability.md` §UMAP, [](#fig-umap) | Cluster geometry by attack type | Latent-space concept analysis (TCAV-adjacent) |
+| DQN fusion-weight distributions | `paper/content/explainability.md` §DQN-Fusion Analysis, [](#fig-fusion) | Policy mode: which expert was trusted, when, on which attack types | Decision-process interpretability (no standard XAI label, but this is the audit trail the ISO auditor wants) |
+
+The proposed XAI extension in `paper/candidacy/proposed-research.md` §Explainable AI (lines 206–228) adds LIME [@LIME], SHAP [@SHAP], TCAV [@TCAV], CF-GNNExplainer [@CFGNNExplainer], and ProtoPNet [@ProtoPNet] — completing the audience-explainer table above. The triangulation protocol from §Triangulation above tells the practitioner *what to do* once these are all running.
+
+### Open questions
+
+- **Faithfulness is not measured for any current layer.** Deletion-AUC and insertion-AUC on GAT attention, and the @adebayo2018sanity model- and data-randomisation sanity checks, should be the first additions. An attention-weight visualisation that survives model randomisation is *decorative*, not faithful, and must be rejected — the absence of this check in CAN-IDS XAI literature is a gap the framework is positioned to close.
+- **Stability is not measured.** Lipschitz bounds on GAT attention with respect to graph-structural perturbations (edge addition/removal) are unreported. The graph-adversarial-attack literature [@zugner2018adversarial] from `paper/candidacy/proposed-research.md` §Adversarial Robustness provides the natural perturbation set; running the existing attention layer through it gives both stability bounds *and* adversarial robustness data simultaneously.
+- **Audience-decision protocols.** The mapping table above is a recommendation; in practice the relevant decisions for each audience need to be elicited from real fleet operators, safety engineers, and OEM compliance teams. This is qualitative research that is not currently scoped but is necessary for a defensible NIST AI RMF [@NISTAIRisk] compliance argument.
+- **Disagreement protocol calibration.** The 2×2 confidence-vs-agreement diagnostic relies on the calibrated confidence from Q2.1. Until class-conditional ECE and conformal coverage are measured (Q2.1 open questions), the "high confidence" cell is not operationally trustworthy.
+- **Explainer agreement metric.** "Agreement" between LIME/SHAP feature attributions is straightforward (cosine similarity over normalised attribution vectors), but agreement between LIME and TCAV (different abstractions) requires a unifying metric — either projecting to a common feature basis or comparing top-$k$ predictive features. The XAI literature has no consensus answer; this is a methodological contribution available within the framework.
+- **Tie-in to selective prediction.** The low-confidence + low-agreement diagnostic ("OOD input") naturally feeds into the conformal-prediction abstain mechanism from Q2.1. Composing the two — abstain on (low-conf ∪ low-agreement) rather than on low-conf alone — is a stricter selective-prediction rule that has not been studied in the calibration literature and is empirically tractable on this framework's existing layers.
