@@ -145,7 +145,6 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - run: pip install pyyaml tabulate pandas
-      - uses: typst-community/setup-typst@v4
       - name: Deploy candidacy to curve.space
         env:
           CURVENOTE_TOKEN: ${{ secrets.CURVENOTE_TOKEN }}
@@ -155,5 +154,4 @@ jobs:
           trap 'mv myst.yml.paper myst.yml' EXIT
           python tools/tables/build.py
           npm install -g mystmd@1.8.3
-          myst build --pdf
           npx -y curvenote@0.14.3 deploy --yes

@@ -1,7 +1,5 @@
 version: 1
 project:
-  plugins:
-    - tools/myst-plugins/dev-iframes.mjs
   title: "Adaptive Fusion of Graph-Based Ensembles for Automotive Intrusion Detection"
   subtitle: "PhD Candidacy Report"
   authors:
