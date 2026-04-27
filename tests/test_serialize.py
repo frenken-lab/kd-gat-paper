@@ -7,7 +7,6 @@ Focuses on two known failure modes:
 
 from __future__ import annotations
 
-import re
 import sys
 from pathlib import Path
 
@@ -15,23 +14,47 @@ import pytest
 
 # Make tools/tmlr importable
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools" / "tmlr"))
-from build import serialize, _text_of, _serialize_table, HANDLERS
+from build import serialize, _text_of
 
 from conftest import (
-    text, inline_math, block_math, inline_code, code, html, thematic_break,
-    strong, emphasis, paragraph, heading, root, block,
-    list_item, unordered_list, ordered_list,
-    cite, cite_group, cross_reference, link,
-    figure, caption, caption_number, table_container,
-    table_row, table_cell, table,
-    iframe, admonition, admonition_title,
-    summary, details, tab_item, tab_set,
+    text,
+    inline_math,
+    block_math,
+    inline_code,
+    code,
+    html,
+    thematic_break,
+    strong,
+    emphasis,
+    paragraph,
+    heading,
+    root,
+    list_item,
+    unordered_list,
+    ordered_list,
+    cite,
+    cite_group,
+    cross_reference,
+    link,
+    figure,
+    caption,
+    caption_number,
+    table_container,
+    table_row,
+    table_cell,
+    table,
+    iframe,
+    admonition,
+    details,
+    tab_item,
+    tab_set,
 )
 
 
 # ===================================================================
 # CITATIONS — <d-cite> tags must survive as raw HTML, not escaped text
 # ===================================================================
+
 
 class TestCitations:
     """Verify <d-cite> tags render as valid HTML in all contexts."""
@@ -49,9 +72,13 @@ class TestCitations:
         assert result == '<d-cite key="smith2024"></d-cite>'
 
     def test_cite_group_multiple(self):
-        result = serialize(cite_group(
-            cite("smith2024"), cite("jones2023"), cite("lee2025"),
-        ))
+        result = serialize(
+            cite_group(
+                cite("smith2024"),
+                cite("jones2023"),
+                cite("lee2025"),
+            )
+        )
         assert result == (
             '<d-cite key="smith2024"></d-cite>'
             '<d-cite key="jones2023"></d-cite>'
@@ -127,7 +154,8 @@ class TestCitations:
 
     def test_cite_in_caption(self):
         """Citations in figure captions must render as HTML."""
-        node = figure("fig-test",
+        node = figure(
+            "fig-test",
             caption(text("Results from "), cite("smith2024")),
         )
         result = serialize(node)
@@ -145,6 +173,7 @@ class TestCitations:
 # ===================================================================
 # INLINE MATH — must compile in MathJax, not break markdown parsing
 # ===================================================================
+
 
 class TestInlineMath:
     """Verify $...$ inline math survives serialization for MathJax."""
@@ -285,8 +314,8 @@ class TestBlockMath:
 # CROSS-REFERENCES — resolved enumerators from MyST
 # ===================================================================
 
-class TestCrossReferences:
 
+class TestCrossReferences:
     def test_equation_ref_with_template(self):
         node = cross_reference(identifier="eq-loss", template="(%s)", enumerator="3")
         result = serialize(node)
@@ -333,8 +362,8 @@ class TestCrossReferences:
 # LINKS
 # ===================================================================
 
-class TestLinks:
 
+class TestLinks:
     def test_external_url(self):
         node = link("https://example.com", text("click"))
         result = serialize(node)
@@ -361,8 +390,8 @@ class TestLinks:
 # IFRAMES — Liquid template syntax for Jekyll
 # ===================================================================
 
-class TestIframes:
 
+class TestIframes:
     def test_github_pages_url_extraction(self):
         node = iframe("https://frenken-lab.github.io/kd-gat-paper/confusion_matrix.html")
         result = serialize(node)
@@ -381,18 +410,21 @@ class TestIframes:
         assert 'title="roc_curve"' in result
 
     def test_iframe_dimensions(self):
+        # Height is just an initial placeholder — autoResizeIframe (in
+        # interactive/src/lib/figure-resize.ts) grows/shrinks the host iframe
+        # to fit content on same-origin builds.
         node = iframe("https://example.com/fig.html")
         result = serialize(node)
         assert 'width="100%"' in result
-        assert 'height="500"' in result
+        assert 'height="400"' in result
 
 
 # ===================================================================
 # ADMONITIONS — blockquotes (regular) and algorithm boxes
 # ===================================================================
 
-class TestAdmonitions:
 
+class TestAdmonitions:
     def test_regular_admonition_blockquote(self):
         node = admonition(
             [text("Note")],
@@ -431,15 +463,17 @@ class TestAdmonitions:
 # DROPDOWNS / DETAILS
 # ===================================================================
 
-class TestDetails:
 
+class TestDetails:
     def test_closed_details(self):
         node = details(
             [text("Show proof")],
             [paragraph(text("By induction..."))],
         )
         result = serialize(node)
-        assert "<details " in result or "<details\n" in result or result.strip().startswith("<details")
+        assert (
+            "<details " in result or "<details\n" in result or result.strip().startswith("<details")
+        )
         assert " open" not in result.split("<summary")[0]  # no open before summary
         assert "<summary" in result
 
@@ -472,8 +506,8 @@ class TestDetails:
 # TAB SETS — degraded to flat sections
 # ===================================================================
 
-class TestTabSets:
 
+class TestTabSets:
     def test_tabs_degrade_to_sections(self):
         node = tab_set(
             tab_item("PyTorch", paragraph(text("import torch"))),
@@ -494,8 +528,8 @@ class TestTabSets:
 # FIGURES AND TABLES
 # ===================================================================
 
-class TestContainers:
 
+class TestContainers:
     def test_figure_with_id(self):
         node = figure("fig-arch", caption(text("Architecture")))
         result = serialize(node)
@@ -503,12 +537,16 @@ class TestContainers:
         assert "<figcaption>" in result
 
     def test_figure_without_id(self):
-        node = {"type": "container", "kind": "figure", "children": [
-            caption(text("Caption")),
-        ]}
+        node = {
+            "type": "container",
+            "kind": "figure",
+            "children": [
+                caption(text("Caption")),
+            ],
+        }
         result = serialize(node)
         assert "<figure>" in result
-        assert 'id=' not in result
+        assert "id=" not in result
 
     def test_caption_number_spacing(self):
         node = caption(caption_number(text("Figure 1")), text("The architecture"))
@@ -518,7 +556,8 @@ class TestContainers:
 
     def test_table_container_pipe_table(self):
         """Table container without pre-built HTML falls back to pipe table."""
-        node = table_container("tbl-custom",
+        node = table_container(
+            "tbl-custom",
             caption(text("Results")),
             table(
                 table_row(table_cell(text("Model")), table_cell(text("F1"))),
@@ -535,8 +574,8 @@ class TestContainers:
 # BASIC LEAF / FORMATTING NODES
 # ===================================================================
 
-class TestLeafNodes:
 
+class TestLeafNodes:
     def test_text_strips_anchor_syntax(self):
         node = text("Heading text {#sec-intro}")
         result = serialize(node)
@@ -576,11 +615,10 @@ class TestLeafNodes:
     def test_heading_depth(self):
         for depth in range(1, 5):
             result = serialize(heading(depth, text("Title")))
-            assert result.strip() == f'{"#" * depth} Title'
+            assert result.strip() == f"{'#' * depth} Title"
 
 
 class TestLists:
-
     def test_unordered_list(self):
         node = unordered_list(
             list_item(paragraph(text("a"))),
@@ -604,13 +642,16 @@ class TestLists:
 # SERIALIZE DISPATCH — unknown types
 # ===================================================================
 
-class TestDispatch:
 
+class TestDispatch:
     def test_unknown_type_falls_through_to_children(self):
         """Unknown node types should still serialize their children."""
-        node = {"type": "mystDirective", "children": [
-            paragraph(text("inner content")),
-        ]}
+        node = {
+            "type": "mystDirective",
+            "children": [
+                paragraph(text("inner content")),
+            ],
+        }
         with pytest.warns(UserWarning, match="unhandled AST node type"):
             result = serialize(node)
         assert "inner content" in result
@@ -626,8 +667,8 @@ class TestDispatch:
 # HELPER: _text_of
 # ===================================================================
 
-class TestTextOf:
 
+class TestTextOf:
     def test_plain_text(self):
         assert _text_of(text("hello")) == "hello"
 
