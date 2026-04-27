@@ -73,14 +73,6 @@ Composing the three answers gives a coherent deployment-time architecture for sa
 
 This is a single coherent decision pipeline: gate-then-policy-then-bandit-deferral, with each stage targeting a distinct failure mode (regime mismatch, action-space combinatorics, reward-proxy drift). It is the natural deliverable of the proposed-research extension and pulls together the Q1.1, Q4.1, and Q4.2 contributions.
 
-### Open questions
-
-- **Train-time reward-coefficient ablation.** A $\pm 50\%$ sweep on each of $c_{\text{agree}}, c_{\text{conf}}, c_{\text{disagree}}, c_{\text{overconf}}$ measuring F1 stability is the cheapest empirical handle on strategy 1 and a clean OFAT axis (`paper/content/ablation.md:14`). Not yet run.
-- **Drift monitor on the proxy reward.** The 15-dim fusion state already exposes the signals needed (VGAE/GAT confidence) but no online drift detector is wired in. A KS-statistic or PSI on the running proxy-reward distribution, with a bandit-reset trigger when drift exceeds threshold, is one component.
-- **PINN-as-shield formalisation.** The post-hoc projection step (above, item 3) needs to be specified concretely: simplex-restricted softmax, log-barrier penalty, or hard projection [@alshiekh2018shielding]. The choice has implications for gradient flow during the Neural-LinUCB backbone retraining and is not yet decided.
-- **Proxy–target divergence under deployment.** The fundamental obstacle to label-free deployment is that $R_{\text{true}}$ is unobservable. Selective-prediction protocols from Q2.1 (high-confidence subset for autonomous response, low-confidence subset for human review) are the standard escape; whether the bandit's UCB bonus alone gives a *calibrated* selective-prediction confidence is an unstudied empirical question.
-- **Bayesian / Thompson variant.** The bandit's Bayesian-bandit lineage [@riquelme2018deep] suggests Thompson sampling as a drop-in alternative to UCB; whether the randomised exploration helps or hurts under reward shift specifically is unknown for this state space.
-
 ## Question 4.2
 
 > As the number of experts in an ensemble grows, the fusion policy's action space scales combinatorially. Compare approaches for keeping multi-expert coordination tractable without sacrificing expressiveness.
@@ -145,11 +137,3 @@ There is empirical support for the continuous-action choice already in this fram
 
 The Dirichlet policy is the natural compromise between the discrete-mode behaviour observed today and the simplex geometry: $\boldsymbol{\kappa}(s) = g_\phi(s)$ outputs concentration parameters per state, and the resulting Dirichlet collapses near simplex vertices when one expert's confidence dominates and spreads when no expert is strongly preferred. This is a faithful generalisation of the observed multimodal distribution at $N=2$.
 
-### Open questions
-
-- **No scaling experiment at $N=4$.** The combinatorial blow-up is argued from the regret bound but not measured. A clean experiment: compare discrete-grid DQN, softmax-actor DQN, and Dirichlet-actor at $N=2, 3, 4$ on the same dataset, measuring sample efficiency (regret to reach 95% of best F1) and final F1.
-- **Continuous-simplex prototype.** Replacing the 21-output Q-head with an $N$-dim actor (DDPG- or SAC-style) is a few hundred lines of change atop the shared backbone (`paper/content/methodology.md:142`). Required pre-scaling milestone: verify no regression at $N=2$ before adding PINN/CWD.
-- **Graceful-degradation protocol.** The continuous formulations *should* degrade smoothly under inference-time expert dropout (mask one expert; observe that the policy reweights without retraining). Factored bandits should degrade more abruptly because per-arm parameters are independent. This is a single experiment that distinguishes the candidates and is not currently in the proposed protocol of [](#subsec:Adversarial).
-- **Regret-bound scaling.** The Neural-LinUCB result of $\tilde{O}(\sqrt{T})$ [@xu2022neural] holds at fixed action space; the continuous-action variant has rate $\tilde{O}(d\sqrt{T})$ with $d=O(N)$. Verifying this empirically at $N\in\{2,3,4\}$ closes the regret-vs.-experts trade-off claim with a concrete CAN-data data point — a clean theoretical-meets-empirical contribution.
-- **Hierarchical-RL as graceful-degradation primitive.** The PINN tier system ([](#subsec:PINN)) already maps cleanly onto a meta-controller selecting *which* experts are even active, with the inner controller continuing in continuous-simplex mode over the active subset. This pairing has not been written down formally and would unify Q1.1 (when to trust physics) with Q4.2 (how to handle graceful degradation).
-- **Mixture-of-Experts gating** is not in the comparison protocol; it is the closest parallel from the LM literature and the gate's top-$k$ behaviour is a natural baseline for the multimodal policy observed at $N=2$.

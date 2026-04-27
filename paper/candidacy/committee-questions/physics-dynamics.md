@@ -53,7 +53,7 @@ The $\lambda_{\text{physics}}$ tier system in [](#subsec:PINN) is a *coarse* app
 | 3: ByCAN extraction | 0.1 | 0.3 | $\mathcal{V}_{\text{signal}}$ degraded by 80.21% slicing accuracy [@ByCAN] | All three gates at runtime |
 | Failed extraction | 0 (frozen) | 0 | $\mathcal{V}_{\text{signal}} = 0$ | None — physics branch disabled |
 
-Tiers fix the *outer* envelope; the three gates fix the *inner*, sample-by-sample weighting. **Two important caveats follow from this mapping**: (i) at tier 3, $\Sigma_\eta$ is bias-dominated rather than noise-dominated, so the Gaussian-posterior interpretation underlying $\mathcal{V}_{\text{signal}}$ does not strictly apply — under tier 3 the PINN's role narrows from *deployment-time detector* to *training-time regulariser* on the GAT/VGAE branch, with $\lambda_{\max}=0.3$ as a hard cap rather than a learned weight; (ii) the current proposal stops at the outer envelope because the inner gates require regime-stratified evaluation that has not been run (see open questions). The PINN's load-bearing detector contribution therefore lives at tiers 1 and 2 (DBC or OBD-II ground truth); tier 3 is graceful-degradation engineering.
+Tiers fix the *outer* envelope; the three gates fix the *inner*, sample-by-sample weighting. **Two important caveats follow from this mapping**: (i) at tier 3, $\Sigma_\eta$ is bias-dominated rather than noise-dominated, so the Gaussian-posterior interpretation underlying $\mathcal{V}_{\text{signal}}$ does not strictly apply — under tier 3 the PINN's role narrows from *deployment-time detector* to *training-time regulariser* on the GAT/VGAE branch, with $\lambda_{\max}=0.3$ as a hard cap rather than a learned weight; (ii) the current proposal stops at the outer envelope because the inner gates require regime-stratified evaluation that has not been run (deliverable: regime-stratified F1 in [](#subsec:PINN)). The PINN's load-bearing detector contribution therefore lives at tiers 1 and 2 (DBC or OBD-II ground truth); tier 3 is graceful-degradation engineering.
 
 ### How the framework operationalises deferral
 
@@ -65,14 +65,6 @@ Tiers fix the *outer* envelope; the three gates fix the *inner*, sample-by-sampl
 | GradNorm/PCGrad-style multi-objective balancing [@Bischof2024MultiObj] | Outperforms grid-searched static weights | Same |
 | DQN/bandit fusion policy | Implicit regime-dependent deferral; up-weights GAT for confident predictions, defers to VGAE near decision boundary; PINN slots in as a third expert under simplex generalisation (Q4.2) | `paper/content/explainability.md` §DQN-Fusion Analysis, [](#fig-fusion); [](#subsec:DQN) |
 | Selective-prediction risk-coverage curves | The natural evaluation protocol for the composite score $\lambda_{\text{physics}}(s_t)$ | Q2.1 |
-
-### Open questions
-
-- **Explicit regime detector.** The three gates above are formalised but not implemented. The regime gate $\mathcal{V}_{\text{regime}}$ is the cheapest of the three: a slip-angle threshold ($|\alpha| \le 4°$ on dry asphalt) plus a steering-rate threshold are sufficient to flag the high-slip regimes where the linear bicycle model diverges. This is one feature in the existing fusion state extension.
-- **Regime-stratified evaluation.** No experiment buckets F1 by slip angle or longitudinal acceleration. Required for the trust claim: a 2D histogram of PINN residual vs. (slip angle bucket, attack flag) showing that benign-regime residuals are tight and high-slip benign residuals are wide. Without this plot the trust gates are theory only.
-- **Composite trust score validation.** The product form $\lambda_{\text{tier}} \cdot \prod_i \mathcal{V}_i$ is a particular conjunctive aggregator; alternatives (soft minimum, learnable mixture) are unstudied. Comparing against a single-gate baseline isolates the marginal value of each.
-- **Operational rejection bound.** The Chow-style deferral target — "expected risk on accepted predictions $\le \rho$" — has not been formalised. Pairing the deferral gate above with the conformal-prediction recipe of Q2.1 yields a *distribution-free* coverage guarantee on the PINN-active subset and is the cleanest theoretical contribution available.
-- **Comparison to observer-based baselines.** @Ozdemir2024IVNSurvey separates IVN anomaly detection into observer-based (Kalman residual) and data-driven; the proposed PINN bridges these by *learning* the observer's correction. The natural baseline is a pure-observer (CADD-style [@Chen2024CADD]) detector at each tier, isolating how much of the gain comes from learned correction versus from regime-aware deferral itself.
 
 ## Question 1.2
 
@@ -128,12 +120,3 @@ Three independent axes describe the adversary: *access location* (where on the c
 | Adversarial robustness flagged as a research direction ([](#subsec:Adversarial)) | No attacker model, no red-team protocol, no certified bounds |
 
 The framework's GAT+VGAE branch is structurally protected from estimator-pipeline compromise because it doesn't depend on the estimator at all. The PINN branch is *not* protected, but the tier-based weighting limits the blast radius — a tier-3 deployment (ByCAN extraction) caps PINN contribution at $\lambda_{\max} = 0.3$, so even total estimator compromise cannot drive the fusion decision more than 30%. This is a structural-defence-in-depth argument rather than a cryptographic one and should be made explicit in the threat-model section.
-
-### Open questions
-
-- **Threat model is informal.** The cross-product table above needs to be written into the paper with attacker capabilities, target signatures, and defence mappings tied to specific framework components. This is a deliverable for [](#subsec:Adversarial), not a research question.
-- **Innovation-sequence monitoring as meta-detector.** Use the EKF innovation residuals as an *additional* feature in the 15-dim fusion state. This converts the estimator's internal belief into an attack signal and is a single-component change.
-- **Regime-conditioned plausibility bands.** Replacing static $\pm 40°$ steering bounds with regime-conditioned ones (e.g., bounded by $\dot{\psi}$ and $v_x$) tightens the attacker's feasible-injection set and does not require any new training.
-- **Physics-aware adversarial training.** No prior CAN-IDS work in the surveys [@rajapaksha2022aiidssurvey; @Choi] uses an adversary that respects vehicle dynamics. Generating physically plausible attacks (e.g., attacks whose injected residual matches the bicycle model under nominal Pacejka parameters) and adversarial-training the PINN against them is a clean research contribution.
-- **Slicing-template attestation.** Treating the ByCAN template as a security artefact (signed, version-controlled, validated against OBD-II at deployment time) is an engineering recommendation that does not appear in [@ByCAN; @Pese2019LibreCAN] or in the IVN survey [@Ozdemir2024IVNSurvey].
-- **Signal-reliability monitoring as a fusion-state feature.** Exposing $\mathrm{tr}(\Sigma_\eta(t))$ from the EKF posterior as a feature lets the fusion policy *automatically* down-weight the PINN under estimator stress, closing the loop with $\mathcal{V}_{\text{signal}}$ from Q1.1.

@@ -49,14 +49,7 @@ The framework contains the structural pieces for epistemic-uncertainty awareness
 | Neural-LinUCB UCB bonus | Directed exploration under epistemic uncertainty; bonus shrinks as $O(1/\sqrt{n_a})$ [@xu2022neural] | `paper/content/methodology.md:173` |
 | DQN fusion weight distribution (peaks at $\alpha \in \{0, 0.2, 0.4, 0.6, 0.8\}$) | Emergent attack-type-specific strategies; interpretable but unlabelled by uncertainty | `paper/content/explainability.md:42` |
 
-Three pieces are missing and correspond to the open questions below: formal calibration measurement, selective-prediction evaluation, and conformal coverage guarantees.
-
-### Open questions
-
-- **No calibration experiment yet exists.** Closing this gap is cheap (post-hoc evaluation on existing checkpoints) and unlocks strong answers to Q1.1 (when to trust physics), Q3.3 (curriculum-induced miscalibration), and Q4.1 (UCB drift detection).
-- **Epistemic vs. aleatoric decomposition is implicit.** The fusion head currently blends the two. A principled answer would output both a predicted label and a VGAE-based epistemic score, with a joint threshold; this is consistent with the proposed PINN residual as a *third* orthogonal epistemic signal ([](#subsec:PINN)).
-- **Class-conditional conformal prediction under 927:1 imbalance is unstudied in CAN IDS.** The calibration set must contain enough minority-class examples; this interacts with the curriculum design (Q3.3) and is a concrete experimental contribution.
-- **Online recalibration** to handle operational drift is proposed in [](#subsec:Streaming) but not yet integrated with a calibration objective.
+Three pieces are missing — formal calibration measurement, selective-prediction evaluation, and conformal coverage guarantees — and are operationalised as deliverables in [](../proposed-research.md) §Calibration and Selective Prediction.
 
 ## Question 2.2
 
@@ -120,12 +113,3 @@ Each XAI method targets a distinct level of abstraction; matching the level to t
 ### How this framework's existing layers form a triangulation set
 
 The existing inspection layers — GAT attention weights ([](#fig-attention)), VGAE composite reconstruction error decomposed into node/neighbour/CAN-ID components ([](#fig-reconstruction)), UMAP of GAT penultimate-layer embeddings ([](#fig-umap)), and DQN fusion-weight distributions ([](#fig-fusion); see `paper/content/explainability.md`) — already span feature-level attribution, reconstruction-based attribution, latent-space concept geometry, and decision-process interpretability. Together they constitute a triangulation set even before the proposed XAI extension. [](#subsec:XAI) adds LIME [@LIME], SHAP [@SHAP], TCAV [@TCAV], CF-GNNExplainer [@CFGNNExplainer], and ProtoPNet [@ProtoPNet] to complete the audience-explainer mapping above.
-
-### Open questions
-
-- **Faithfulness is not measured for any current layer.** Deletion-AUC and insertion-AUC on GAT attention, and the @adebayo2018sanity model- and data-randomisation sanity checks, should be the first additions. An attention-weight visualisation that survives model randomisation is *decorative*, not faithful, and must be rejected — the absence of this check in CAN-IDS XAI literature is a gap the framework is positioned to close.
-- **Stability is not measured.** Lipschitz bounds on GAT attention with respect to graph-structural perturbations (edge addition/removal) are unreported. The graph-adversarial-attack literature [@zugner2018adversarial] from [](#subsec:Adversarial) provides the natural perturbation set; running the existing attention layer through it gives both stability bounds *and* adversarial robustness data simultaneously.
-- **Audience-decision protocols.** The mapping table above is a recommendation; in practice the relevant decisions for each audience need to be elicited from real fleet operators, safety engineers, and OEM compliance teams. This is qualitative research that is not currently scoped but is necessary for a defensible NIST AI RMF [@NISTAIRisk] compliance argument.
-- **Disagreement protocol calibration.** The 2×2 confidence-vs-agreement diagnostic relies on the calibrated confidence from Q2.1. Until class-conditional ECE and conformal coverage are measured (Q2.1 open questions), the "high confidence" cell is not operationally trustworthy.
-- **Explainer agreement metric.** "Agreement" between LIME/SHAP feature attributions is straightforward (cosine similarity over normalised attribution vectors), but agreement between LIME and TCAV (different abstractions) requires a unifying metric — either projecting to a common feature basis or comparing top-$k$ predictive features. The XAI literature has no consensus answer; this is a methodological contribution available within the framework.
-- **Tie-in to selective prediction.** The low-confidence + low-agreement diagnostic ("OOD input") naturally feeds into the conformal-prediction abstain mechanism from Q2.1. Composing the two — abstain on (low-conf ∪ low-agreement) rather than on low-conf alone — is a stricter selective-prediction rule that has not been studied in the calibration literature and is empirically tractable on this framework's existing layers.

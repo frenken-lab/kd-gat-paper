@@ -91,5 +91,6 @@ site:
     - id: candidacy-pdf
       title: Download PDF
   options:
+    hide_outline: true
     css:
       - _static/custom.css

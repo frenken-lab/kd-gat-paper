@@ -8,9 +8,11 @@ title: "3. Federated Learning, Optimization, and Convergence"
 
 ### Bilevel formulation made explicit
 
-**Upfront concession.** Knowledge distillation can be *framed* as a bilevel program, but in practice — and in this framework — the outer choice is fixed by hardware constraint Eq. {eq}`eq-flops-budget` and only the inner problem is solved. The bilevel framing is therefore *clarifying* (it gives a vocabulary for the teacher-capacity / student-capacity / task-complexity coupling) rather than *operational* (no bilevel solver runs). The proposed extension is a sweep over the (capacity-ratio, task-complexity) grid that empirically traces the inverted-U from @Towards-Law-of-Capacity-Gap2025 — *not* a bilevel solve.
+:::{dropdown} Bilevel framing is clarifying, not operational
+Knowledge distillation can be *framed* as a bilevel program, but in practice — and in this framework — the outer choice is fixed by hardware constraint Eq. {eq}`eq-flops-budget` and only the inner problem is solved. The bilevel framing is therefore *clarifying* (it gives a vocabulary for the teacher-capacity / student-capacity / task-complexity coupling) rather than *operational* (no bilevel solver runs). The proposed extension is a sweep over the (capacity-ratio, task-complexity) grid that empirically traces the inverted-U from @Towards-Law-of-Capacity-Gap2025 — *not* a bilevel solve.
+:::
 
-With that caveat, the formal program: KD [@hinton2015distilling; @bucilua2006model]'s outer problem chooses a student architecture (capacity, depth, width) under deployment constraints; the inner problem fits the student's weights to a frozen teacher under a chosen distillation loss. Writing the student architecture as $\mathcal{A}_S$ from a search space $\Omega$, student weights as $\theta_S$, and the frozen teacher as $f_T$:
+The formal program: KD [@hinton2015distilling; @bucilua2006model]'s outer problem chooses a student architecture (capacity, depth, width) under deployment constraints; the inner problem fits the student's weights to a frozen teacher under a chosen distillation loss. Writing the student architecture as $\mathcal{A}_S$ from a search space $\Omega$, student weights as $\theta_S$, and the frozen teacher as $f_T$:
 
 $$
 \begin{aligned}
@@ -59,14 +61,6 @@ The current setup is a *single-level reduction*: the outer choice has been made 
 | Inner solution evidence | F1 reported in `paper/content/ablation.md` §Knowledge Distillation Effects; CKA layer-similarity in [](#fig-cka) shows the student tracks the teacher representation despite the 20× parameter reduction | `paper/content/ablation.md:30, :39` |
 
 The $68\times$ ratio is well above the conservative $2$–$3\times$ scaling-law sweet spot, which is permissible only because the binary CAN attack/benign task sits at the easy end of the complexity curve. The actual constraint that fixes the student size is $C_{\text{hw}}$, not statistical optimality — this is the standard automotive trade-off: hardware closes the outer optimisation before task complexity does.
-
-### Open questions
-
-- **Genuine bilevel solve.** Co-optimising student width/depth with the inner distillation loss — gradient-based architecture search applied to KD, or population-based co-search — has not been attempted. The cheap version of this is a sweep over $\{|\theta_S| / |\theta_T|\} \in \{1/100,\, 1/68,\, 1/30,\, 1/10,\, 1/3\}$ at fixed task; this empirically traces the inverted-U from @Towards-Law-of-Capacity-Gap2025 on CAN data and is a clean OFAT axis (`paper/content/ablation.md:14`).
-- **Task-complexity sweep.** Repeating the above curve at three task difficulties — binary detection, 5-class attack typing, 9-class fine-grained typing — would *empirically* verify the $\Delta^\star_{\text{cap}}(\mathcal{T})$ relationship on CAN data and is, to our knowledge, not in the literature for graph-IDS distillation.
-- **Teacher-quality vs. teacher-size separation.** @distillation-scaling-laws argues quality dominates size at small student budgets; the current ablation does not vary teacher quality independently of size. A teacher trained to comparable F1 with half the parameters should produce a stronger student than the current teacher, all else equal.
-- **TA chain for higher-complexity extensions.** If multi-vehicle joint training ([](#subsec:CrossD)) materialises, the existing $68\times$ ratio will likely exit the viable gap. Inserting a single TA at $\sqrt{68}\approx 8\times$ between teacher and student [@Mirzadeh-TAKD2020; @Gap-KD2025] is the cheapest remediation and a natural deferred contribution.
-- **Born-again / mutual learning baselines.** Same-size student-to-student distillation [@furlanello2018born] and deep mutual learning [@zhang2018deep] are absent from the comparison and would isolate how much of the KD gain comes from the *capacity gap* versus from soft targets per se.
 
 ## Question 3.2
 
@@ -177,14 +171,6 @@ The three-stage pipeline factors cleanly along the FL boundary:
 
 This decomposition uses the existing pipeline structure: the VGAE+GAT teacher is the natural federation target (high benefit, low privacy risk because gradients are aggregated); the fusion policy is the natural personalisation point (low federation benefit because it's per-vehicle calibrated, and Q4.1 reward shift is a local phenomenon). It also dovetails with Q3.1 — federated KD is genuinely bilevel: the inner problem distills a per-client student against a *federated* teacher, and the outer problem chooses both the federation strategy and the student capacity simultaneously.
 
-### Open questions
-
-- **Empirical baseline sweep.** Run FedAvg, FedProx, and SCAFFOLD on a synthetic federated CAN setup constructed by sharding the existing centralised datasets (CAR-Hacking, ROAD, can-train-and-test) by attack-class mix to simulate axis-1 non-IID. Report convergence-rate vs. local-step count $E$. This is the cheapest empirical entry point and tests the per-axis recommendation table above.
-- **Architectural ablation for graph heterogeneity.** Compare: (a) global per-feature projection, (b) per-platform input projection with shared backbone, (c) per-platform input *and* output heads. Hypothesis: (b) is sufficient when concept shift is small (intra-OEM) and (c) is required across OEMs.
-- **DP-SGD × curriculum interaction.** The curriculum schedule from Q3.3 changes the effective sampling distribution per batch; the privacy accounting [@abadi2016dpsgd] under amplification-by-sampling needs to be re-derived for the time-varying $p_t$. This is a clean theoretical contribution at the intersection of Q3.2 and Q3.3.
-- **Byzantine red-team protocol.** The threat-model taxonomy from Q1.2 needs to be extended with poisoned-client attacks: single-client full-access, multi-client limited-access, gradient-inversion attacks against DP-SGD. Without a concrete attacker, the Byzantine-robust aggregation choice cannot be motivated empirically.
-- **Scope concession.** The empirical sweep above measures algorithmic robustness to non-IID via simulated federation (sharded centralised datasets); it does not constitute a federated *deployment* claim. Privacy/Byzantine/compliance properties of real federation, federated-bilevel-KD as a formal program, and ISO 26262 / NIST AI RMF auditability under federated training are out of dissertation scope and contingent on fleet-data access.
-
 ## Question 3.3
 
 > Curriculum learning modifies the training distribution over time. Does a curriculum-trained model converge to the same solution as one trained on the full distribution, and what bias might it introduce?
@@ -229,11 +215,3 @@ The biases this specific schedule introduces are therefore:
 - **Unintended (and worth testing):** Final-weight divergence from a non-curriculum baseline. Two concrete tests, both cheap at $N=3$ seeds:
   - Parameter-space distance $\|\theta_{\text{curr}} - \theta_{\text{nat}}\|_2 / \|\theta_{\text{nat}}\|_2$ per layer.
   - Prediction-disagreement rate on held-out natural-distribution test data, stratified by class.
-
-### Open questions
-
-- **No calibration measurement under curriculum.** Directly blocking a clean answer to Q2.1 and to the "unintended" bias above.
-- **No parameter-distance or disagreement experiment** between curriculum-trained and non-curriculum-trained GAT checkpoints. This is the cheapest possible empirical contribution to "same solution or not."
-- **Momentum coefficient $\tau$ sensitivity** is not ablated. OFAT protocol (`paper/content/ablation.md:14`) could slot this in as a single-axis sweep.
-- **Curriculum-induced implicit bias is informal here.** A theoretical contribution could cast the momentum schedule as a time-varying importance-weighted ERM and derive the resulting bias on the Bayes-optimal classifier under imbalance.
-- The framework has no formal convergence analysis; this is acceptable for the engineering claim but would need to be added for a purely-theoretical submission.
