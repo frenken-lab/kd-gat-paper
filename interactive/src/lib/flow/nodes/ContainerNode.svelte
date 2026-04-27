@@ -25,9 +25,12 @@
     height: 100%;
     border: 1px dashed;
     border-radius: 10px;
-    background-opacity: 0.06;
     position: relative;
   }
+
+  /* Translucency comes from the palette: resolve().fill returns a hex color
+     with "+40" alpha suffix (~25%), so the inline `background={fill}` is
+     already see-through. No opacity rule needed here. */
 
   .label {
     position: absolute;

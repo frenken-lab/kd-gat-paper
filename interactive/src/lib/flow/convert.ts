@@ -1,6 +1,22 @@
+import dagre from '@dagrejs/dagre';
 import { Position } from '@xyflow/svelte';
 import type { DiagramNode, DiagramEdge } from './types.ts';
-import { autoLayout, circularPositions } from './layout.ts';
+import { circularPositions } from './layout.ts';
+
+// Local node-size helpers — match the ones in layout.ts. Kept private here so
+// the component-level dagre layout below is self-contained.
+function nodeBoxW(n: DiagramNode): number {
+  if (n.type === 'circle') return ((n.data as { r?: number }).r ?? 14) * 2;
+  if (n.type === 'box') return (n.data as { width?: number }).width ?? 90;
+  if (n.type === 'container') return n.width ?? 200;
+  return 50;
+}
+function nodeBoxH(n: DiagramNode): number {
+  if (n.type === 'circle') return ((n.data as { r?: number }).r ?? 14) * 2;
+  if (n.type === 'box') return (n.data as { height?: number }).height ?? 32;
+  if (n.type === 'container') return n.height ?? 150;
+  return 50;
+}
 
 // --- Spec types (mirrored from diagram/spec.ts to avoid import dependency) ---
 
@@ -92,6 +108,8 @@ export function specToFlow(
 
   // Track which node IDs belong to each component (for anchor resolution)
   const componentNodes = new Map<string, string[]>();
+  // Track which components have an associated container node
+  const componentContainers = new Map<string, string>();
   // Edge counter to ensure unique IDs
   let edgeIdx = 0;
 
@@ -188,6 +206,7 @@ export function specToFlow(
           height: radius * 2 + 60,
           style: 'z-index: -1;',
         });
+        componentContainers.set(id, containerId);
         // Set children's parentId to the container
         for (const nodeId of nodeIds) {
           const node = nodes.find((n) => n.id === nodeId);
@@ -276,25 +295,41 @@ export function specToFlow(
     return null;
   }
 
-  // --- Step 3: Pipeline flow edges from layout ---
-  function walkLayout(node: string | LayoutNode): string[] {
+  // --- Step 3: Pipeline flow edges + layout container parenting ---
+  // Returns:
+  //   leafIds — every leaf (circle/box) covered by this subtree, used for
+  //             pipeline edge anchors.
+  //   topIds  — the immediate top-level entities at this layout level. For a
+  //             string ref this is the component-container ID if present,
+  //             otherwise the leaf node IDs. For a sub-layout with its own
+  //             container, this is the layout-container ID. Otherwise it's
+  //             the union of children's topIds (transparent pass-through).
+  function topIdsForRef(compId: string): string[] {
+    const ctr = componentContainers.get(compId);
+    if (ctr) return [ctr];
+    return componentNodes.get(compId) ?? [];
+  }
+
+  function walkLayout(node: string | LayoutNode): {
+    leafIds: string[];
+    topIds: string[];
+  } {
     if (typeof node === 'string') {
-      const ids = componentNodes.get(node);
-      return ids ?? [];
+      return { leafIds: componentNodes.get(node) ?? [], topIds: topIdsForRef(node) };
     }
 
     const childSpecs = node.children ?? node.elements ?? [];
-    const allIds: string[] = [];
+    const allLeafIds: string[] = [];
+    const childTopIds: string[] = [];
 
     if (node.type === 'pipeline') {
-      // Pipeline auto-wires sequential flow edges
       const childAnchors: string[] = [];
       for (const child of childSpecs) {
-        const ids = walkLayout(child);
-        allIds.push(...ids);
-        if (ids.length > 0) childAnchors.push(ids[0]);
+        const { leafIds, topIds } = walkLayout(child);
+        allLeafIds.push(...leafIds);
+        childTopIds.push(...topIds);
+        if (leafIds.length > 0) childAnchors.push(leafIds[0]);
       }
-      // Wire flow edges between sequential elements
       for (let i = 0; i < childAnchors.length - 1; i++) {
         edges.push({
           id: `e${edgeIdx++}`,
@@ -305,13 +340,13 @@ export function specToFlow(
         });
       }
     } else {
-      // hstack / vstack — just collect children, no auto-wiring
       for (const child of childSpecs) {
-        allIds.push(...walkLayout(child));
+        const { leafIds, topIds } = walkLayout(child);
+        allLeafIds.push(...leafIds);
+        childTopIds.push(...topIds);
       }
     }
 
-    // Layout-level container
     if (node.container) {
       const containerId = `__layout_container_${edgeIdx++}`;
       nodes.push({
@@ -322,13 +357,19 @@ export function specToFlow(
           label: node.container.label,
           color: node.container.color ?? 'grey',
         },
-        width: 300,
+        width: 300, // placeholder; finalized in step 6
         height: 200,
         style: 'z-index: -1;',
       });
+      // Parent each top-level child entity to this layout container.
+      for (const topId of childTopIds) {
+        const child = nodes.find((n) => n.id === topId);
+        if (child) child.parentId = containerId;
+      }
+      return { leafIds: allLeafIds, topIds: [containerId] };
     }
 
-    return allIds;
+    return { leafIds: allLeafIds, topIds: childTopIds };
   }
 
   walkLayout(spec.layout);
@@ -357,18 +398,168 @@ export function specToFlow(
     }
   }
 
-  // --- Step 5: Auto-layout with dagre ---
-  // Filter out container nodes for layout (they don't participate in dagre)
-  const layoutNodes = nodes.filter((n) => n.type !== 'container');
-  const laidOut = autoLayout(layoutNodes, edges, { direction });
+  // --- Step 5: Component-level auto-layout with dagre ---
+  // Each spec component (graph cluster, box, sub-spec) becomes a single
+  // super-node for dagre. This preserves the per-component internal layout
+  // (rings, sub-spec sub-layouts) while still letting dagre arrange the
+  // components left-to-right or top-to-bottom. Intra-component edges (the
+  // structural cycle of a graph cluster) are skipped — they would force
+  // dagre to flatten the cluster into a DAG.
 
-  // Merge positions back
-  const posMap = new Map(laidOut.map((n) => [n.id, n]));
-  const finalNodes = nodes.map((n) => {
-    const laid = posMap.get(n.id);
-    return laid ?? n;
+  // 5a. Compute each component's bbox in current (pre-translate) coords.
+  type CompBox = { w: number; h: number; cx: number; cy: number };
+  const compBoxes = new Map<string, CompBox>();
+  for (const [compId, nodeIds] of componentNodes.entries()) {
+    const compNodes = nodeIds
+      .map((id) => nodes.find((n) => n.id === id))
+      .filter((n): n is DiagramNode => !!n && n.type !== 'container');
+    if (compNodes.length === 0) continue;
+
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const n of compNodes) {
+      const w = nodeBoxW(n);
+      const h = nodeBoxH(n);
+      x0 = Math.min(x0, n.position.x - w / 2);
+      y0 = Math.min(y0, n.position.y - h / 2);
+      x1 = Math.max(x1, n.position.x + w / 2);
+      y1 = Math.max(y1, n.position.y + h / 2);
+    }
+    compBoxes.set(compId, {
+      w: x1 - x0,
+      h: y1 - y0,
+      cx: (x0 + x1) / 2,
+      cy: (y0 + y1) / 2,
+    });
+  }
+
+  // 5b. Map each (non-container) node to its owning component.
+  const nodeToComp = new Map<string, string>();
+  for (const [compId, nodeIds] of componentNodes.entries()) {
+    for (const nid of nodeIds) nodeToComp.set(nid, compId);
+  }
+
+  // 5c. Build dagre graph at component granularity.
+  const g = new dagre.graphlib.Graph();
+  g.setDefaultEdgeLabel(() => ({}));
+  g.setGraph({
+    rankdir: direction,
+    nodesep: 60,
+    ranksep: 90,
+    marginx: 20,
+    marginy: 20,
   });
 
-  return { nodes: finalNodes, edges };
+  const COMP_PAD = 20; // breathing room around each component
+  for (const [compId, box] of compBoxes.entries()) {
+    g.setNode(compId, { width: box.w + COMP_PAD, height: box.h + COMP_PAD });
+  }
+
+  const seenEdges = new Set<string>();
+  for (const e of edges) {
+    const sComp = nodeToComp.get(e.source);
+    const tComp = nodeToComp.get(e.target);
+    if (!sComp || !tComp || sComp === tComp) continue; // skip intra-component
+    const key = `${sComp}->${tComp}`;
+    if (seenEdges.has(key)) continue;
+    seenEdges.add(key);
+    g.setEdge(sComp, tComp);
+  }
+
+  dagre.layout(g);
+
+  // 5d. Translate each component's nodes so its centroid sits at dagre's center.
+  for (const [compId, box] of compBoxes.entries()) {
+    const laid = g.node(compId);
+    if (!laid) continue;
+    const dx = laid.x - box.cx;
+    const dy = laid.y - box.cy;
+    const compNodeIds = componentNodes.get(compId) ?? [];
+    for (const nid of compNodeIds) {
+      const node = nodes.find((n) => n.id === nid);
+      if (!node || node.type === 'container') continue;
+      node.position = { x: node.position.x + dx, y: node.position.y + dy };
+      node.targetPosition = direction === 'LR' ? Position.Left : Position.Top;
+      node.sourcePosition = direction === 'LR' ? Position.Right : Position.Bottom;
+    }
+  }
+
+  // --- Step 6: Finalize containers (deepest first) ---
+  // After dagre, leaf nodes hold absolute (canvas) positions. For each
+  // container, fit its bbox around its children with padding, then convert
+  // the children's positions from absolute to parent-relative.
+  //
+  // Process deepest containers first so when a layout container is sized,
+  // its child component containers have already been finalized at absolute
+  // positions (and their own grandchildren are already relative to them).
+  const CONTAINER_PAD = 16;
+  const CONTAINER_LABEL_PAD = 18; // extra top space reserved for the label
+
+  const byId = new Map(nodes.map((n) => [n.id, n] as const));
+  function depthOf(n: DiagramNode): number {
+    let d = 0;
+    let cursor: DiagramNode | undefined = n;
+    while (cursor?.parentId) {
+      cursor = byId.get(cursor.parentId);
+      if (!cursor) break;
+      d++;
+    }
+    return d;
+  }
+
+  const containerNodes = nodes.filter((n) => n.type === 'container');
+  containerNodes.sort((a, b) => depthOf(b) - depthOf(a));
+
+  for (const container of containerNodes) {
+    const children = nodes.filter((n) => n.parentId === container.id);
+    if (children.length === 0) continue;
+
+    let x0 = Infinity;
+    let y0 = Infinity;
+    let x1 = -Infinity;
+    let y1 = -Infinity;
+    for (const c of children) {
+      const w = nodeBoxW(c);
+      const h = nodeBoxH(c);
+      x0 = Math.min(x0, c.position.x);
+      y0 = Math.min(y0, c.position.y);
+      x1 = Math.max(x1, c.position.x + w);
+      y1 = Math.max(y1, c.position.y + h);
+    }
+
+    container.position = {
+      x: x0 - CONTAINER_PAD,
+      y: y0 - CONTAINER_PAD - CONTAINER_LABEL_PAD,
+    };
+    container.width = x1 - x0 + 2 * CONTAINER_PAD;
+    container.height = y1 - y0 + 2 * CONTAINER_PAD + CONTAINER_LABEL_PAD;
+
+    for (const c of children) {
+      c.position = {
+        x: c.position.x - container.position.x,
+        y: c.position.y - container.position.y,
+      };
+    }
+  }
+
+  // SvelteFlow requires parents to appear before their children in the nodes
+  // array, otherwise parent-relative positioning is silently dropped.
+  // Topo-sort by walking parentId chains; each node is emitted only after
+  // its ancestors have been emitted.
+  const visited = new Set<string>();
+  const sorted: DiagramNode[] = [];
+  function emit(n: DiagramNode): void {
+    if (visited.has(n.id)) return;
+    visited.add(n.id);
+    if (n.parentId) {
+      const parent = byId.get(n.parentId);
+      if (parent) emit(parent);
+    }
+    sorted.push(n);
+  }
+  for (const n of nodes) emit(n);
+  nodes.length = 0;
+  nodes.push(...sorted);
+
+  return { nodes, edges };
 }
 

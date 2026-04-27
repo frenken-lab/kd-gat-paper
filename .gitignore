@@ -22,6 +22,12 @@ interactive/.env
 # OS
 .DS_Store
 
+# Playwright MCP session artifacts (logs + DOM snapshots from browser_navigate)
+.playwright-mcp/
+# Loose screenshots saved by the playwright MCP browser_take_screenshot tool
+*-baseline.png
+*-after-D*.png
+
 # Spike outputs — regenerable from the notebook, some SVGs exceed GitHub size limits
 tools/spikes/*.html
 tools/spikes/*.svg

@@ -94,4 +94,17 @@
     border-radius: 4px;
     overflow: hidden;
   }
+
+  /* Hide SvelteFlow's default handle dots — they're pure visual noise on
+     non-interactive figures. Handles stay in the DOM (size 0, transparent)
+     so edge routing still anchors to the configured Position. */
+  .diagram-canvas :global(.svelte-flow__handle) {
+    width: 0;
+    height: 0;
+    min-width: 0;
+    min-height: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
 </style>
