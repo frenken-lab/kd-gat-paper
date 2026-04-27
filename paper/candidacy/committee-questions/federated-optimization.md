@@ -8,7 +8,9 @@ title: "3. Federated Learning, Optimization, and Convergence"
 
 ### Bilevel formulation made explicit
 
-Knowledge distillation [@hinton2015distilling; @bucilua2006model] is naturally a *bilevel* program. The outer problem chooses a student architecture (capacity, depth, width) under deployment constraints; the inner problem fits the student's weights to a frozen teacher under a chosen distillation loss. Writing the student architecture as $\mathcal{A}_S$ from a search space $\Omega$, student weights as $\theta_S$, and the frozen teacher as $f_T$:
+**Upfront concession.** Knowledge distillation can be *framed* as a bilevel program, but in practice — and in this framework — the outer choice is fixed by hardware constraint Eq. {eq}`eq-flops-budget` and only the inner problem is solved. The bilevel framing is therefore *clarifying* (it gives a vocabulary for the teacher-capacity / student-capacity / task-complexity coupling) rather than *operational* (no bilevel solver runs). The proposed extension is a sweep over the (capacity-ratio, task-complexity) grid that empirically traces the inverted-U from @Towards-Law-of-Capacity-Gap2025 — *not* a bilevel solve.
+
+With that caveat, the formal program: KD [@hinton2015distilling; @bucilua2006model]'s outer problem chooses a student architecture (capacity, depth, width) under deployment constraints; the inner problem fits the student's weights to a frozen teacher under a chosen distillation loss. Writing the student architecture as $\mathcal{A}_S$ from a search space $\Omega$, student weights as $\theta_S$, and the frozen teacher as $f_T$:
 
 $$
 \begin{aligned}
@@ -40,7 +42,7 @@ $$
 \Delta^\star_{\text{cap}}(\mathcal{T}) = \frac{|f_T|}{|f_S|}\Bigg|_{\text{optimal}} \;\propto\; \frac{1}{\mathcal{T}^\beta}
 $$
 
-with empirically $\beta \in [0.3, 0.7]$ depending on architecture family [@distillation-scaling-laws] — i.e. the harder the task, the tighter the gap. *Binary* attack/benign classification on CAN traffic is the easy end of this curve, which is why the existing $68\times$ ratio (`paper/candidacy/proposed-research.md` §Intelligent KD) still performs well. The same student would almost certainly fail at $68\times$ on a 9-class attack-typing task or on multi-vehicle joint training (`paper/candidacy/proposed-research.md` §Multi-Dataset Joint Training), where $\mathcal{T}$ is materially higher.
+with empirically $\beta \in [0.3, 0.7]$ depending on architecture family [@distillation-scaling-laws] — i.e. the harder the task, the tighter the gap. *Binary* attack/benign classification on CAN traffic is the easy end of this curve, which is why the existing $68\times$ ratio ([](#subsec:IntelKD)) still performs well. The same student would almost certainly fail at $68\times$ on a 9-class attack-typing task or on multi-vehicle joint training ([](#subsec:CrossD)), where $\mathcal{T}$ is materially higher.
 
 A complementary observation from the graph-distillation survey [@kdgraph_survey2023]: graph KD is *empirically* tolerant of larger compression ratios than vision/NLP KD on equal task complexity, because attention-graph structures expose more redundant computation than dense feature stacks. This widens $\Delta^\star_{\text{cap}}$ for the GAT student here relative to a vision baseline at the same task difficulty.
 
@@ -50,7 +52,7 @@ The current setup is a *single-level reduction*: the outer choice has been made 
 
 | Bilevel role | This framework | Where |
 |---|---|---|
-| Outer space $\Omega$ | Implicit: chosen student is a 33K-parameter GAT (`paper/content/methodology.md:109`); 68× compression ratio | `paper/candidacy/proposed-research.md` §Intelligent KD lines 195–197 |
+| Outer space $\Omega$ | Implicit: chosen student is a 33K-parameter GAT (`paper/content/methodology.md:109`); 68× compression ratio | [](#subsec:IntelKD) |
 | Hardware constraint $C_{\text{hw}}$ | $\mathrm{FLOPs}_{\max} = 2.5\times 10^6$ on ARM Cortex-A7 | Eq. {eq}`eq-flops-budget` |
 | Teacher $f_T$ | Pretrained GAT teacher (frozen) | `paper/content/methodology.md:109` |
 | Inner objective | $\mathcal{L}_{\text{total}} = (1-\lambda)\mathcal{L}_{\text{hard}} + \lambda\mathcal{L}_{\text{KD}}$ with $T=4$, $\lambda=0.7$ | Eq. {eq}`eq-kd-total-loss` |
@@ -63,7 +65,7 @@ The $68\times$ ratio is well above the conservative $2$–$3\times$ scaling-law 
 - **Genuine bilevel solve.** Co-optimising student width/depth with the inner distillation loss — gradient-based architecture search applied to KD, or population-based co-search — has not been attempted. The cheap version of this is a sweep over $\{|\theta_S| / |\theta_T|\} \in \{1/100,\, 1/68,\, 1/30,\, 1/10,\, 1/3\}$ at fixed task; this empirically traces the inverted-U from @Towards-Law-of-Capacity-Gap2025 on CAN data and is a clean OFAT axis (`paper/content/ablation.md:14`).
 - **Task-complexity sweep.** Repeating the above curve at three task difficulties — binary detection, 5-class attack typing, 9-class fine-grained typing — would *empirically* verify the $\Delta^\star_{\text{cap}}(\mathcal{T})$ relationship on CAN data and is, to our knowledge, not in the literature for graph-IDS distillation.
 - **Teacher-quality vs. teacher-size separation.** @distillation-scaling-laws argues quality dominates size at small student budgets; the current ablation does not vary teacher quality independently of size. A teacher trained to comparable F1 with half the parameters should produce a stronger student than the current teacher, all else equal.
-- **TA chain for higher-complexity extensions.** If multi-vehicle joint training (`paper/candidacy/proposed-research.md` §Multi-Dataset Joint Training) materialises, the existing $68\times$ ratio will likely exit the viable gap. Inserting a single TA at $\sqrt{68}\approx 8\times$ between teacher and student [@Mirzadeh-TAKD2020; @Gap-KD2025] is the cheapest remediation and a natural deferred contribution.
+- **TA chain for higher-complexity extensions.** If multi-vehicle joint training ([](#subsec:CrossD)) materialises, the existing $68\times$ ratio will likely exit the viable gap. Inserting a single TA at $\sqrt{68}\approx 8\times$ between teacher and student [@Mirzadeh-TAKD2020; @Gap-KD2025] is the cheapest remediation and a natural deferred contribution.
 - **Born-again / mutual learning baselines.** Same-size student-to-student distillation [@furlanello2018born] and deep mutual learning [@zhang2018deep] are absent from the comparison and would isolate how much of the KD gain comes from the *capacity gap* versus from soft targets per se.
 
 ## Question 3.2
@@ -75,7 +77,7 @@ The $68\times$ ratio is well above the conservative $2$–$3\times$ scaling-law 
 Three properties of the automotive IDS setting jointly motivate federated learning:
 
 - **Privacy.** Per-vehicle CAN traces expose proprietary OEM signal layouts, driver behaviour, and route patterns — none of which OEMs are willing to upload to a central server. The trust paradox flagged in `paper/candidacy/introduction.md` Challenge 3 [@Trustworthiness; @BlackBoxRisk] applies a fortiori at the *data* layer: even a perfectly explainable model is unacceptable if training requires raw CAN upload.
-- **Attack-diversity coverage.** Any single vehicle observes a vanishingly small fraction of the attack distribution (`paper/candidacy/proposed-research.md` §Federated Learning Across Vehicles). Federation pools gradient information across the fleet without pooling raw data, addressing the long-tail problem on rare attack types.
+- **Attack-diversity coverage.** Any single vehicle observes a vanishingly small fraction of the attack distribution ([](#subsec:FL)). Federation pools gradient information across the fleet without pooling raw data, addressing the long-tail problem on rare attack types.
 - **Edge-compute constraint.** The Cortex-A7 budget Eq. {eq}`eq-flops-budget` already constrains the *student* model size; federation amortises the *teacher* training cost across the fleet, which is the reason KD and FL appear in the same proposal section.
 
 The challenge is that the resulting client distributions are non-IID along three independent axes, each of which breaks a different optimisation property of FedAvg.
@@ -161,13 +163,7 @@ This connects directly to Q1.2 — the FL setting introduces a *new* attack surf
 
 ### Privacy under DP-SGD interacts with class imbalance
 
-Differential privacy via DP-SGD [@abadi2016dpsgd] adds Gaussian noise to clipped gradients with budget $(\varepsilon, \delta)$. The interaction with the framework's 927:1 imbalance is the central obstacle:
-
-$$
-\frac{\text{signal}}{\text{noise}} \;\sim\; \frac{\|\bar{g}_{\text{minority}}\|}{\sigma\sqrt{d/B}}, \quad \text{where } \|\bar{g}_{\text{minority}}\| \propto p(\text{attack}) \approx 0.1\%
-$$
-
-The minority-class gradient signal is an order of magnitude weaker than the majority-class signal at any batch, so a uniform noise budget over-noises minority gradients relative to signal. The remedies are *class-conditional clipping bounds* (different $C_y$ per class) or *amplification by sampling* (oversampling minority-class examples per batch, which the curriculum mechanism from Q3.3 already does). Pairing the curriculum schedule with DP-SGD is non-obvious and unstudied; the curriculum modifies the effective sampling distribution and changes the privacy accounting, which has not been worked out for any class-imbalanced application.
+DP-SGD [@abadi2016dpsgd] adds Gaussian noise to clipped gradients with budget $(\varepsilon, \delta)$, but a uniform noise budget over-noises minority gradients under 927:1 imbalance — the minority-class gradient norm scales with $p(\text{attack})\approx 0.1\%$, so the SNR collapses without intervention. Remedies are class-conditional clipping bounds ($C_y$ per class) or amplification by sampling, which the curriculum schedule of Q3.3 already provides. The privacy accounting under amplification by a *time-varying* curriculum has not been worked out and is the Q3.2 ∩ Q3.3 contribution flagged in the index.
 
 ### How this framework specifically would adopt FL
 
@@ -187,8 +183,7 @@ This decomposition uses the existing pipeline structure: the VGAE+GAT teacher is
 - **Architectural ablation for graph heterogeneity.** Compare: (a) global per-feature projection, (b) per-platform input projection with shared backbone, (c) per-platform input *and* output heads. Hypothesis: (b) is sufficient when concept shift is small (intra-OEM) and (c) is required across OEMs.
 - **DP-SGD × curriculum interaction.** The curriculum schedule from Q3.3 changes the effective sampling distribution per batch; the privacy accounting [@abadi2016dpsgd] under amplification-by-sampling needs to be re-derived for the time-varying $p_t$. This is a clean theoretical contribution at the intersection of Q3.2 and Q3.3.
 - **Byzantine red-team protocol.** The threat-model taxonomy from Q1.2 needs to be extended with poisoned-client attacks: single-client full-access, multi-client limited-access, gradient-inversion attacks against DP-SGD. Without a concrete attacker, the Byzantine-robust aggregation choice cannot be motivated empirically.
-- **Federated KD as bilevel.** Composing Q3.1's bilevel formulation with FL — outer problem is shared, inner problem is per-client — has not been written down formally. The interaction between the capacity-gap law [@Towards-Law-of-Capacity-Gap2025] and per-client task-complexity heterogeneity is a genuine open research question.
-- **Compliance under FL.** ISO 26262 [@ISO26262Part1; @ISO26262SafetyCase] and the NIST AI RMF [@NISTAIRisk] both require traceability of the trained model to its training data. Federated training breaks naive auditability; whether per-client gradient logs satisfy the audit requirement is a regulatory question the framework should address before any FL deployment.
+- **Scope concession.** The empirical sweep above measures algorithmic robustness to non-IID via simulated federation (sharded centralised datasets); it does not constitute a federated *deployment* claim. Privacy/Byzantine/compliance properties of real federation, federated-bilevel-KD as a formal program, and ISO 26262 / NIST AI RMF auditability under federated training are out of dissertation scope and contingent on fleet-data access.
 
 ## Question 3.3
 

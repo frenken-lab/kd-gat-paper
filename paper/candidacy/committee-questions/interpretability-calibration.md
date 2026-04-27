@@ -27,12 +27,7 @@ Safety-critical automotive IDS inherits all these calibration failure modes and 
 
 **Conformal prediction for coverage guarantees.** Neither ECE nor selective prediction gives a hard guarantee; both are averaged over a held-out distribution. For ISO 26262 ASIL C/D-equivalent claims, a *distribution-free* coverage guarantee is preferable. Conformal prediction [@angelopoulos2023conformal] provides exactly this: given a calibration set and a user-chosen miscoverage rate $\alpha$, the method produces prediction sets whose marginal coverage is $\geq 1-\alpha$ by construction, with no modelling assumptions. Under imbalance, *Mondrian* conformal prediction conditions on class to produce class-conditional coverage guarantees — directly addressing the aggregate-ECE failure above.
 
-A pragmatic evaluation protocol for this framework:
-
-1. Temperature-scale the fused ensemble output on a held-out calibration split.
-2. Report class-conditional ECE, class-conditional Brier score, and per-class reliability diagrams.
-3. Plot risk-coverage curves with 95% bootstrap bands over seeds (consistent with the ablation protocol of `paper/content/ablation.md` §Seed Variance).
-4. Fit a Mondrian conformal predictor per-class on the calibration split and report the *coverage gap* (empirical $-$ nominal) on held-out test data, with per-class breakdown.
+A pragmatic evaluation protocol — temperature-scale on a held-out calibration split; report class-conditional ECE, Brier score, per-class reliability diagrams, and risk-coverage curves; fit Mondrian conformal predictors and report per-class coverage gap — is operationalised in [](../proposed-research.md#subsec:Calibration) deliverables 1–4.
 
 ### Maintenance under operational drift
 
@@ -40,7 +35,7 @@ A pragmatic evaluation protocol for this framework:
 
 - **Drift detection.** Predicted-confidence histograms and VGAE reconstruction-error distributions (`paper/content/explainability.md` §Composite VGAE Reconstruction Error) can be monitored online with a population stability index or Kolmogorov–Smirnov statistic. Drift past threshold triggers re-calibration.
 - **Re-calibration without labels.** Label-free approaches — @ovadia2019trust's deep ensembles and MC-dropout — provide the most degradation-resistant uncertainty under shift. The current framework's ensemble is *de facto* a small deep ensemble; its disagreement rate between GAT and VGAE is a usable drift signal already available in the 15-dim fusion state (`paper/content/methodology.md:126`).
-- **Conformal recalibration.** Online conformal prediction can maintain coverage guarantees under streaming non-stationary data with bounded additional memory; this is a natural pairing with the streaming-detection direction of `paper/candidacy/proposed-research.md` §Online and Streaming Detection.
+- **Conformal recalibration.** Online conformal prediction can maintain coverage guarantees under streaming non-stationary data with bounded additional memory; this is a natural pairing with the streaming-detection direction of [](#subsec:Streaming).
 
 ### How the current framework addresses "know what it doesn't know"
 
@@ -61,7 +56,7 @@ Three pieces are missing and correspond to the open questions below: formal cali
 - **No calibration experiment yet exists.** Closing this gap is cheap (post-hoc evaluation on existing checkpoints) and unlocks strong answers to Q1.1 (when to trust physics), Q3.3 (curriculum-induced miscalibration), and Q4.1 (UCB drift detection).
 - **Epistemic vs. aleatoric decomposition is implicit.** The fusion head currently blends the two. A principled answer would output both a predicted label and a VGAE-based epistemic score, with a joint threshold; this is consistent with the proposed PINN residual as a *third* orthogonal epistemic signal ([](#subsec:PINN)).
 - **Class-conditional conformal prediction under 927:1 imbalance is unstudied in CAN IDS.** The calibration set must contain enough minority-class examples; this interacts with the curriculum design (Q3.3) and is a concrete experimental contribution.
-- **Online recalibration** to handle operational drift is proposed in `paper/candidacy/proposed-research.md` §Online and Streaming Detection but not yet integrated with a calibration objective.
+- **Online recalibration** to handle operational drift is proposed in [](#subsec:Streaming) but not yet integrated with a calibration objective.
 
 ## Question 2.2
 
@@ -124,21 +119,12 @@ Each XAI method targets a distinct level of abstraction; matching the level to t
 
 ### How this framework's existing layers form a triangulation set
 
-The existing inspection layers already span multiple abstractions; mapping them onto standard XAI categories shows the framework is a triangulation set today, even before the proposed XAI extension lands.
-
-| Existing layer | Where | What it shows | Standard category |
-|---|---|---|---|
-| GAT attention weights | `paper/content/explainability.md` §GAT Attention, [](#fig-attention) | Per-edge importance on the CAN graph | Native graph attribution (analogue to gradient-times-input) |
-| VGAE composite reconstruction error | `paper/content/explainability.md` §Composite VGAE, [](#fig-reconstruction) | Per-component decomposition: node, neighbour, CAN-ID | Reconstruction-error attribution |
-| UMAP of GAT penultimate-layer embeddings | `paper/content/explainability.md` §UMAP, [](#fig-umap) | Cluster geometry by attack type | Latent-space concept analysis (TCAV-adjacent) |
-| DQN fusion-weight distributions | `paper/content/explainability.md` §DQN-Fusion Analysis, [](#fig-fusion) | Policy mode: which expert was trusted, when, on which attack types | Decision-process interpretability (no standard XAI label, but this is the audit trail the ISO auditor wants) |
-
-The proposed XAI extension in `paper/candidacy/proposed-research.md` §Explainable AI (lines 206–228) adds LIME [@LIME], SHAP [@SHAP], TCAV [@TCAV], CF-GNNExplainer [@CFGNNExplainer], and ProtoPNet [@ProtoPNet] — completing the audience-explainer table above. The triangulation protocol from §Triangulation above tells the practitioner *what to do* once these are all running.
+The existing inspection layers — GAT attention weights ([](#fig-attention)), VGAE composite reconstruction error decomposed into node/neighbour/CAN-ID components ([](#fig-reconstruction)), UMAP of GAT penultimate-layer embeddings ([](#fig-umap)), and DQN fusion-weight distributions ([](#fig-fusion); see `paper/content/explainability.md`) — already span feature-level attribution, reconstruction-based attribution, latent-space concept geometry, and decision-process interpretability. Together they constitute a triangulation set even before the proposed XAI extension. [](#subsec:XAI) adds LIME [@LIME], SHAP [@SHAP], TCAV [@TCAV], CF-GNNExplainer [@CFGNNExplainer], and ProtoPNet [@ProtoPNet] to complete the audience-explainer mapping above.
 
 ### Open questions
 
 - **Faithfulness is not measured for any current layer.** Deletion-AUC and insertion-AUC on GAT attention, and the @adebayo2018sanity model- and data-randomisation sanity checks, should be the first additions. An attention-weight visualisation that survives model randomisation is *decorative*, not faithful, and must be rejected — the absence of this check in CAN-IDS XAI literature is a gap the framework is positioned to close.
-- **Stability is not measured.** Lipschitz bounds on GAT attention with respect to graph-structural perturbations (edge addition/removal) are unreported. The graph-adversarial-attack literature [@zugner2018adversarial] from `paper/candidacy/proposed-research.md` §Adversarial Robustness provides the natural perturbation set; running the existing attention layer through it gives both stability bounds *and* adversarial robustness data simultaneously.
+- **Stability is not measured.** Lipschitz bounds on GAT attention with respect to graph-structural perturbations (edge addition/removal) are unreported. The graph-adversarial-attack literature [@zugner2018adversarial] from [](#subsec:Adversarial) provides the natural perturbation set; running the existing attention layer through it gives both stability bounds *and* adversarial robustness data simultaneously.
 - **Audience-decision protocols.** The mapping table above is a recommendation; in practice the relevant decisions for each audience need to be elicited from real fleet operators, safety engineers, and OEM compliance teams. This is qualitative research that is not currently scoped but is necessary for a defensible NIST AI RMF [@NISTAIRisk] compliance argument.
 - **Disagreement protocol calibration.** The 2×2 confidence-vs-agreement diagnostic relies on the calibrated confidence from Q2.1. Until class-conditional ECE and conformal coverage are measured (Q2.1 open questions), the "high confidence" cell is not operationally trustworthy.
 - **Explainer agreement metric.** "Agreement" between LIME/SHAP feature attributions is straightforward (cosine similarity over normalised attribution vectors), but agreement between LIME and TCAV (different abstractions) requires a unifying metric — either projecting to a common feature basis or comparing top-$k$ predictive features. The XAI literature has no consensus answer; this is a methodological contribution available within the framework.

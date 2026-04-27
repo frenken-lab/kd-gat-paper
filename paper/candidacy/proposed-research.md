@@ -4,28 +4,59 @@ title: "Proposed Research"
 
 ## Proposed Research
 
+(subsec:Integrative)=
+### Integrative narrative
+
+#### Primary thesis claim
+
+The thesis-level contribution is a single theoretical result and its empirical verification: an **operational rejection bound** at the intersection of [](#subsec:PINN) and [](#subsec:Calibration) — a distribution-free, class-conditional conformal coverage guarantee on the PINN-active subset, derived by composing the regime-aware composite trust score $\lambda_{\text{physics}}(s_t)$ with Mondrian conformal prediction. The bound is the formally novel contribution; the surrounding deployment pipeline (trust gates → simplex policy → safety shield → UCB deferral → conformal abstain) is the *applied composition* that places the bound on a deployable system. The four cross-cutting threads below articulate why each stage is needed; the remaining subsections supply the empirical and engineering apparatus that turns the bound from theorem to certified system.
+
+#### Cross-cutting threads
+
+The extensions below are not parallel research directions; they compose into a single deployment-time decision pipeline whose stages each defuse a distinct failure mode of the current framework. Four threads bind the otherwise-independent subsections.
+
+1. **Trust as a first-class primitive.** The PINN's three regime gates ([](#subsec:PINN)), the fusion policy's confidence calibration ([](#subsec:Calibration)), the explainers' faithfulness and stability bounds ([](#subsec:XAI)), and Neural-LinUCB's UCB deferral ([](#subsec:DQN)) all answer versions of the same "when do I trust X?" question with different X. The framework needs *one* trust calculus rather than several independent reliability heuristics.
+
+2. **Selective prediction as the safety primitive.** Chow's reject option [@geifman2017selective] appears as the tier-aware $\lambda_{\text{physics}}$ gate, as a class-conditional conformal abstain, as a UCB-driven deferral, and as a low-confidence + low-explainer-agreement abstain rule. One unified deferral mechanism is the natural composition.
+
+3. **Heterogeneity as the unifying learning challenge.** Sensor and extraction heterogeneity ([](#subsec:PINN)), capacity vs. task complexity ([](#subsec:IntelKD)), non-IID across vehicles ([](#subsec:FL)), curriculum-induced effective-distribution shift ([](#subsec:Curriculum)), and reward proxy shift ([](#subsec:DQN)) all reduce to a distribution-shift problem in different costumes — the unifying learning challenge of fleet-scale automotive IDS.
+
+4. **Calibration as a methodological prerequisite.** The calibration framework of [](#subsec:Calibration) gates every "high-confidence" claim downstream: without class-conditional Expected Calibration Error and conformal coverage, the trust calculus of (1) and the deferral mechanism of (2) are uncertified.
+
+#### The deployment-time composition pipeline
+
+The four threads compose multiplicatively into a single decision pipeline applied to each CAN-window state $s_t$:
+
+```
+state s_t
+  → Trust gates       (PINN tiered λ_tier · V_regime · V_signal · V_residual)
+  → Simplex policy    (continuous α ∈ Δ^{N-1}; DDPG/SAC actor)
+  → Safety shield     (PINN-as-shield projection: α_PINN ≤ λ_physics(s_t))
+  → UCB deferral      (Neural-LinUCB on logits)
+  → Conformal abstain (Mondrian, class-conditional)
+  → {Detect/Act, Defer to human}
+```
+
+Each stage targets a distinct failure mode. A bad input fails the trust gates; a contested input fails the conformal abstain; a brittle reward fails the UCB deferral. The final action is either *act* (high confidence on a regime-valid input) or *defer to human* (any gate or bandit confidence falls short).
+
+:::{iframe} https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/composition-pipeline.html
+:label: fig-composition-pipeline
+:width: 100%
+Composition of the proposed extensions into a single deployment-time decision pipeline. Each stage is owned by one or two of the proposed-research subsections; the gates compose multiplicatively to produce either an attack/benign decision or a deferral.
+:::
+
+The remaining subsections expand each stage in turn: [](#subsec:PINN) constructs the trust gates; [](#subsec:DQN) defines the simplex policy and safety shield; [](#subsec:Calibration) supplies the conformal abstain; [](#subsec:XAI), [](#subsec:IntelKD), [](#subsec:FL), [](#subsec:Curriculum), [](#subsec:Adversarial), [](#subsec:Streaming), and [](#subsec:CrossD) supply the supporting empirical and engineering apparatus.
+
 (subsec:PINN)=
 ### Physics-Informed Neural Network (PINN)
 
-#### Prior Work
+#### Prior work and comparison to classical baselines
 
-Physics-informed machine learning (PIML) encodes domain-specific physical laws---typically as ODE/PDE residual penalties---into neural network training, producing models that respect known dynamics even under limited data [@Wu2024PIMLReview]. Several recent works demonstrate the viability of this paradigm for anomaly detection in cyber-physical systems. Nandanoori et al. [@Nandanoori2023PIConvAE] embed power-grid swing equations into a convolutional autoencoder loss, detecting false data injection (FDI) attacks with significantly fewer false positives than purely data-driven baselines. Wu et al. [@Wu2025PIGCRN] combine graph convolutional and recurrent layers with physics-residual losses for chemical process networks, establishing an architecture precedent for coupling GNN-based feature extraction with physics-informed training---directly analogous to the GAT + physics loss proposed here.
+Physics-informed machine learning encodes physical laws as ODE/PDE residual penalties [@Wu2024PIMLReview], with established cyber-physical precedents (PIConvAE for power-grid FDI [@Nandanoori2023PIConvAE]; PIGCRN for chemical processes [@Wu2025PIGCRN]) and one direct vehicular precedent — the HPINN of @Vyas2023HPINN, limited to longitudinal CACC dynamics on simulated platoon data. The proposed PINN extends to the *full* nonlinear bicycle model with lateral dynamics and Pacejka tire forces, operates on reverse-engineered CAN signals rather than V2X cooperative data, and integrates as a third expert in the DQN-weighted ensemble rather than acting standalone. Against the classical-baseline alternative — CADD's pure analytical bicycle-model residuals [@Chen2024CADD] (>96% recall, <0.5% FPR on ROAD with OBD-II ground truth) — the PINN buys nonlinear corrections beyond the linear-tire region, a differentiable physics loss that regularises GAT/VGAE during joint training, and graceful degradation when extracted signals are missing (CADD requires OBD-II and cannot operate without it). Following @Ozdemir2024IVNSurvey's observer-based vs. data-driven taxonomy of IVN anomaly detection, the PINN bridges both paradigms.
 
-The closest precedent to the present work is the Hybrid PINN (HPINN) of Vyas et al. [@Vyas2023HPINN], which uses a PINN to detect FDI attacks in cooperative adaptive cruise control (CACC) vehicle platoons. The HPINN encodes longitudinal dynamics (acceleration, spacing) and achieves high detection rates on simulated platoon data. However, HPINN is limited to *longitudinal* dynamics of platooning vehicles and has not been evaluated on real CAN traffic or lateral maneuvers. Our work extends the PINN concept in three directions: (1) encoding the full nonlinear bicycle model including lateral dynamics and Pacejka tire forces, (2) operating on reverse-engineered CAN signals rather than cooperative V2X data, and (3) integrating the PINN as one expert within a DQN-weighted ensemble rather than as a standalone detector.
+#### PINN architecture and training
 
-#### Comparison to Classical Baselines
-
-A natural question is whether a neural network is needed at all when vehicle dynamics are known analytically. The Context-Aware Anomaly Detection using vehicle Dynamics (CADD) system [@Chen2024CADD] answers this partly: CADD uses classical bicycle-model residuals (no neural network) with OBD-II ground-truth signals, achieving >96% recall and <0.5% false positive rate on the ROAD dataset. This strong result validates the physics-based anomaly signal but also reveals the limitations of a purely analytical approach:
-
-- **Model mismatch:** The linear bicycle model diverges from real tire behavior at high slip angles, during emergency maneuvers, and on low-friction surfaces. A PINN can learn nonlinear corrections beyond the analytical model.
-- **Training integration:** A classical residual is a fixed function; it cannot serve as a differentiable loss term for joint training of the GAT and VGAE. The PINN's physics loss $L_{\text{physics}}$ regularizes the entire ensemble during backpropagation.
-- **Graceful degradation:** When full dynamics signals are unavailable (common in raw CAN captures without DBC files), CADD cannot operate. The PINN framework degrades smoothly via adaptive $\lambda_{\text{physics}}$ weighting rather than failing entirely.
-
-Ozdemir and Peng [@Ozdemir2024IVNSurvey] categorize IVN anomaly detection methods as either *observer-based* (predict-then-compare, e.g., Kalman filter residuals) or *data-driven* (learned representations). The proposed PINN bridges both paradigms: it learns a dynamics model (data-driven) whose training is constrained by known physics (observer-based), combining the interpretability of residual-based detection with the flexibility of neural approximation.
-
-#### PINN Architecture and Training
-
-The PINN is a compact MLP trained on vehicle dynamics using CAN data extracted via ByCAN [@ByCAN] reverse engineering and state estimation via Extended Kalman Filter (EKF). The architecture is specified in [](#tab:pinn-arch).
+The PINN is a compact MLP trained on vehicle dynamics from ByCAN-extracted [@ByCAN] CAN signals plus EKF state estimation. The architecture, training objective, and anomaly score are specified in [](#tab:pinn-arch); inputs are temporal windows $\mathbf{x}_{t-\tau:t} \in \mathbb{R}^{\tau\times 5}$ of $(v_x, v_y, \dot{\psi}, \delta, a_x)$, outputs are the predicted next state $[\hat{v}_x, \hat{v}_y, \hat{\dot{\psi}}]^{t+1}$, and the physics term decomposes as $L_{\text{physics}} = L_{v_x} + L_{v_y} + L_{\dot{\psi}}$ — each subterm a bicycle-model ODE residual (full derivation in Appendix [](#app:pinn-physics)).
 
 :::{table} PINN Module Specification
 :label: tab:pinn-arch
@@ -41,46 +72,34 @@ The PINN is a compact MLP trained on vehicle dynamics using CAN data extracted v
 
 :::
 
-At inference, the PINN predicts the next vehicle state given a temporal sequence of observed states:
-
-```{math}
-:label: eq-pinn-prediction
-\text{PINN}(\mathbf{x}_{t-\tau:t}) \rightarrow [\hat{v}_x^{t+1}, \hat{v}_y^{t+1}, \hat{\dot{\psi}}^{t+1}]
-```
-
-where $\mathbf{x}_{t-\tau:t} \in \mathbb{R}^{\tau \times 5}$ is a temporal window of vehicle states (longitudinal velocity $v_x$, lateral velocity $v_y$, yaw rate $\dot{\psi}$, steering angle $\delta$, and longitudinal acceleration $a_x$) extracted from CAN.
-
-The PINN also regularizes the data-driven models through an augmented loss function:
-
-```{math}
-:label: eq-total-loss
-L_{\text{total}} = L_{\text{detection}} + \lambda_{\text{physics}} \cdot L_{\text{physics}}
-```
-
-```{math}
-:label: eq-physics-loss
-L_{\text{physics}} = L_{\text{vx}} + L_{\text{vy}} + L_{\text{yaw}}
-```
-
-where each term penalizes the residual of the corresponding bicycle-model ODE constraint (detailed in Appendix [](#app:pinn-physics)).
-
 **Adaptive $\lambda_{\text{physics}}$ weighting.** Rather than fixing $\lambda_{\text{physics}}$ to a static value, we adopt an adaptive weighting strategy. Wang et al. [@Wang2022NTK] show from a Neural Tangent Kernel (NTK) perspective that static weighting causes PINNs to under-train either the data or physics branch, depending on relative gradient magnitudes. McClenny and Braga-Neto [@McClenny2023SAPINN] address this with self-adaptive weights, parameterizing $\lambda_{\text{physics}}$ as a learnable scalar optimized jointly with the network. Bischof and Kraus [@Bischof2024MultiObj] frame multi-objective loss balancing more generally, showing that gradient-based balancing (e.g., GradNorm, PCGrad) outperforms grid-searched static weights across physics-informed architectures. We propose initializing $\lambda_{\text{physics}}$ based on the deployment tier (see [Graceful Degradation](#pinn-graceful-degradation) below) and then allowing it to adapt during training via the self-adaptive approach of [@McClenny2023SAPINN], with a tier-dependent upper bound to prevent the physics term from dominating when signal quality is low.
 
-#### Anomaly Detection via PINN
-
-The PINN anomaly score is integrated into the DQN ensemble weighting as a third expert. The DQN automatically learns when to trust physics (high weight during normal driving) versus downweight physics (during aggressive maneuvers where nonlinear tire dynamics dominate). The PINN generates anomaly scores by measuring residuals between predicted and observed vehicle states:
+The PINN's anomaly score is the sigmoid-normalised $\ell_2$ residual between predicted and observed states:
 
 ```{math}
 :label: eq-physics-score
 \text{Physics\_Score}_t = \sigma\left(\left\|\mathbf{x}_t^{\text{measured}} - \hat{\mathbf{x}}_{t+1}^{\text{predicted}}\right\|_2\right)
 ```
 
-Large prediction errors (physics violations) yield high anomaly scores. This provides an interpretable signal: "Yaw rate impossible given steering angle and velocity" or "Acceleration exceeds motor dynamics."
+Large residuals yield interpretable signals like "yaw rate impossible given steering angle and velocity"; the DQN learns to up-weight the PINN during normal driving and down-weight it during aggressive maneuvers where nonlinear tire dynamics dominate.
+
+(pinn-trust-gates)=
+#### Trust gates and composite trust score
+
+The PINN's deployment-time influence is conditioned by three runtime gates — regime validity ($\mathcal{V}_{\text{regime}}$), signal reliability ($\mathcal{V}_{\text{signal}}$), and residual uncertainty tightness ($\mathcal{V}_{\text{residual}}$) — combined with the tier-based outer envelope into a composite trust score $\lambda_{\text{physics}}(s_t) = \lambda_{\text{tier}} \cdot \mathcal{V}_{\text{regime}} \cdot \mathcal{V}_{\text{signal}} \cdot \mathcal{V}_{\text{residual}}$. The full derivation of each gate, the threshold semantics under tier-3 ByCAN bias, and the Chow-style reject-option interpretation [@geifman2017selective] are in `committee-questions/physics-dynamics.md` (Q1.1). The composite score also serves as the *safety shield* in the deployment-time composition pipeline ([](#subsec:Integrative)): the simplex policy of [](#subsec:DQN) is post-hoc projected so that $\alpha_{\text{PINN}} \le \lambda_{\text{physics}}(s_t)$, with the remaining mass redistributed across $\{\alpha_{\text{GAT}}, \alpha_{\text{VGAE}}, \alpha_{\text{CWD}}\}$.
+
+**Tier-3 caveat — detector vs. regulariser.** Under tier-3 deployment (ByCAN extraction with no DBC or OBD-II ground truth), the EKF posterior covariance $\Sigma_\eta$ is *bias-dominated* rather than noise-dominated (see Q1.1 §Signal reliability), so the Gaussian-posterior interpretation underlying $\mathcal{V}_{\text{signal}}$ is not strictly well-posed. We therefore narrow the PINN's tier-3 role from *deployment-time detector* to *training-time regulariser* on the GAT/VGAE branch, with $\lambda_{\max}=0.3$ as a hard cap rather than a learned weight. The PINN's load-bearing detector contribution lives at tiers 1 and 2 (DBC or OBD-II ground truth); tier 3 is graceful-degradation engineering, not a detector claim.
+
+**Evaluation protocol.** Three deliverables operationalise the gates.
+
+- **Regime-stratified F1.** Bucket the existing test set by slip angle and longitudinal acceleration; report a 2D histogram of PINN residual vs. (regime bucket, attack flag). Benign-regime residuals should be tight; high-slip benign residuals wide.
+- **Composite-aggregator ablation.** Compare the product form $\lambda_{\text{tier}} \cdot \prod_i \mathcal{V}_i$ against soft-minimum and learnable-mixture alternatives, isolating the marginal value of each gate.
+- **Pure-observer baseline.** Run a CADD-style analytical-residual detector [@Chen2024CADD] at each tier to isolate the gain attributable to learned correction (the PINN) versus regime-aware deferral (the gates).
 
 (pinn-graceful-degradation)=
 #### Graceful Degradation
 
-The PINN module is optional and its influence depends on three deployment tiers, with $\lambda_{\text{physics}}$ initialized per tier and adapted during training. This tiered approach ensures robustness across diverse deployment scenarios while respecting signal-quality constraints.
+The PINN module is optional and its influence depends on three deployment tiers, with $\lambda_{\text{physics}}$ initialized per tier and adapted during training. This tiered approach is the *outer* envelope of the composite trust score above; the inner gates condition $\lambda_{\text{physics}}$ sample-by-sample within each tier.
 
 :::{dropdown} Deployment tiers and adaptive $\lambda_{\text{physics}}$ initialization
 
@@ -92,54 +111,16 @@ The PINN module is optional and its influence depends on three deployment tiers,
 
 :::
 
-#### Data Extraction: ByCAN Reverse Engineering
+#### Data extraction
 
-To obtain vehicle dynamics, we apply the ByCAN reverse engineering framework [@ByCAN]. ByCAN achieves 80.21% slicing accuracy by analyzing CAN payloads at byte and bit levels, outperforming READ (51.99%) and CAN-D (63.88%) [@ByCAN]. The extraction process entails four steps:
-
-1. Load CAN frames from publicly available datasets [@Song2020carhacking; @Lampe2024cantrainandtest; @ROAD].
-2. Apply DBSCAN clustering on byte-level features to identify signal boundaries.
-3. Use Dynamic Time Warping template matching to align CAN sequences across vehicle models and identify consistent signal semantics (Vehicle Speed, Engine RPM, Throttle Position) [@ByCAN].
-4. Extract labeled signals that appear consistently across manufacturers.
-
-These extracted signals feed the EKF for state estimation and PINN training. If signal extraction fails, that particular dataset falls back to data-driven models only with $\lambda_{\text{physics}} = 0$.
-
-:::{dropdown} Limitations and signal extraction fallback hierarchy
-
-The 80.21% slicing accuracy is a *signal boundary* metric---it measures whether ByCAN correctly identifies where one CAN signal ends and the next begins within a message payload. Errors in slicing directly corrupt the physical quantities fed to the PINN, particularly steering angle ($\delta$) and yaw rate ($\dot{\psi}$), which are critical inputs to the bicycle model. Missliced signals can introduce systematic bias rather than random noise, because adjacent signals in a CAN frame often encode related but distinct quantities (e.g., raw sensor counts vs. scaled physical values). LibreCAN [@Pese2019LibreCAN] provides an alternative reverse-engineering approach using diagnostic (OBD-II) responses as ground truth, but requires physical access to the vehicle's OBD-II port during data collection.
-
-To mitigate signal extraction risk, we propose the following fallback hierarchy:
-
-1. **DBC file access (best case):** If the manufacturer's DBC database definition is available (common in OEM research partnerships), use it directly. This eliminates reverse-engineering error entirely.
-2. **OBD-II ground truth:** Following CADD's approach [@Chen2024CADD], use OBD-II PID responses for vehicle speed, RPM, and throttle as ground truth to validate and calibrate ByCAN-extracted signals before PINN training.
-3. **ByCAN reverse engineering (last resort):** Apply ByCAN [@ByCAN] with post-hoc validation: cross-check extracted signal ranges against known physical bounds (e.g., steering angle $|\delta| < 40°$, yaw rate $|\dot{\psi}| < 1.0$ rad/s) and discard signals that fail plausibility checks. Supplement with LibreCAN [@Pese2019LibreCAN] for cross-validation where OBD-II data is available in the dataset.
-
-:::
+PINN inputs come from ByCAN reverse engineering [@ByCAN] (80.21% slicing accuracy on byte-level CAN payloads, outperforming READ at 51.99% and CAN-D at 63.88%) followed by EKF state estimation. If extraction fails on a given dataset, $\lambda_{\text{physics}} = 0$ and the framework reverts to GAT+VGAE only. The signal-quality risks (slicing-induced systematic bias, plausibility-band attestation) and the DBC $\succ$ OBD-II $\succ$ ByCAN fallback hierarchy [@Pese2019LibreCAN; @Chen2024CADD] are catalogued under the threat model in [](#subsec:Adversarial) (deliverables 2 and 4).
 
 (subsec:DQN)=
 ### Dynamic Expert Fusion
 
-The current framework implements two complementary formulations for learning dynamic fusion weights: a Deep Q-Network (DQN) and a Neural-LinUCB contextual bandit [@xu2022neural]. Both operate on the same state and action spaces---a 15-dimensional vector of anomaly scores and confidence metrics from each expert, and $K=21$ discrete fusion weight settings---but differ in their modeling assumptions.
+The framework implements two formulations for learning dynamic fusion weights: a Deep Q-Network (DQN) [@mnih2013playingatarideepreinforcement] and a Neural-LinUCB contextual bandit [@xu2022neural]. Both operate on the same 15-dim state (anomaly + confidence scores from each expert) and $K=21$ discrete fusion settings, but the bandit eliminates the sequential-MDP assumption (discount, target network, replay) that the DQN inherits without strictly needing — each CAN window is classified independently, so the fusion decision for one window does not affect the next. Both currently fuse two experts (GAT, VGAE); the proposed extension scales to four (GAT + VGAE + PINN + CWD) under either formulation. The DQN Bellman update (Eq. {eq}`eq-dqn-loss`) and bandit update equations (Eqs. {eq}`eq-bandit-ucb`, {eq}`eq-bandit-accum`) are in `paper/content/methodology.md`.
 
-The contextual bandit formulation is arguably more principled for this problem: each CAN window graph is classified independently, so the fusion decision for one window does not affect the next. This eliminates the sequential MDP assumption (discount factor, target network, experience replay) that the DQN inherits but does not strictly require. The Neural-LinUCB agent decomposes the problem into deep representation learning (a neural backbone mapping states to embeddings) and shallow exploration via upper confidence bounds, providing principled uncertainty-driven exploration without the overhead of temporal credit assignment.
-
-Both formulations currently fuse two experts (GAT and VGAE). The proposed extension scales fusion from 2-expert to 4-expert (GAT + VGAE + PINN + CWD) using either formulation, increasing the action space and state dimensionality accordingly.
-
-#### Deep Q-Network Formulation
-
-Deep Q-Networks combine Q-learning with neural networks to handle high-dimensional state spaces [@mnih2013playingatarideepreinforcement]. In traditional Q-learning, an agent learns a Q-table mapping with a (state, action) pair and is given a reward after an action. DQNs replace the Q-table with a neural network that approximates Q-values, enabling learning in more complex environments.
-
-In the DQN formulation, the agent learns an optimal weighting policy $\pi(s)$ that dynamically assigns importance scores $\alpha = [\alpha_{\text{GAT}}, \alpha_{\text{VGAE}}, \alpha_{\text{PINN}}, \alpha_{\text{CWD}}]$ to each expert model based on the current CAN message state $s_t$. The state $s_t$ is defined as the concatenation of anomaly scores and confidence scores from both experts. At each step $t$, the agent selects an action $a_t$ corresponding to a weight vector adjustment to minimize the detection loss. The network is trained by minimizing the temporal difference error using the Bellman equation:
-
-```{math}
-:label: eq-dqn-loss
-L(\theta) = \mathbb{E}_{(s,a,r,s') \sim \mathcal{D}} \left[ \left( r + \gamma \max_{a'} Q(s', a'; \theta^-) - Q(s, a; \theta) \right)^2 \right]
-```
-
-where $\mathcal{D}$ is the experience replay buffer, $\theta$ represents the current network weights, $\theta^-$ are the target network weights, and $r$ is the reward derived from correct anomaly classification (e.g., +1 for correct detection, -1 for false positive). This formulation allows the ensemble to adaptively prioritize the most reliable expert for specific attack patterns (e.g., up-weighting VGAE for fuzzy attack vs. up-weighting GAT for gear attack), maximizing detection F1-score across diverse scenarios.
-
-<!-- Figure: Learned Policy Across Datasets (2x2 grid: S01, S02, S03, S04 policy plots) -->
-
-#### Preliminary DQN Results
+#### Preliminary DQN results
 
 Table [](#tab:ablation_DQN) details initial DQN results on training data compared to the GAT classifier and equal weighting to the GAT and VGAE models using the F1-Score metric. Initial results show promise, as the DQN policy performs at or above previous implementations. Figure [](#fig:2x2) plots the GAT and VGAE scores, with the learned $\alpha$ policy shown as the hue. Qualitatively, the policy tends to lean towards the GAT model when it makes confident predictions near the labels 0 and 1. When the GAT model scores a sample near the decision boundary of 0.5, the policy then up-weights VGAE. This is an example of a visualization that helps explain the Q learning policy, but further explainability techniques (Section [](#subsec:XAI)) will be implemented to gain a strong understanding of the model's decisions.
 
@@ -155,6 +136,36 @@ Table [](#tab:ablation_DQN) details initial DQN results on training data compare
 
 **Column Legend:** GAT = GAT-only, E.W = Equal Weighting to GAT and VGAE, DQN = Dynamic Weighting from DQN model.
 :::
+
+#### Scaling fusion from $N=2$ to $N=4$ experts
+
+The current $N=2$ implementation collapses the simplex constraint to a scalar; at $N=4$ (GAT + VGAE + PINN + CWD) the discrete action space blows up combinatorially ($K^N \approx 1.94 \times 10^5$ at $K=21$, $N=4$). The proposed extension lifts the action representation to a continuous simplex via softmax or Dirichlet parameterisation, replacing the $\sqrt{K^N}$ regret penalty with a continuous-action LinUCB rate $\tilde{O}(d\sqrt{T})$ where $d=O(N)$. The full action-space derivation, the regret-bound argument, and the empirical motivation (current DQN at $N=2$ already converges to a small number of discrete operating modes [](#fig-fusion), so a continuous policy with KL-regularised exploration is the natural fit) are in `committee-questions/reinforcement-learning.md` (Q4.2). The architectural deltas the framework will absorb:
+
+:::{table} Architectural deltas for $N=2 \to N=4$ scaling
+:label: tab:fusion-scaling
+
+| Component   | $N=2$ today                                                  | $N=4$ proposed                                                                       | Action representation     |
+|-------------|---------------------------------------------------------------|--------------------------------------------------------------------------------------|---------------------------|
+| State dim   | 15                                                            | $\approx 25$ (adds PINN trust state, EKF innovation)                                 | shared backbone unchanged |
+| Action dim  | $K=21$ scalar $\alpha$                                        | $N=4$ logits $\boldsymbol{\ell}$ → $\mathrm{softmax}$                                | continuous simplex        |
+| DQN head    | $K$ Q-values                                                  | continuous-action actor (DDPG critic + actor on $\boldsymbol{\ell}$)                 | linear in $N$             |
+| Bandit head | per-arm $\mathbf{A}_a, \mathbf{b}_a$ over $K$ arms            | linear-payoff bandit on $\boldsymbol{\ell}$, single $\mathbf{A} \in \mathbb{R}^{N\times N}$ | $O(N^2)$ memory     |
+| Reward      | Eq. {eq}`eq-reward` — unchanged                               | Unchanged structure (terms generalise to mean / variance over $N$ experts)           | —                         |
+
+:::
+
+#### Reward shift and safe adaptation under deployment
+
+At deployment the training reward — which depends on ground-truth labels — must be replaced by an *estimator* $\hat{R}(s, a)$, typically the model's own confidence. Optimising against this self-referential proxy is the classical Goodhart pathology. The decomposition into state-distribution shift and proxy–target divergence, the five safe-adaptation strategies (domain randomisation, UCB deferral, conservative offline updates, safety shielding, Bayesian/Thompson reward), and the implementation-status table are in `committee-questions/reinforcement-learning.md` (Q4.1). Two of those strategies are framework-specific compositions: the Neural-LinUCB UCB bonus already implements implicit deferral by widening when recently-seen states fall outside the column space spanned by $\mathbf{A}_a$, and the PINN composite trust score from [](#subsec:PINN) serves as the safety shield — the simplex policy is post-hoc projected so $\alpha_{\text{PINN},t} \le \lambda_{\text{physics}}(s_t)$ before renormalisation. The composition of these stages with the conformal abstain of [](#subsec:Calibration) is the deployment pipeline of [](#subsec:Integrative).
+
+#### Evaluation protocol for fusion scaling and reward robustness
+
+Four deliverables anchor the fusion-policy extensions:
+
+1. **$N \in \{2, 3, 4\}$ scaling experiment.** Compare discrete-grid DQN, softmax-actor DQN, and Dirichlet-actor at fixed task and dataset, measuring sample efficiency (regret to reach 95% of best F1) and final F1. Verifies the regret-bound argument empirically.
+2. **Continuous-simplex prototype.** Replace the 21-output Q-head with an $N$-dim actor (DDPG/SAC-style) atop the existing shared backbone. Required pre-scaling milestone: verify no regression at $N=2$ before adding PINN/CWD.
+3. **Reward-coefficient $\pm 50\%$ ablation.** Sweep each of $c_{\text{agree}}, c_{\text{conf}}, c_{\text{disagree}}, c_{\text{overconf}}$ and report F1 stability — the cheapest empirical handle on robust-MDP and a clean OFAT axis.
+4. **PINN-as-shield formalisation.** Compare simplex-restricted softmax, log-barrier penalty, and hard projection [@alshiekh2018shielding]; the choice has implications for gradient flow during the Neural-LinUCB backbone retraining and for the $\tilde{O}(\sqrt{T})$ continuous-action regret bound under bounded reward shift.
 
 (subsec:IntelKD)=
 ### Resource-Aware Knowledge Distillation
@@ -188,66 +199,101 @@ As an example, the current student GAT model is composed of linear layers and gr
 
 for a CAN graph with $n=37$ signals and $d=16$ embedding dimension across $4$ attention heads. While this model is safely under the max parameter limit, future work will need to ensure that every component and its combination meets the computational limit of the hardware.
 
-:::{dropdown} Scaling law principles from distillation literature
+#### Single-level reduction and capacity-gap law
 
-Recent empirical research on knowledge distillation [@distillation-scaling-laws] reveals that optimal teacher-student sizing depends on the target task complexity and available compute. While this research primarily studied large language models (143M-12.6B parameters), the underlying principles generalize to smaller domains:
+The student-architecture choice can be *framed* as a bilevel program (outer problem under hardware constraint Eq. {eq}`eq-flops-budget`, inner problem under the KD loss Eq. {eq}`eq-kd-total-loss`), but in practice the outer choice is fixed by $C_{\text{hw}}$ and only the inner problem is solved — this framework is no exception. The bilevel framing therefore gives a vocabulary for reasoning about the (teacher capacity, student capacity, task complexity) coupling without claiming a bilevel solver. The viable teacher–student capacity gap $\Delta^\star_{\text{cap}}(\mathcal{T}) \propto 1/\mathcal{T}^\beta$ is bounded by an inverted-U whose location depends on task complexity [@distillation-scaling-laws; @Towards-Law-of-Capacity-Gap2025]; beyond the sweet spot, *larger teachers actively hurt smaller students* because the teacher's distribution becomes unrepresentable in the student's hypothesis class. The capacity-gap law derivation, the graph-KD compression-tolerance argument [@kdgraph_survey2023], and the teacher-assistant remediation literature [@Mirzadeh-TAKD2020; @DenselyGuided-KD2019; @Gap-KD2025] are in `committee-questions/federated-optimization.md` (Q3.1). Binary attack/benign classification on CAN traffic sits at the easy end of the complexity curve, which is why the current $68\times$ ratio still performs well; the same student would almost certainly fail at $68\times$ on a 9-class typing task.
 
-1. Teacher size plateaus at 2-3x student size for most tasks: Beyond this ratio, further teacher scaling yields diminishing returns due to inference cost overhead. However, for simpler binary classification tasks (like benign vs. attack detection), more aggressive compression (>50x) is feasible because decision boundaries are simpler.
+#### Evaluation protocol
 
-2. Capacity gap risk at extreme compression ratios: When teacher and student are too different in capacity, the student struggles to model teacher behavior. The current framework has a compression rate of 68x. Though results have been strong, future work will entail augmenting parameters to more appropriate compression ratios.
+Five deliverables operationalise the bilevel view:
 
-3. Teacher quality matters more than size: Student performance depends more on teacher quality than teacher size. A well-trained smaller teacher is preferable to an under-trained larger teacher.
+1. **Capacity-ratio sweep** $\{|\theta_S| / |\theta_T|\} \in \{1/100,\, 1/68,\, 1/30,\, 1/10,\, 1/3\}$ at fixed binary task — empirically traces the inverted-U from @Towards-Law-of-Capacity-Gap2025 on CAN data; clean OFAT axis.
+2. **Task-complexity sweep** at three difficulties — binary detection, 5-class attack typing, 9-class fine-grained typing — empirically verifying $\Delta^\star_{\text{cap}}(\mathcal{T})$ on CAN data; not in the literature for graph-IDS distillation to our knowledge.
+3. **Teacher-quality vs. teacher-size separation.** A teacher trained to comparable F1 with half the parameters should produce a stronger student than the current teacher, all else equal [@distillation-scaling-laws].
+4. **Born-again / mutual-learning baselines** [@furlanello2018born; @zhang2018deep]. Same-size student-to-student distillation isolates how much of the KD gain comes from the *capacity gap* versus from soft targets per se.
+5. **Teacher-Assistant chain** [@Mirzadeh-TAKD2020; @Gap-KD2025]. Inserting a single TA at $\sqrt{68}\approx 8\times$ between teacher and student is the cheapest remediation if multi-vehicle joint training (see [](#subsec:CrossD)) pushes the existing $68\times$ ratio outside the viable gap.
 
-These principles will guide future work on the framework, ensuring appropriate compression ratios based on the resource constraints of onboard hardware.
+(subsec:Calibration)=
+### Calibration and Selective Prediction
 
-:::
+The framework's safety story rests on the trust gates ([](#subsec:PINN)) and deferral mechanisms ([](#subsec:DQN), [](#subsec:XAI)) actually being calibrated — the model's reported confidence matching empirical accuracy and the conformal abstain delivering its nominal coverage. Calibration is a *prerequisite* for every "high confidence" claim downstream. The aleatoric/epistemic decomposition [@kendall2017uncertainties], the class-conditional ECE failure mode under 927:1 imbalance, the Mondrian conformal prediction recipe [@angelopoulos2023conformal] for distribution-free per-class coverage, the risk-coverage framing of selective prediction [@geifman2017selective], and the operational-drift mechanisms (population stability index, Kolmogorov–Smirnov on confidence histograms, online conformal recalibration) are derived in `committee-questions/interpretability-calibration.md` (Q2.1). The Mondrian conformal abstain is the final stage of the deployment-time composition pipeline ([](#subsec:Integrative)); online conformal recalibration is the natural pairing with [](#subsec:Streaming).
+
+#### Evaluation protocol
+
+Five deliverables operationalise the calibration apparatus on *existing* checkpoints (post-hoc, no retrain):
+
+1. Temperature-scale the fused ensemble output on a held-out calibration split.
+2. Report class-conditional ECE, class-conditional Brier score, and per-class reliability diagrams.
+3. Plot risk-coverage curves with 95% bootstrap bands over seeds.
+4. Fit a Mondrian conformal predictor per-class on the calibration split and report the *coverage gap* (empirical $-$ nominal) on held-out test data, broken out per class.
+5. Sanity-check explanation faithfulness via the @adebayo2018sanity model- and data-randomisation tests as a prerequisite for the explainer-disagreement protocol of [](#subsec:XAI).
+
+These are the highest cost-to-information items in the consolidated deliverables list — none requires retraining and each unlocks downstream claims. Class-conditional ECE alone gates the trust calculus, the disagreement protocol of [](#subsec:XAI), the curriculum-induced miscalibration analysis ([](#subsec:Curriculum)), and the UCB selective-prediction calibration ([](#subsec:DQN)).
+
+(subsec:Curriculum)=
+### Curriculum Convergence and Induced Bias
+
+The framework's momentum-based curriculum (`paper/content/methodology.md` §Training) modifies the *effective* training distribution $p_t(x, y)$ at each step via $p_t = 1 - \exp(-t/\tau)$, blending class-balanced and natural batches with persistent hard-sample replay. Curriculum learning generally does not converge to the same solution as full-distribution training [@bengio2009curriculum; @hacohen2019power; @soviany2022curriculum]; it changes both the rate and the destination of optimisation. The schedule introduces three induced biases — class-prior shift (intended), feature-selection bias (intended), and calibration drift (liability) — and the framework's specific schedule is anti-curriculum with difficulty-aware replay rather than the Bengio easy-to-hard paradigm. The convergence analysis, the formalisation of each bias, and the schedule's relation to importance-weighted ERM are in `committee-questions/federated-optimization.md` (Q3.3). The calibration-drift liability is the methodological link to [](#subsec:Calibration); it should be measured there and corrected at inference via temperature scaling on a natural-distribution calibration split.
+
+#### Evaluation protocol
+
+Four deliverables operationalise the curriculum-convergence question:
+
+1. **Parameter-space distance + prediction-disagreement test.** Train two GATs to identical seed-controlled checkpoints, one with curriculum and one with shuffled full-distribution sampling. Report $\|\theta_{\text{curr}} - \theta_{\text{nat}}\|_2 / \|\theta_{\text{nat}}\|_2$ per layer and prediction-disagreement rate on held-out natural-distribution test data, stratified by class. Cheapest possible "same solution or not" measurement.
+2. **Class-conditional ECE under curriculum** (depends on [](#subsec:Calibration)). Quantifies bias (3) and unblocks the disagreement protocol of [](#subsec:XAI).
+3. **Momentum-coefficient $\tau$ sensitivity.** OFAT sweep on a single axis; not currently ablated. Trades precision for recall by changing how fast the schedule asymptotes.
+4. **Time-varying importance-weighted ERM theory.** Cast the momentum schedule as importance-weighted ERM with weights $w_t(y) = p_t(y) / p_{\text{nat}}(y)$ and derive the bias on the Bayes-optimal classifier under imbalance. Theoretical contribution; complements the empirical (1)–(3).
 
 (subsec:XAI)=
 ### Explainable Artificial Intelligence
 
-Understanding why the ensemble flags a CAN sequence as anomalous is critical for trust and debugging. In addition to the PINN module, the use of widely adopted and novel XAI will be employed.
+The XAI contribution of the dissertation is **not** "we applied five off-the-shelf explainers." The contribution is the **2×2 confidence × explainer-agreement diagnostic** introduced in `committee-questions/interpretability-calibration.md` (Q2.2): a selective-prediction rule that uses *disagreement* between explainers as a signal rather than noise, composing with the calibration-based abstain of [](#subsec:Calibration) into a stricter rule (low-confidence ∪ low-agreement) than either alone. This diagnostic is novel within the CAN-IDS XAI literature and is the methodological deliverable.
 
-**Standard Methods: LIME and SHAP**
+To run the diagnostic the framework needs *two* explainers spanning different abstractions — a feature-level attribution method and a structural one — plus the existing native attribution layers (GAT attention, VGAE composite reconstruction error). Three off-the-shelf explainers (LIME, TCAV, ProtoPNet) are explicitly **out of dissertation scope**: applying additional methods does not strengthen the disagreement diagnostic and is not the contribution.
 
-1. LIME (Local Interpretable Model-agnostic Explanations) [@LIME] approximates local model behavior via linear surrogates. For a flagged CAN sequence, LIME perturbs individual message fields and measures impact on anomaly score. Output: "Removing this signal reduces attack confidence by 15%," highlighting which CAN IDs contributed to detection.
-2. SHAP (SHapley Additive exPlanations) [@SHAP] computes feature importance via Shapley values from cooperative game theory. SHAP attributes each CAN signal's contribution to the ensemble decision, with theoretical guarantees on local accuracy and consistency. For CAN anomaly detection, SHAP shows: "This message sequence violates the typical pattern for Engine ECU; signal X was out-of-distribution by 3-sigma."
+:::{table} XAI methods integrated into the framework
+:label: tab:xai-methods
 
-Both methods are model-agnostic and provide intuitive feature-level explanations. However, they treat CAN data as flat feature vectors, ignoring graph structure and temporal dynamics.
+| Method | Abstraction | Role in the diagnostic | Reference |
+|---|---|---|---|
+| SHAP | Shapley feature attributions with local-accuracy guarantees | Feature-level vote in the 2×2 | @SHAP |
+| CF-GNNExplainer | Counterfactual perturbation respecting graph structure | Structural vote in the 2×2 | @CFGNNExplainer; @CounterfactualExplainability |
+| GAT attention (existing) | Native graph attribution | Faithfulness sanity-check target [@adebayo2018sanity] | `paper/content/explainability.md` |
+| VGAE reconstruction error (existing) | Reconstruction-based attribution | Independent epistemic signal | `paper/content/explainability.md` |
 
-**Novel Methods: Orthogonal Explainability Perspectives**
+:::
 
-To complement the standard methods of XAI, three additional approaches will be explored to determine whether they provide strong interpretability:
+#### Trust criteria and disagreement protocol
 
-1. **Counterfactual Analysis (CF-GNNExplainer):** For graph-structured CAN data, counterfactual explanations show minimal perturbations that flip predictions [@CFGNNExplainer]. Example: "Removing the message relationship between Steering Angle and Yaw Rate signals flips the attack classification to benign." This reveals decision boundaries and what must change for the model to change its mind [@CounterfactualExplainability].
+A useful explanation must satisfy three independent criteria — *faithfulness* (does it track what the model actually uses, measured via deletion-/insertion-AUC and the @adebayo2018sanity model- and data-randomisation sanity checks), *stability* (does it persist under small structured perturbations, measured via Lipschitz bounds against the [](#subsec:Adversarial) perturbation set), and *audience fit* (does the abstraction level match the consumer's decision). The formal definitions of each criterion, the deletion-/insertion-AUC formulas, the 2×2 confidence × explainer-agreement diagnostic that turns disagreement from noise into signal, and the audience-explainer mapping (fleet operator / developer / safety engineer / ISO 26262 auditor / NIST AI RMF) are in `committee-questions/interpretability-calibration.md` (Q2.2). The disagreement protocol composes with [](#subsec:Calibration): low-confidence + low-agreement is a stricter abstain rule than either signal alone.
 
-2. **Concept Activation Vectors (TCAV):** TCAV maps internal neural network activations to user-defined concepts without retraining [@TCAV]. Example: "How much does the GAT layer respond to DoS-like behavior (high message frequency)?" or "Does the VGAE encode spoofing signatures?" TCAV provides global model behavior explanation (not per-sample), quantifying what high-level patterns the ensemble learned [@TCAV].
+#### Evaluation protocol
 
-3. **Prototype-Based Learning:** Supplement ensemble with learned archetypal attack/benign patterns. Explanations: "This sequence matches DoS prototype with 94% similarity" or "Resembles Spoofing Attack Example 3" Unlike post-hoc methods, prototypes are faithful (model literally uses them) and transparent (users inspect training exemplars) [@ProtoPNet].
+Four deliverables, ordered by priority:
 
-These methods are complementary to LIME/SHAP, addressing model-specific biases and providing multiple perspectives on why anomalies are detected. For safety-critical automotive systems, this multi-method approach ensures comprehensive interpretability.
+1. **Disagreement-as-OOD selective rule (primary contribution).** Compose with [](#subsec:Calibration): abstain on (low-conf $\cup$ low-agreement) using SHAP and CF-GNNExplainer as the two explainers in the 2×2 diagnostic. Empirically compare the abstain rate, accuracy on the accepted subset, and risk-coverage curve against the low-conf-alone baseline. Not previously studied in the calibration literature; this is the dissertation's XAI contribution.
+2. **Sanity-check existing layers.** Apply the @adebayo2018sanity model- and data-randomisation tests to GAT attention, VGAE composite reconstruction error, and UMAP. An attention visualisation that survives model randomisation is *decorative* and must be rejected — required prerequisite for trusting the existing layers in the diagnostic above.
+3. **Deletion- and insertion-AUC** on GAT attention as the standard faithfulness handle (no retrain).
+4. **Stability bounds.** Lipschitz constants on GAT attention with respect to graph-structural perturbations (edge addition/removal). Run the existing attention layer through the [](#subsec:Adversarial) perturbation set; this yields stability bounds *and* adversarial-robustness data simultaneously.
 
 (subsec:CrossD)=
 ### Cross-Domain Generalization and Validation
 
-To demonstrate framework robustness beyond automotive CAN, additional validation will be done on diverse ICS/IDS datasets spanning network, critical infrastructure, and control systems domains. Table [](#tab:datasets) lists possible datasets to test this framework. This list is not exhaustive, and the specific datasets used will be decided at a future date.
+The dissertation's primary evaluation is **automotive CAN** (Car-Hacking, ROAD, can-train-and-test), and the integrative thesis claim ([](#subsec:Integrative)) is grounded in this domain. To demonstrate that the framework's *graph-IDS-with-physics-prior* pattern generalises beyond CAN, **one** out-of-domain stress test on a physics-rich SCADA dataset (SWaT) is included as a validation experiment. Other ICS/network datasets (NSL-KDD, CICIDS2017, WADI, HAI, etc.) are **explicitly out of dissertation scope** — each would require its own preprocessing pipeline, threat model, and physics model, and would dilute rather than reinforce the integrative claim.
 
-:::{table} Possible Benchmark Intrusion Detection Datasets for Cross-Domain Evaluation
+:::{table} Evaluation datasets — primary CAN-IDS suite plus one out-of-domain stress test
 :label: tab:datasets
 
-| **Dataset** | **Domain** | **Modality** | **Attack Types** | **Records** | **Physics Dynamics** |
+| **Dataset** | **Role** | **Domain** | **Modality** | **Attack Types** | **Physics Dynamics** |
 |---|---|---|---|---|---|
-| Car-Hacking (2015) [@Song2020carhacking] | Automotive | CAN Bus Messages | DoS, Fuzzy, Spoofing (RPM, Gear) | 30--40 min (300 ea.) | Available (Speed, RPM, Gear) |
-| ROAD (2021) [@ROAD] | Automotive | CAN Bus Messages | Fabrication, Masquerade (physical verified) | 100+ hrs (>100K msgs) | High Quality (Real vehicle, dynamometer) |
-| KDD'99 [@stolfo1999kddcup99] | Network | TCP/IP Connections | DoS, Probe, R2L, U2R | 5M records | No (network traffic) |
-| NSL-KDD (2009) [@tavallaee2009nslkdd] | Network | TCP/IP Connections | DoS, Probe, R2L, U2R (refined KDD'99) | 125K train, 22K test | No (network traffic) |
-| CICIDS2017 (2017) [@sharafaldin2018cicids2017] | Network | Network Flows | DoS, DDoS, Brute-force, Botnet, Infiltration | 2.8M flows (80K CSV) | No (network traffic) |
-| UNSW-NB15 (2015) [@moustafa2015unswnb15] | Network | TCP/IP Connections | DoS, Exploits, Backdoor, Reconnaissance | 2.5M records (100K CSV) | No (network traffic) |
-| SWaT (2015) [@goh2016swatdataset] | Water Treatment (SCADA) | 51 Sensors, 6 Actuators | Sensor Spoofing, Valve Injection, Backdoor | 496K rows (1 week), 12% attacks | High (water treatment physics model) |
-| WADI (2017) [@ahmed2017wadi] | Water Distribution (SCADA) | 103 Sensors, 15 Actuators | Sensor Attacks, Logic Attacks, Actuator Attacks | 1.05M rows (2 weeks), 6% attacks | High (water distribution dynamics) |
-| HAI (2020) [@shin2020hai] | Critical Infrastructure (Hybrid) | Multiple Sensors/Actuators | Sensor Attacks, Valve Attacks, Logic Attacks | 80K rows (1 week) | Moderate (SCADA, process control) |
+| Car-Hacking (2015) [@Song2020carhacking] | Primary | Automotive | CAN Bus Messages | DoS, Fuzzy, Spoofing (RPM, Gear) | Available (Speed, RPM, Gear) |
+| ROAD (2021) [@ROAD] | Primary | Automotive | CAN Bus Messages | Fabrication, Masquerade (physical verified) | High Quality (Real vehicle, dynamometer) |
+| can-train-and-test [@Lampe2024cantrainandtest] | Primary | Automotive | CAN Bus Messages | Multiple attack types across vehicle splits | Available (multi-vehicle) |
+| SWaT (2015) [@goh2016swatdataset] | OOD stress test | Water Treatment (SCADA) | 51 Sensors, 6 Actuators | Sensor Spoofing, Valve Injection, Backdoor | High (water treatment physics model) |
 
 :::
 
+(subsec:Streaming)=
 ### Online and Streaming Detection
 
 The current framework operates on static graph snapshots constructed from fixed-size CAN windows. Real-world deployment, however, requires streaming inference where graphs are updated incrementally as new messages arrive.
@@ -256,27 +302,57 @@ The current framework operates on static graph snapshots constructed from fixed-
 - **Concept drift:** Attack patterns evolve over time, and vehicle behavior itself changes with wear, environmental conditions, and software updates. The fusion agent must detect distributional shifts and adapt---either through online fine-tuning of GNN parameters or through drift-aware replay strategies.
 - **Latency constraints:** Streaming inference must still meet the <50 ms latency budget (Section [](#subsec:IntelKD)). Approaches that amortize GNN computation across incremental updates are essential for satisfying this constraint at scale.
 
+(subsec:Adversarial)=
 ### Adversarial Robustness
 
-As a security-critical component, the IDS itself becomes an attack target. Adversaries aware of the GNN-based detection pipeline may craft evasion attacks specifically designed to bypass it.
+As a security-critical component, the IDS itself becomes an attack target. Adversaries aware of the GNN-based detection pipeline may craft evasion attacks specifically designed to bypass it. Virtually all CAN-IDS evaluation in the surveys [@rajapaksha2022aiidssurvey; @Choi] uses *naïvely-injected* attacks (random payloads, replay) and almost none uses *physics-aware* or *estimator-aware* attacks. This subsection lays out the threat-model taxonomy that the framework's defences must address and the specific exploit modes that follow from it.
 
-- **Graph adversarial attacks:** Edge and node perturbation attacks can fool GAT attention mechanisms by injecting carefully chosen CAN messages that appear benign to the graph structure while masking underlying attack patterns [@zugner2018adversarial].
-- **Training data poisoning:** Fleet-collected datasets used for model updates are vulnerable to poisoning, where an attacker injects subtly mislabeled samples to degrade detection performance over time.
-- **Certified robustness:** Randomized smoothing and other certification techniques can provide provable guarantees on detection stability under bounded perturbations. Adversarial training---augmenting the training set with adversarial examples---provides empirical robustness but increases computational cost.
-- Given the security domain, robustness evaluation against adversarial graph perturbations is not merely academic but operationally necessary for deployment trust.
+#### Threat-model taxonomy
 
-### Federated Learning Across Vehicles
+The threat surface decomposes by *access location* (where the attacker injects), *capability* (read / write / replace), and *signature* (what must remain undetectable). The cross-product over the five pipeline stages — bus-injection [@Miller; @Cho], ByCAN slicing-template, EKF state estimation, PINN residual, and federated client (per [](#subsec:FL)) — together with the four resulting exploit modes (plausibility-band injection, slow-drift residual attacks, slicing-template poisoning, and graph-aware decoy attacks) are catalogued in `committee-questions/physics-dynamics.md` (Q1.2). The framework's GAT+VGAE branch is structurally protected from estimator-pipeline compromise because it does not depend on the estimator; the PINN branch is not protected, but the tier-based weighting caps the blast radius at $\lambda_{\max} = 0.3$ in the worst case, and the composition with the trust gates of [](#subsec:PINN) tightens it further — each gate failure further attenuates $\lambda_{\text{physics}}(s_t)$.
 
-Fleet-scale IDS training would benefit from aggregating knowledge across multiple vehicles without sharing raw CAN data, addressing both privacy requirements and the edge computing constraints identified in Challenge 2.
+#### Evaluation protocol
 
-- **Privacy-preserving training:** Federated averaging allows each vehicle to train locally and share only model gradients, preventing exposure of proprietary CAN protocols or driving behavior data.
-- **Data diversity for rare attacks:** Individual vehicles encounter limited attack diversity. Fleet-wide federated learning pools gradient information across vehicles, improving detection of rare attack types that any single vehicle may never observe in training.
-- **Heterogeneous graph structures:** Different vehicle platforms have different ECU topologies, producing graphs with varying node counts and edge structures. Federated aggregation must handle this heterogeneity---either through shared feature extractors with platform-specific graph layers, or through graph-agnostic representation alignment.
+Five deliverables operationalise the threat-model:
 
-### Multi-Dataset Joint Training
+1. **Physics-aware adversarial training.** Generate physically plausible attacks (residuals matching the bicycle model under nominal Pacejka parameters) and adversarial-train the PINN against them. No prior CAN-IDS work uses an adversary that respects vehicle dynamics.
+2. **Slicing-template attestation.** Treat the ByCAN template as a security artefact (signed, version-controlled, validated against OBD-II at deployment time). Engineering recommendation that does not appear in [@ByCAN; @Pese2019LibreCAN; @Ozdemir2024IVNSurvey].
+3. **Innovation-sequence monitoring as a fusion-state feature.** Use the EKF innovation residuals as an *additional* feature in the fusion state of [](#subsec:DQN). This converts the estimator's internal belief into an attack signal and is a single-component change.
+4. **Regime-conditioned plausibility bands.** Replace static $\pm 40°$ bounds with regime-conditioned ones (bounded by $\dot{\psi}$ and $v_x$). No new training required.
+5. **Empirical stability bounds (no certification claim).** Compute Lipschitz constants on GAT attention with respect to bounded graph-structural perturbations from @zugner2018adversarial's perturbation set. This yields *empirical* stability data shared with [](#subsec:XAI) deliverable 4 — not full certified robustness. Certified randomised smoothing on graph models is itself an open research area, and ISO 26262 ASIL C/D certification is out of dissertation scope.
 
-Current evaluation treats each dataset independently, training and testing separate models per dataset. A natural extension is joint training across multiple datasets with shared representations.
+(subsec:FL)=
+### Federated-Style Robustness to Non-IID Heterogeneity
 
-- **Shared feature extractors:** A common GNN backbone can learn protocol-invariant features (e.g., timing anomalies, frequency deviations) while domain-specific classification heads adapt to dataset-specific label semantics.
-- **Few-shot adaptation:** With a strong shared backbone, adapting to a new vehicle platform or CAN protocol should require only a small number of labeled examples, enabling rapid deployment on unseen vehicles.
-- **Cross-protocol transfer:** The graph construction approach (Algorithm 1) generalizes beyond CAN to any message-based network protocol. Joint training across CAN, FlexRay, and Automotive Ethernet datasets would test whether learned representations transfer across protocol boundaries.
+**Scope hedge.** True federated deployment requires multi-vehicle CAN data with cross-device privacy constraints — neither is provided by the public CAN-IDS datasets the framework uses. The proposed evaluation simulates federation by sharding the existing centralised datasets (Car-Hacking, ROAD, can-train-and-test) by attack-class mix and treating each shard as a synthetic client. This measures the *algorithmic* robustness of FedAvg / FedProx / SCAFFOLD on CAN-IDS data under controllable non-IID heterogeneity — it is not a deployment claim, and it does not stand in for the privacy / Byzantine / compliance properties that real federated training would need to demonstrate. Actual federated deployment is contingent on fleet-data access (e.g., OEM partnership) and is future work outside the dissertation scope.
+
+Fleet-scale IDS training benefits from aggregating knowledge across vehicles without sharing raw CAN data — privacy, attack-diversity coverage, and edge-compute amortisation jointly motivate federation [@mcmahan2017fedavg]. The challenge is that fleet client distributions are non-IID along three independent axes — label shift (attack-exposure heterogeneity), feature shift (wear, environment, route), and concept shift (OEM-specific protocol semantics) — each of which breaks a different optimisation property of FedAvg and requires a qualitatively different remedy (SCAFFOLD on label shift, FedProx on feature shift, personalisation on concept shift). The FedAvg client-drift bound, the per-axis remedy fitness, the Byzantine-robust aggregation strategies (Krum, multi-Krum, median-of-means), and the DP-SGD × class-imbalance interaction (where the 927:1 imbalance over-noises minority gradients) are derived in `committee-questions/federated-optimization.md` (Q3.2). The framework's three-stage pipeline factors cleanly along the FL boundary:
+
+:::{table} Federated body, local heads — per-component FL strategy
+:label: tab:fl-decomposition
+
+| Component                                                                    | Local | Shared | FL strategy                                                                                                              |
+|------------------------------------------------------------------------------|-------|--------|--------------------------------------------------------------------------------------------------------------------------|
+| Per-platform input projection (35-dim node feature → shared $d$-dim)         | ✓     |        | Absorbs OEM-specific feature semantics; cannot be shared across vehicles with different CAN signal layouts                |
+| Shared GAT backbone                                                          |       | ✓      | Federated (FedAvg/SCAFFOLD); protocol-invariant features (timing anomalies, frequency deviations) generalise              |
+| Per-platform output head                                                     | ✓     |        | Different attack-class distributions and OEM-specific semantics; clustered FL across OEM cohorts is a middle path         |
+| OOV-robust embedding (hash variant)                                          |       | ✓      | Hash-based version federates cleanly; lookup-plus-UNK requires shared vocabulary which would leak per-OEM IDs              |
+| VGAE encoder/decoder                                                         |       | ✓      | Reconstruction is symmetric across protocols; per-platform anomaly thresholds remain local                                |
+| Fusion policy (DQN / Neural-LinUCB)                                          | ✓     |        | Federated initialisation, per-vehicle online adaptation; reward shift ([](#subsec:DQN)) is a local phenomenon             |
+
+:::
+
+This pattern — federated body, local heads — is the standard answer to architectural heterogeneity in personalised FL. The CAN-IDS-specific contribution is the choice of *which* component is local: the input projection (because OEM-specific) and the fusion head (because [](#subsec:Calibration) calibration is per-vehicle). The FL setting also introduces a new attack surface (poisoned client updates) that connects to [](#subsec:Adversarial).
+
+#### Evaluation protocol
+
+Four deliverables operationalise the FL-style robustness extension:
+
+1. **Empirical baseline sweep.** Run FedAvg, FedProx, and SCAFFOLD on a synthetic federated CAN setup constructed by sharding existing centralised datasets (Car-Hacking, ROAD, can-train-and-test) by attack-class mix to simulate axis-1 non-IID. Report convergence-rate vs. local-step count $E$.
+2. **Architectural ablation for graph heterogeneity.** Compare (a) global per-feature projection, (b) per-platform input projection with shared backbone, (c) per-platform input *and* output heads. Hypothesis: (b) is sufficient when concept shift is small (intra-OEM) and (c) is required across OEMs.
+3. **DP-SGD × curriculum interaction.** Re-derive the privacy accounting under amplification-by-sampling for the time-varying $p_t$ of [](#subsec:Curriculum) — a clean theoretical contribution at the intersection of [](#subsec:FL) and [](#subsec:Curriculum), and the only theoretical FL contribution within reach without fleet-data access.
+4. **Byzantine red-team protocol.** Extend the threat-model taxonomy of [](#subsec:Adversarial) with poisoned-client attacks: single-client full-access, multi-client limited-access, gradient-inversion against DP-SGD.
+
+### Consolidated deliverables backlog
+
+The subsections above enumerate roughly 25 distinct deliverables across the proposed extensions. A consolidated table grouping these by character (empirical post-hoc, empirical with retrain, methodological writeups, engineering integrations, theoretical contributions at intersections, comparative baselines) and by which committee questions each spans is maintained at `paper/candidacy/committee-questions/index.md` §Consolidated deliverables. *Empirical post-hoc* items are the highest cost-to-information-ratio set — they unlock four chapters' worth of empirical claims with no retraining cost — and the recommended sequencing is: (1) class-conditional ECE and risk-coverage curves on existing checkpoints ([](#subsec:Calibration)), (2) regime-stratified F1 by slip-angle bucket ([](#subsec:PINN)), (3) the @adebayo2018sanity sanity-check + deletion-AUC pass on GAT attention ([](#subsec:XAI)), and (4) the parameter-distance test for curriculum convergence ([](#subsec:Curriculum)). The remaining deliverables (capacity-ratio sweep, $N \in \{2,3,4\}$ scaling, FL baseline sweep, etc.) require retraining and follow.

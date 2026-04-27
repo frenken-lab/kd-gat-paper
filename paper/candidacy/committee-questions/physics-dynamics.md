@@ -24,7 +24,7 @@ $$
 \mathcal{V}_{\text{signal}}(s_t) \;=\; \mathbb{1}\!\left[\,\mathrm{tr}\bigl(\Sigma_{\eta}(t)\bigr) \;\le\; \tau_{\text{signal}}\,\right]
 $$
 
-where $\Sigma_\eta(t)$ is the EKF posterior covariance. Tier-1 deployment (DBC available) collapses $\Sigma_\eta$ to sensor noise; tier-2 (OBD-II ground truth) inflates it by the EKF process-noise contribution; tier-3 (ByCAN reverse engineering) inflates it further by the 80.21% slicing-accuracy bias [@ByCAN] from `paper/candidacy/proposed-research.md` §Data Extraction. *Crucially, $\Sigma_\eta$ is bias-dominated rather than noise-dominated under tier-3*, so the gate must be one-sided against systematic offset, not symmetric Gaussian.
+where $\Sigma_\eta(t)$ is the EKF posterior covariance. Tier-1 deployment (DBC available) collapses $\Sigma_\eta$ to sensor noise; tier-2 (OBD-II ground truth) inflates it by the EKF process-noise contribution; tier-3 (ByCAN reverse engineering) inflates it further by the 80.21% slicing-accuracy bias [@ByCAN] from the data-extraction tiers in [](#subsec:PINN). *Crucially, $\Sigma_\eta$ is bias-dominated rather than noise-dominated under tier-3*, so the gate must be one-sided against systematic offset, not symmetric Gaussian.
 
 **3. Residual uncertainty tightness.** The PINN's residual $r_t = \|\mathbf{x}_t - \hat{\mathbf{x}}_t\|_2$ from Eq. {eq}`eq-physics-score` is only an attack signal to the extent that it exceeds the *baseline* residual under benign operation. Calling that baseline distribution $p(r \mid \text{benign}, s)$ — a regime-conditioned distribution — the residual-uncertainty gate is
 
@@ -44,7 +44,7 @@ This is a deferral rule in the sense of Chow's reject option [@geifman2017select
 
 ### Mapping the deployment tiers onto the trust conditions
 
-The $\lambda_{\text{physics}}$ tier system in `paper/candidacy/proposed-research.md` §PINN Graceful Degradation is a *coarse* approximation of the composite trust score above — it conditions on signal availability only. The full mapping is:
+The $\lambda_{\text{physics}}$ tier system in [](#subsec:PINN) is a *coarse* approximation of the composite trust score above — it conditions on signal availability only. The full mapping is:
 
 | Tier | $\lambda_{\text{tier}}^{(0)}$ | $\lambda_{\max}$ | What's fixed | What's deferred to gates |
 |---|---|---|---|---|
@@ -53,14 +53,14 @@ The $\lambda_{\text{physics}}$ tier system in `paper/candidacy/proposed-research
 | 3: ByCAN extraction | 0.1 | 0.3 | $\mathcal{V}_{\text{signal}}$ degraded by 80.21% slicing accuracy [@ByCAN] | All three gates at runtime |
 | Failed extraction | 0 (frozen) | 0 | $\mathcal{V}_{\text{signal}} = 0$ | None — physics branch disabled |
 
-Tiers fix the *outer* envelope; the three gates fix the *inner*, sample-by-sample weighting. The current proposal stops at the outer envelope because the inner gates require regime-stratified evaluation that has not been run yet (see open questions).
+Tiers fix the *outer* envelope; the three gates fix the *inner*, sample-by-sample weighting. **Two important caveats follow from this mapping**: (i) at tier 3, $\Sigma_\eta$ is bias-dominated rather than noise-dominated, so the Gaussian-posterior interpretation underlying $\mathcal{V}_{\text{signal}}$ does not strictly apply — under tier 3 the PINN's role narrows from *deployment-time detector* to *training-time regulariser* on the GAT/VGAE branch, with $\lambda_{\max}=0.3$ as a hard cap rather than a learned weight; (ii) the current proposal stops at the outer envelope because the inner gates require regime-stratified evaluation that has not been run (see open questions). The PINN's load-bearing detector contribution therefore lives at tiers 1 and 2 (DBC or OBD-II ground truth); tier 3 is graceful-degradation engineering.
 
 ### How the framework operationalises deferral
 
 | Mechanism | Role | Where |
 |---|---|---|
-| Tiered $\lambda_{\text{physics}}^{(0)}, \lambda_{\max}$ | Outer envelope; sets $\mathcal{V}_{\text{signal}}$ ceiling per deployment | `paper/candidacy/proposed-research.md` §PINN Graceful Degradation |
-| Self-adaptive $\lambda$ via @McClenny2023SAPINN | Intra-training stabilisation; physics branch shrinks when gradient norms diverge | `paper/candidacy/proposed-research.md` Adaptive $\lambda_{\text{physics}}$ paragraph |
+| Tiered $\lambda_{\text{physics}}^{(0)}, \lambda_{\max}$ | Outer envelope; sets $\mathcal{V}_{\text{signal}}$ ceiling per deployment | [](#subsec:PINN) |
+| Self-adaptive $\lambda$ via @McClenny2023SAPINN | Intra-training stabilisation; physics branch shrinks when gradient norms diverge | [](#subsec:PINN) (Adaptive $\lambda_{\text{physics}}$) |
 | NTK analysis [@Wang2022NTK] | Theoretical justification for self-adaptive weighting | Same |
 | GradNorm/PCGrad-style multi-objective balancing [@Bischof2024MultiObj] | Outperforms grid-searched static weights | Same |
 | DQN/bandit fusion policy | Implicit regime-dependent deferral; up-weights GAT for confident predictions, defers to VGAE near decision boundary; PINN slots in as a third expert under simplex generalisation (Q4.2) | `paper/content/explainability.md` §DQN-Fusion Analysis, [](#fig-fusion); [](#subsec:DQN) |
@@ -105,11 +105,11 @@ Three independent axes describe the adversary: *access location* (where on the c
 | EKF state estimation | On-line frame injection that biases the innovation sequence | Slow-drift attacks that stay below the per-step innovation threshold but integrate over time | None — EKF is treated as black-box preprocessing | Innovation-sequence monitoring as a meta-detector is a known idea but not implemented |
 | PINN residual | Any of the above propagate here | Inject *physically plausible* states that match the bicycle-model dynamics, defeating $\mathcal{V}_{\text{residual}}$ from Q1.1 | Self-adaptive $\lambda_{\text{physics}}$ [@McClenny2023SAPINN] dampens reliance when residual gradients diverge | No adversarial-training pass against physics-aware attacks |
 
-@Choi's CAN-attack countermeasure survey and the AI-IDS survey [@rajapaksha2022aiidssurvey] both observe that virtually all CAN-IDS evaluation uses *naïvely-injected* attacks (random payloads, replay) and almost none use *physics-aware* attacks. Adding ByCAN-and-EKF-aware attackers to that taxonomy is a natural research contribution and aligns with the proposed adversarial robustness work in `paper/candidacy/proposed-research.md` §Adversarial Robustness.
+@Choi's CAN-attack countermeasure survey and the AI-IDS survey [@rajapaksha2022aiidssurvey] both observe that virtually all CAN-IDS evaluation uses *naïvely-injected* attacks (random payloads, replay) and almost none use *physics-aware* attacks. Adding ByCAN-and-EKF-aware attackers to that taxonomy is a natural research contribution and aligns with the proposed adversarial robustness work in [](#subsec:Adversarial).
 
 ### How adversaries exploit specific stages
 
-**Plausibility-band injection.** The fallback hierarchy in `paper/candidacy/proposed-research.md` discards extracted signals only if they fall *outside* the physical range ($|\delta| < 40°$, $|\dot{\psi}| < 1$ rad/s). Attacks that inject values inside the band produce no clipping flag and pass straight to the EKF. Defence: tighten the band per regime (e.g., $|\delta| < 4°$ on highway driving, derived from the same regime-validity gate $\mathcal{V}_{\text{regime}}$ from Q1.1) rather than the static bound.
+**Plausibility-band injection.** The fallback hierarchy in [](#subsec:PINN) discards extracted signals only if they fall *outside* the physical range ($|\delta| < 40°$, $|\dot{\psi}| < 1$ rad/s). Attacks that inject values inside the band produce no clipping flag and pass straight to the EKF. Defence: tighten the band per regime (e.g., $|\delta| < 4°$ on highway driving, derived from the same regime-validity gate $\mathcal{V}_{\text{regime}}$ from Q1.1) rather than the static bound.
 
 **Slow-drift residual attacks.** An attacker who can write to the bus at sub-Hz rates can shift the steering-angle estimate by a small amount per step. Each step's EKF innovation stays below the per-step threshold; the cumulative shift over $\sim 10$ s exits the linear-tire region (Q1.1 condition 1) and silently breaks $\mathcal{V}_{\text{regime}}$ — at which point the PINN residual is dominated by model error and the attack is invisible to the residual gate. Defence: monitor the EKF innovation *sequence* (not just per-step) via a CUSUM or sliding-window mean test. This is the classical observer-fault-detection trick from @Ozdemir2024IVNSurvey applied to the estimator's internal state rather than the raw signal.
 
@@ -125,13 +125,13 @@ Three independent axes describe the adversary: *access location* (where on the c
 | Self-adaptive $\lambda_{\text{physics}}$ shrinks the physics term when training gradients diverge | No deployment-time defence against physics-aware injection |
 | Tier-based outer envelope on $\lambda_{\text{physics}}$ | No inner gates (regime, signal, residual) implemented (Q1.1) |
 | GAT+VGAE branch operates on raw bytes and is unaffected by estimator compromise | The fusion policy has no signal that the estimator is compromised, so it cannot up-weight the data-driven branch in response |
-| Adversarial robustness flagged as a research direction (`paper/candidacy/proposed-research.md` §Adversarial Robustness) | No attacker model, no red-team protocol, no certified bounds |
+| Adversarial robustness flagged as a research direction ([](#subsec:Adversarial)) | No attacker model, no red-team protocol, no certified bounds |
 
 The framework's GAT+VGAE branch is structurally protected from estimator-pipeline compromise because it doesn't depend on the estimator at all. The PINN branch is *not* protected, but the tier-based weighting limits the blast radius — a tier-3 deployment (ByCAN extraction) caps PINN contribution at $\lambda_{\max} = 0.3$, so even total estimator compromise cannot drive the fusion decision more than 30%. This is a structural-defence-in-depth argument rather than a cryptographic one and should be made explicit in the threat-model section.
 
 ### Open questions
 
-- **Threat model is informal.** The cross-product table above needs to be written into the paper with attacker capabilities, target signatures, and defence mappings tied to specific framework components. This is a deliverable for `paper/candidacy/proposed-research.md` §Adversarial Robustness, not a research question.
+- **Threat model is informal.** The cross-product table above needs to be written into the paper with attacker capabilities, target signatures, and defence mappings tied to specific framework components. This is a deliverable for [](#subsec:Adversarial), not a research question.
 - **Innovation-sequence monitoring as meta-detector.** Use the EKF innovation residuals as an *additional* feature in the 15-dim fusion state. This converts the estimator's internal belief into an attack signal and is a single-component change.
 - **Regime-conditioned plausibility bands.** Replacing static $\pm 40°$ steering bounds with regime-conditioned ones (e.g., bounded by $\dot{\psi}$ and $v_x$) tightens the attacker's feasible-injection set and does not require any new training.
 - **Physics-aware adversarial training.** No prior CAN-IDS work in the surveys [@rajapaksha2022aiidssurvey; @Choi] uses an adversary that respects vehicle dynamics. Generating physically plausible attacks (e.g., attacks whose injected residual matches the bicycle model under nominal Pacejka parameters) and adversarial-training the PINN against them is a clean research contribution.

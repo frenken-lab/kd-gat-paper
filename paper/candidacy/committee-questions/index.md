@@ -19,111 +19,90 @@ Each topic below pertains to a specific concern in the domain of intrusion detec
 3. [Federated Learning, Optimization, and Convergence](federated-optimization.md) — Q3.1, Q3.2, Q3.3
 4. [Reinforcement Learning](reinforcement-learning.md) — Q4.1, Q4.2
 
-## Cross-cutting themes
+## Cross-cutting themes and composition pipeline
 
-The nine answers are not independent: they compose into five conceptual threads. Naming these explicitly helps the framework read as a coherent thesis rather than a tour of methods.
+The nine answers compose into four cross-cutting threads — *trust as a first-class primitive* (Q1.1, Q1.2, Q2.1, Q2.2, Q4.1), *selective prediction as the safety primitive* (Q1.1, Q2.1, Q2.2, Q4.1), *heterogeneity as the unifying learning challenge* (Q1.2, Q3.1, Q3.2, Q3.3, Q4.1, Q4.2), and *calibration as a methodological prerequisite* (Q2.1 gating Q1.1, Q2.2, Q3.3, Q4.1) — and one integrative claim, the deployment-time composition pipeline that fuses Q1.1's trust gates, Q4.2's simplex policy, Q4.1's safety shield + UCB deferral, and Q2.1's conformal abstain into a single decision pipeline. The full articulation, the pipeline diagram, and the per-stage failure-mode mapping are in [](../proposed-research.md) §Integrative narrative; the deliverables grounded in those threads follow.
 
-**1. Trust as a first-class primitive.** Five questions — Q1.1 (physics-prior trust), Q2.1 (output-confidence trust), Q2.2 (explanation trust), Q4.1 (reward-proxy trust), Q1.2 (estimator trust) — are versions of the same "when do I trust X?" problem with different X. The framework needs *one* trust calculus, not five independent reliability heuristics.
+## Deliverables
 
-**2. Selective prediction / deferral as the safety primitive.** Chow's reject option appears explicitly in Q1.1 (composite trust score) and Q2.1 (selective-prediction risk-coverage), implicitly in Q4.1 (UCB deferral), and reappears in Q2.2 (low-confidence + low-agreement → abstain). One unified deferral mechanism is the natural composition.
+The nine answers identify ~25 distinct deliverables. Below they are ordered by *priority* — what grounds the thesis claim, what builds the deployable apparatus around it, what strengthens specific subclaims, and what is documented but not run as an experiment. The *Cost* column reads as a column-level filter: a committee member who wants to know "what could you run before the defence?" reads only the *post-hoc* rows.
 
-**3. Heterogeneity as the unifying learning challenge.** Six questions — Q1.2 (sensor / extraction), Q3.1 (capacity vs. task complexity), Q3.2 (non-IID across vehicles), Q3.3 (curriculum modifies effective distribution), Q4.1 (train-vs.-deploy reward), Q4.2 (expert heterogeneity) — all reduce to a distribution-shift problem wearing different costumes. This is the unifying challenge of fleet-scale automotive IDS.
+**Cost legend.** *post-hoc* — runnable on existing checkpoints, no retraining; *retrain* — requires a fresh training run; *engineering* — code change, no experiment per se; *methodology* — writeup or design recommendation; *theory* — derivation.
 
-**4. Calibration as a methodological prerequisite.** Q2.1's calibration framework gates Q2.2 (the high-confidence diagnostic), Q3.3 (curriculum-induced miscalibration), Q4.1 (UCB selective-prediction calibration), and Q1.1 ($\mathcal{V}_{\text{residual}}$ as a regime-conditioned calibration claim). Measuring calibration is the highest-leverage single experiment for this framework.
+### Primary thesis claim — minimum-viable deliverables
 
-**5. The composition pipeline.** Q1.1's trust gates, Q4.2's continuous-simplex policy, Q4.1's safety shield + UCB deferral, and Q2.1's conformal abstain compose into a single deployment-time decision pipeline. This composition is the integrative systems claim of the proposed thesis.
+These five experiments ground the operational rejection bound (Q1.1 ∩ Q2.1, the primary thesis claim — see [](../proposed-research.md) §Integrative narrative). All but one are post-hoc; together they convert the bound from theorem to evidenced contribution.
 
-## The composition pipeline
+| Deliverable | Cost | Spans | Defuses |
+|---|---|---|---|
+| Class-conditional ECE + per-class reliability diagrams under 927:1 imbalance | post-hoc | Q2.1 | "How do you know the model is calibrated?" |
+| Mondrian conformal coverage gap (empirical − nominal) on PINN-active subset | post-hoc | Q1.1 ∩ Q2.1 | The bound itself |
+| Risk-coverage curves with bootstrap bands | post-hoc | Q2.1, Q4.1 | "Is the confidence signal monotone in the tails?" |
+| Regime-stratified F1 by slip-angle / longitudinal-acceleration bucket (benign baseline) | post-hoc | Q1.1 | "You have a 3-gate framework but only the outer envelope" |
+| Composite trust score validation (product vs. soft-min vs. learnable mixture) | methodology | Q1.1 | Specifies what "PINN-active" means operationally |
 
-The pipeline below is the integrative claim that pulls Q1.1, Q4.1, Q4.2, and Q2.1 together. Each stage targets a distinct failure mode; the gates compose multiplicatively. A bad input fails the trust gates; a contested input fails the conformal abstain; a brittle reward fails the UCB deferral. The final action is either *act* (high confidence on a regime-valid input) or *defer to human* (any gate or bandit confidence falls short).
+### Applied composition pipeline
 
-```
-state s_t  →  Trust gates (Q1.1)  →  Simplex policy (Q4.2)  →  Safety shield (Q4.1)
-                                                              →  UCB deferral (Q4.1)
-                                                              →  Conformal abstain (Q2.1)
-                                                              →  {Detect / Act, Defer to Human}
-```
+The deployment pipeline of [](../proposed-research.md) §Integrative narrative requires these extensions to the current $N=2$ fusion. Most are engineering with one retraining experiment to verify scaling.
 
-A diagram of the composition is built at `_build/figures/composition-pipeline.html`; it is not yet embedded in this candidacy build but is available as an artifact of the paper repo.
-
-## Consolidated deliverables
-
-The nine answers' "Open questions" sections collectively identify ~30 distinct deliverables, grouped below by character and rough cost. Each item is tagged by the questions it spans. *Empirical (post-hoc, no retrain)* items unlock four chapters' worth of empirical claims and are the highest cost-to-information-ratio set; they should be done first.
-
-### Empirical — post-hoc on existing checkpoints (no retrain)
-
-| Deliverable | Spans | Defuses |
+| Deliverable | Cost | Spans |
 |---|---|---|
-| Class-conditional ECE + per-class reliability diagrams under 927:1 imbalance | Q2.1, prerequisite for Q2.2, Q3.3, Q4.1 | "How do you know the model is calibrated?" |
-| Risk-coverage curves with bootstrap bands | Q2.1, Q2.2, Q4.1 | "Is the confidence signal monotone in the tails?" |
-| Parameter-space distance + prediction-disagreement test (curriculum vs. non-curriculum) | Q3.3 | "Do curriculum and non-curriculum converge to the same solution?" |
-| Deletion-AUC + insertion-AUC + @adebayo2018sanity sanity checks on GAT attention | Q2.2 | "Is your attention faithful or decorative?" |
-| Regime-stratified F1 by slip-angle / longitudinal-acceleration bucket (benign-only baseline) | Q1.1 | "You have a 3-gate framework but only the outer envelope" |
+| Continuous-simplex policy prototype (DDPG- or SAC-style actor) | engineering | Q4.2 |
+| $N \in \{2, 3, 4\}$ scaling experiment (discrete vs. softmax vs. Dirichlet) | retrain | Q4.2 |
+| PINN-as-shield post-hoc projection (simplex-restricted / log-barrier / hard projection) | engineering | Q1.1, Q4.1 |
+| Reward-coefficient $\pm 50\%$ ablation across four reward components | retrain | Q4.1 |
+| Drift monitor on proxy reward (KS / PSI on running confidence distribution) | engineering | Q4.1 |
 
-### Empirical — requires retraining
+### Supporting empirical work
 
-| Deliverable | Spans | Defuses |
+These strengthen specific Q-level claims but are not load-bearing for the primary thesis. The post-hoc rows can run alongside the primary deliverables; the retrain rows compete for the same training budget.
+
+| Deliverable | Cost | Spans | Defuses |
+|---|---|---|---|
+| Faithfulness sanity checks ([@adebayo2018sanity]) + deletion/insertion-AUC on GAT attention | post-hoc | Q2.2 | "Is your attention faithful or decorative?" |
+| Disagreement-as-OOD selective rule (low-conf ∪ low-agreement, SHAP + CF-GNN) | engineering | Q2.1, Q2.2 | XAI primary contribution |
+| Lipschitz stability bounds on attention against graph-structural perturbations | post-hoc | Q2.2, Q1.2 | "Stability is unmeasured" |
+| Parameter-distance + prediction-disagreement test (curriculum vs. non-curriculum) | post-hoc | Q3.3 | "Do curriculum and non-curriculum converge to the same solution?" |
+| Capacity-ratio sweep $\{1/100, 1/68, 1/30, 1/10, 1/3\}$ tracing the inverted-U | retrain | Q3.1 | "$68\times$ ratio is unablated" |
+| Task-complexity sweep at binary / 5-class / 9-class attack typing | retrain | Q3.1 | "Capacity-gap law is a claim, not an experiment" |
+| Federated baseline sweep — FedAvg / FedProx / SCAFFOLD on synthetic shards | retrain | Q3.2 | "Why SCAFFOLD over FedProx on CAN data?" |
+| Momentum-coefficient $\tau$ sensitivity (curriculum schedule) | retrain | Q3.3 | "Curriculum design is unprincipled" |
+| EKF-innovation as 16th fusion-state feature | retrain | Q1.2, Q4.1 | "How does the policy know the estimator is compromised?" |
+| Innovation-sequence monitoring as meta-detector | engineering | Q1.2 | Slow-drift attack defence |
+| Online recalibration mechanism (online conformal prediction) | engineering | Q2.1, Q3.3 | Operational drift handling |
+
+### Theoretical contributions
+
+The first row is the primary thesis claim, repeated here for completeness. The remainder are supporting theoretical contributions at Q-pair intersections.
+
+| Contribution | Cost | Intersection |
 |---|---|---|
-| Capacity-ratio sweep $\{1/100, 1/68, 1/30, 1/10, 1/3\}$ tracing the inverted-U from @Towards-Law-of-Capacity-Gap2025 | Q3.1 | "$68\times$ ratio is unablated" |
-| Task-complexity sweep at binary / 5-class / 9-class attack typing | Q3.1 | "Capacity-gap law is a claim, not an experiment" |
-| Reward-coefficient $\pm 50\%$ ablation across the four reward components | Q4.1 | "How sensitive is the policy to reward design?" |
-| $N \in \{2, 3, 4\}$ scaling experiment for fusion policy (discrete vs. softmax vs. Dirichlet) | Q4.2 | "Combinatorial blow-up is argued, not measured" |
-| Federated baseline sweep — FedAvg / FedProx / SCAFFOLD on synthetic shards | Q3.2 | "Why should I believe SCAFFOLD beats FedProx on CAN data?" |
-| Momentum-coefficient $\tau$ sensitivity (curriculum schedule) | Q3.3 | "Curriculum design is unprincipled" |
-| EKF-innovation as 16th fusion-state feature (depends on PINN scaffolding) | Q1.2, Q4.1 | "How does the policy know the estimator is compromised?" |
+| **Operational rejection bound — composite trust score with conformal coverage guarantee on the PINN-active subset (primary thesis claim)** | theory + post-hoc | **Q1.1 ∩ Q2.1** |
+| DP-SGD privacy accounting under time-varying curriculum sampling | theory | Q3.2 ∩ Q3.3 |
+| Continuous-action regret in simplex policies under bounded reward shift | theory | Q4.1 ∩ Q4.2 |
+| Curriculum as time-varying importance-weighted ERM — Bayes-optimal-classifier bias under imbalance | theory | Q3.3 |
 
-### Methodological writeups
+### Methodological writeups and missing baselines
 
-| Deliverable | Spans |
-|---|---|
-| Threat-model taxonomy table (attacker access × stage × capability × signature × defence) | Q1.2 |
-| Audience-decision protocol elicitation from real fleet operators / safety engineers / OEM compliance | Q2.2 |
-| Regime-conditioned plausibility bands replacing static $\pm 40°$ steering bound | Q1.1, Q1.2 |
-| Composite trust score validation (product form vs. soft-min vs. learnable mixture) | Q1.1 |
-| Slicing-template attestation (signed / version-controlled ByCAN templates) | Q1.2 |
-| Byzantine red-team protocol for federated training | Q3.2 |
-| Compliance audit-trail for federated training (ISO 26262 / NIST AI RMF) | Q3.2 |
+These are documented but not run as experiments. Methodological writeups capture design recommendations that don't appear in prior CAN-IDS literature; the baselines are the comparison runs that isolate where each component's gain comes from.
 
-### Engineering integrations
-
-| Deliverable | Spans |
-|---|---|
-| Continuous-simplex policy prototype (DDPG- or SAC-style actor) | Q4.2 |
-| Drift monitor on the proxy reward (KS / PSI on running confidence distribution) | Q4.1 |
-| Innovation-sequence monitoring as meta-detector | Q1.2 |
-| Online recalibration mechanism (online conformal prediction) | Q2.1, Q3.3 |
-| PINN-as-shield post-hoc projection (simplex-restricted / log-barrier / hard projection) | Q4.1, Q1.1 |
-| Disagreement-as-OOD selective rule (abstain on (low-conf ∪ low-agreement)) | Q2.1, Q2.2 |
-| Explainer-agreement metric across abstraction levels (LIME ↔ TCAV) | Q2.2 |
-
-### Theoretical contributions at intersections
-
-These are higher-order research questions sitting at the intersection of two or more candidacy questions, and represent the cleanest theoretical contributions available within the framework.
-
-| Contribution | Intersection |
-|---|---|
-| Federated bilevel KD — capacity-gap law under per-client task complexity | Q3.1 ∩ Q3.2 |
-| DP-SGD privacy accounting under time-varying curriculum sampling | Q3.2 ∩ Q3.3 |
-| Operational rejection bound — composite trust score with conformal coverage guarantee on the PINN-active subset | Q1.1 ∩ Q2.1 |
-| Continuous-action regret in simplex policies under bounded reward shift (extension of @xu2022neural's $\tilde{O}(\sqrt{T})$) | Q4.2 ∩ Q4.1 |
-| Hierarchical-RL meta-controller using PINN tier system as graceful-degradation primitive | Q1.1 ∩ Q4.2 |
-| Curriculum as time-varying importance-weighted ERM — formal bias on the Bayes-optimal classifier under imbalance | Q3.3 |
-
-### Comparative baselines absent from current evaluation
-
-| Baseline | Spans | Why it matters |
+| Item | Type | Spans |
 |---|---|---|
-| Pure observer-based detector (CADD-style [@Chen2024CADD]) at each PINN tier | Q1.1 | Isolates gain from learned correction vs. regime-aware deferral |
-| Born-again / mutual learning [@furlanello2018born; @zhang2018deep] | Q3.1 | Isolates gain from capacity gap vs. soft targets per se |
-| Mixture-of-Experts gating with top-$k$ | Q4.2 | Closest LM-literature parallel for the multimodal policy observed at $N=2$ |
-| Bayesian / Thompson-sampling bandit variant [@riquelme2018deep] | Q4.1 | Tests whether randomised exploration helps under reward shift specifically |
+| Threat-model taxonomy (attacker access × stage × capability × signature × defence) | methodology | Q1.2 |
+| Regime-conditioned plausibility bands replacing static $\pm 40°$ steering bound | methodology | Q1.1, Q1.2 |
+| Slicing-template attestation (signed / version-controlled ByCAN templates) | methodology | Q1.2 |
+| Byzantine red-team protocol for simulated federation | methodology | Q3.2 |
+| Pure observer-based detector (CADD-style [@Chen2024CADD]) at each PINN tier | baseline | Q1.1 |
+| Born-again / mutual learning [@furlanello2018born; @zhang2018deep] | baseline | Q3.1 |
+| Mixture-of-Experts gating with top-$k$ | baseline | Q4.2 |
+| Bayesian / Thompson-sampling bandit variant [@riquelme2018deep] | baseline | Q4.1 |
 
 ## Reading order
 
 For a committee member reviewing the written submission, the suggested reading order is:
 
-1. This index (cross-cutting themes + composition pipeline)
-2. The four topic files in numbered order
-3. Returning here for the consolidated deliverables list
+1. This index (cross-cutting themes + deliverables tables)
+2. [](../proposed-research.md) §Integrative narrative — primary thesis claim and composition pipeline
+3. The four topic files in numbered order
 
-Each topic file is self-contained — the answers do not assume the others have been read — but cross-references between answers are dense and intentional. The thesis-level claim is the *composition*, not any single answer.
+Each topic file is self-contained — the answers do not assume the others have been read — but cross-references between answers are dense and intentional. **The thesis-level claim is the operational rejection bound (Q1.1 ∩ Q2.1)**; the composition pipeline is the applied apparatus that turns the bound into a deployable system.
