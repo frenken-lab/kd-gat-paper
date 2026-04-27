@@ -125,6 +125,7 @@ jobs:
         with: { name: figures, path: _build/figures/ }
       - run: pip install pyyaml tabulate pandas
       - uses: typst-community/setup-typst@v4
+        with: { typst-version: v0.14.2 }
       - name: Build candidacy PDF
         run: |
           python tools/tables/build.py
