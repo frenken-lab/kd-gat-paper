@@ -9,10 +9,13 @@
     layout: { type: 'hstack', children: ['input'] },
   };
 
-  const { nodes: rawNodes, edges: rawEdges } = specToFlow(spec);
+  let nodes = $state.raw([]);
+  let edges = $state.raw([]);
 
-  let nodes = $state.raw(rawNodes);
-  let edges = $state.raw(rawEdges);
+  specToFlow(spec).then((r) => {
+    nodes = r.nodes;
+    edges = r.edges;
+  });
 </script>
 
 <div class="figure">

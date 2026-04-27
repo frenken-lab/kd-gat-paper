@@ -24,3 +24,5 @@ export { autoLayout } from './layout.ts';
 export { specToFlow } from './convert.ts';
 export { circularPositions } from './layout.ts';
 export { saveLayout, loadLayout } from './serialize.ts';
+export { getEdgeParams } from './floating.ts';
+export type { FloatingEdgeParams } from './floating.ts';

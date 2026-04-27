@@ -61,14 +61,14 @@ describe('cluster geometry — single sparse 5-cycle', () => {
     layout: { type: 'hstack' as const, children: ['input'] },
   };
 
-  it('produces 5 circle nodes', () => {
-    const { nodes } = specToFlow(spec);
+  it('produces 5 circle nodes', async () => {
+    const { nodes } = await specToFlow(spec);
     const circles = nodes.filter((n) => n.type === 'circle');
     expect(circles).toHaveLength(5);
   });
 
-  it('places circles equidistant from cluster centroid (ring shape preserved)', () => {
-    const { nodes } = specToFlow(spec);
+  it('places circles equidistant from cluster centroid (ring shape preserved)', async () => {
+    const { nodes } = await specToFlow(spec);
     const circles = nodes.filter((n) => n.type === 'circle');
     const centers = circles.map((n) => absoluteCenter(n, nodes));
     const cx = centers.reduce((s, p) => s + p.x, 0) / centers.length;
@@ -84,8 +84,8 @@ describe('cluster geometry — single sparse 5-cycle', () => {
     expect(meanR).toBeGreaterThan(20);
   });
 
-  it('has no overlapping circle nodes', () => {
-    const { nodes } = specToFlow(spec);
+  it('has no overlapping circle nodes', async () => {
+    const { nodes } = await specToFlow(spec);
     const circles = nodes.filter((n) => n.type === 'circle');
     const boxes = circles.map((n) => aabb(n, nodes));
     for (let i = 0; i < boxes.length; i++) {
@@ -113,13 +113,13 @@ describe('container geometry — graph cluster with container', () => {
     layout: { type: 'hstack' as const, children: ['input'] },
   };
 
-  it('emits a container node', () => {
-    const { nodes } = specToFlow(spec);
+  it('emits a container node', async () => {
+    const { nodes } = await specToFlow(spec);
     expect(nodes.filter((n) => n.type === 'container')).toHaveLength(1);
   });
 
-  it('container bbox encloses all child circles with padding', () => {
-    const { nodes } = specToFlow(spec);
+  it('container bbox encloses all child circles with padding', async () => {
+    const { nodes } = await specToFlow(spec);
     const container = nodes.find((n) => n.type === 'container')!;
     const cBox = aabb(container, nodes);
 
@@ -148,8 +148,8 @@ describe('pipeline monotonicity — multi-stage layout', () => {
     layout: { type: 'pipeline' as const, children: ['a', 'b', 'c'] },
   };
 
-  it('stage centroids increase monotonically along x (LR layout)', () => {
-    const { nodes } = specToFlow(spec, { direction: 'LR' });
+  it('stage centroids increase monotonically along x (LR layout)', async () => {
+    const { nodes } = await specToFlow(spec, { direction: 'LR' });
     const stageX: number[] = [];
     for (const stage of ['a', 'b', 'c']) {
       const stageNodes = nodes.filter((n) => n.id === stage || n.id.startsWith(`${stage}_`));

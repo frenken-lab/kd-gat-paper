@@ -29,12 +29,18 @@ export interface FlowEdgeData {
   color: string;
   label?: string;
   dashed?: boolean;
+  // ELK-supplied interior bend points in canvas coordinates. When present,
+  // the edge is rendered as a rounded polyline through these points capped
+  // at the floating-edge boundary on each end. When absent, the edge falls
+  // back to xyflow's getSmoothStepPath between floating endpoints.
+  bendPoints?: Array<{ x: number; y: number }>;
   [key: string]: unknown;
 }
 
 export interface KDEdgeData {
   color?: string;      // defaults to 'kd' role
   label?: string;      // defaults to 'KD'
+  bendPoints?: Array<{ x: number; y: number }>;
   [key: string]: unknown;
 }
 

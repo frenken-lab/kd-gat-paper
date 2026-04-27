@@ -4,12 +4,13 @@
   import vgaeSpec from '../vgae/spec.yaml';
   import { specToFlow, DiagramCanvas } from '../../../lib/flow';
 
-  const { nodes: rawNodes, edges: rawEdges } = specToFlow(spec, {
-    specs: { gat: gatSpec, vgae: vgaeSpec },
-  });
+  let nodes = $state.raw([]);
+  let edges = $state.raw([]);
 
-  let nodes = $state.raw(rawNodes);
-  let edges = $state.raw(rawEdges);
+  specToFlow(spec, { specs: { gat: gatSpec, vgae: vgaeSpec } }).then((r) => {
+    nodes = r.nodes;
+    edges = r.edges;
+  });
 </script>
 
 <div class="figure">

@@ -2,10 +2,13 @@
   import spec from './spec.yaml';
   import { specToFlow, DiagramCanvas } from '../../../lib/flow';
 
-  const { nodes: rawNodes, edges: rawEdges } = specToFlow(spec, { direction: 'TB' });
+  let nodes = $state.raw([]);
+  let edges = $state.raw([]);
 
-  let nodes = $state.raw(rawNodes);
-  let edges = $state.raw(rawEdges);
+  specToFlow(spec, { direction: 'TB' }).then((r) => {
+    nodes = r.nodes;
+    edges = r.edges;
+  });
 </script>
 
 <div class="figure">

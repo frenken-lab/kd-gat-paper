@@ -1,10 +1,10 @@
-import dagre from '@dagrejs/dagre';
 import { Position } from '@xyflow/svelte';
 import type { DiagramNode, DiagramEdge } from './types.ts';
 import { circularPositions } from './layout.ts';
+import { layoutWithELK } from './elk.ts';
 
 // Local node-size helpers — match the ones in layout.ts. Kept private here so
-// the component-level dagre layout below is self-contained.
+// the component-level ELK layout below is self-contained.
 function nodeBoxW(n: DiagramNode): number {
   if (n.type === 'circle') return ((n.data as { r?: number }).r ?? 14) * 2;
   if (n.type === 'box') return (n.data as { width?: number }).width ?? 90;
@@ -93,14 +93,15 @@ function resolveLabels(
  *
  * 1. Walks `components` to create nodes (circles for graphs, boxes for boxes)
  * 2. Creates structural edges from graph topologies
- * 3. Walks `layout` to establish dagre edge hints for ordering
+ * 3. Walks `layout` to establish layout edge hints for ordering
  * 4. Creates bridge edges (flow, kd, etc.)
- * 5. Runs dagre auto-layout for positioning
+ * 5. Runs ELK auto-layout (orthogonal routing) for component positions
+ *    and inter-component bend points
  */
-export function specToFlow(
+export async function specToFlow(
   spec: FigureSpec,
   opts?: { direction?: 'LR' | 'TB'; specs?: Record<string, FigureSpec> },
-): { nodes: DiagramNode[]; edges: DiagramEdge[] } {
+): Promise<{ nodes: DiagramNode[]; edges: DiagramEdge[] }> {
   const nodes: DiagramNode[] = [];
   const edges: DiagramEdge[] = [];
   const direction = opts?.direction ?? 'LR';
@@ -218,7 +219,7 @@ export function specToFlow(
       const subSpec = specsMap?.[comp.ref];
       if (!subSpec) throw new Error(`specToFlow: referenced spec '${comp.ref}' not found`);
 
-      const { nodes: subNodes, edges: subEdges } = specToFlow(subSpec, { direction, specs: specsMap });
+      const { nodes: subNodes, edges: subEdges } = await specToFlow(subSpec, { direction, specs: specsMap });
 
       // Prefix all sub-spec node/edge IDs and remap edge source/target
       const subNodeIds: string[] = [];
@@ -398,13 +399,14 @@ export function specToFlow(
     }
   }
 
-  // --- Step 5: Component-level auto-layout with dagre ---
+  // --- Step 5: Component-level auto-layout with ELK ---
   // Each spec component (graph cluster, box, sub-spec) becomes a single
-  // super-node for dagre. This preserves the per-component internal layout
-  // (rings, sub-spec sub-layouts) while still letting dagre arrange the
-  // components left-to-right or top-to-bottom. Intra-component edges (the
+  // super-node for ELK. This preserves the per-component internal layout
+  // (rings, sub-spec sub-layouts) while still letting ELK arrange the
+  // components left-to-right or top-to-bottom AND route inter-component
+  // edges with bend points around obstacles. Intra-component edges (the
   // structural cycle of a graph cluster) are skipped — they would force
-  // dagre to flatten the cluster into a DAG.
+  // the algorithm to flatten the cluster into a DAG.
 
   // 5a. Compute each component's bbox in current (pre-translate) coords.
   type CompBox = { w: number; h: number; cx: number; cy: number };
@@ -438,41 +440,38 @@ export function specToFlow(
     for (const nid of nodeIds) nodeToComp.set(nid, compId);
   }
 
-  // 5c. Build dagre graph at component granularity.
-  const g = new dagre.graphlib.Graph();
-  g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({
-    rankdir: direction,
-    nodesep: 60,
-    ranksep: 90,
-    marginx: 20,
-    marginy: 20,
-  });
+  // 5c. Build flat super-node graph for ELK.
+  const COMP_PAD = 20;
+  const elkNodes = Array.from(compBoxes.entries()).map(([compId, box]) => ({
+    id: compId,
+    width: box.w + COMP_PAD,
+    height: box.h + COMP_PAD,
+  }));
 
-  const COMP_PAD = 20; // breathing room around each component
-  for (const [compId, box] of compBoxes.entries()) {
-    g.setNode(compId, { width: box.w + COMP_PAD, height: box.h + COMP_PAD });
-  }
-
-  const seenEdges = new Set<string>();
+  // Map each cross-component edge to a unique super-edge id; remember the
+  // representative real-edge id so we can later attach bend points.
+  const seenSuperEdges = new Map<string, string>(); // "sComp->tComp" -> real edge id
+  const elkEdges: Array<{ id: string; source: string; target: string }> = [];
   for (const e of edges) {
     const sComp = nodeToComp.get(e.source);
     const tComp = nodeToComp.get(e.target);
-    if (!sComp || !tComp || sComp === tComp) continue; // skip intra-component
+    if (!sComp || !tComp || sComp === tComp) continue;
     const key = `${sComp}->${tComp}`;
-    if (seenEdges.has(key)) continue;
-    seenEdges.add(key);
-    g.setEdge(sComp, tComp);
+    if (seenSuperEdges.has(key)) continue;
+    seenSuperEdges.set(key, e.id);
+    elkEdges.push({ id: e.id, source: sComp, target: tComp });
   }
 
-  dagre.layout(g);
+  const layoutResult = await layoutWithELK(elkNodes, elkEdges, { direction });
 
-  // 5d. Translate each component's nodes so its centroid sits at dagre's center.
+  // 5d. Translate each component's nodes so its top-left sits at ELK's
+  // returned (x, y). ELK reports rect top-left; we want centroid alignment
+  // with the laid-out super-node's center.
   for (const [compId, box] of compBoxes.entries()) {
-    const laid = g.node(compId);
+    const laid = layoutResult.nodes.get(compId);
     if (!laid) continue;
-    const dx = laid.x - box.cx;
-    const dy = laid.y - box.cy;
+    const dx = (laid.x + laid.width / 2) - box.cx;
+    const dy = (laid.y + laid.height / 2) - box.cy;
     const compNodeIds = componentNodes.get(compId) ?? [];
     for (const nid of compNodeIds) {
       const node = nodes.find((n) => n.id === nid);
@@ -483,8 +482,24 @@ export function specToFlow(
     }
   }
 
+  // 5e. Attach ELK bend points to every real edge that maps to a routed
+  // super-edge. All edges sharing a (sComp, tComp) pair share the same
+  // routed bend points — fine, since they connect leaves at slightly
+  // different positions and floating-edge geometry caps them individually.
+  for (const e of edges) {
+    const sComp = nodeToComp.get(e.source);
+    const tComp = nodeToComp.get(e.target);
+    if (!sComp || !tComp || sComp === tComp) continue;
+    const repId = seenSuperEdges.get(`${sComp}->${tComp}`);
+    if (!repId) continue;
+    const bps = layoutResult.bendPoints.get(repId);
+    if (!bps || bps.length === 0) continue;
+    // Only flow + kd edges consume bend points; stash on data either way.
+    e.data = { ...(e.data ?? {}), bendPoints: bps };
+  }
+
   // --- Step 6: Finalize containers (deepest first) ---
-  // After dagre, leaf nodes hold absolute (canvas) positions. For each
+  // After ELK, leaf nodes hold absolute (canvas) positions. For each
   // container, fit its bbox around its children with padding, then convert
   // the children's positions from absolute to parent-relative.
   //
