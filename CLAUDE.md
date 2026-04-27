@@ -13,7 +13,7 @@ The candidacy TOC includes all paper content plus `paper/candidacy/` extensions 
 | --------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | Paper authoring       | **MyST Markdown**                           | Cross-references, math, citations, builds to HTML                                                  |
 | Interactive figures   | **SveltePlot 0.12** (grammar-of-graphics)   | Spec-driven: `<Cell>`, `<RectY>`, `<Line>`, `<Dot>`, `<Arrow>`. SVG output, Svelte-native          |
-| Architecture diagrams | **SveltePlot** + **graphology**             | Spec-driven YAML → `buildFromSpec` → `flatten` → SveltePlot marks. Library in `interactive/src/lib/diagram/` |
+| Architecture diagrams | **SvelteFlow** (`@xyflow/svelte`) + **ELK** (`elkjs`) | Spec-driven YAML → `specToFlow` → SvelteFlow nodes/edges. ELK does component-level orthogonal routing. Library in `interactive/src/lib/flow/` |
 | Build                 | **Vite 6** + `vite-plugin-singlefile`       | Each figure → self-contained HTML (JS+CSS+data inlined)                                            |
 | Tables                | **spec.yaml** + `tools/tables/build.py`     | Declarative table specs, booktabs-style, literature baselines                                      |
 | Validation schemas    | **`data/schemas.yaml`**                     | Single source of truth for both export and pull validation                                         |
@@ -92,17 +92,17 @@ curve.space is an SPA that can't serve static HTML files. Figures require iframe
 
 ## Diagram Convention
 
-- **Library**: `interactive/src/lib/diagram/` — spec-driven YAML diagrams
-- **Preferred workflow**: Write a `spec.yaml` per diagram, then `buildFromSpec(spec)` → `flatten(graph)` → SveltePlot marks. See `docs/Diagram-Authoring-Guide.md` for the full spec reference.
-- **`buildFromSpec`** (spec.ts): Walks a YAML layout tree (components + layout + bridges) → graphology graph
-- **`buildGraph`** (buildGraph.ts): Creates a positioned graphology graph cluster (n nodes, topology, color, labels, positions, container)
-- **Composition** (compose.ts + transforms.ts): `pipeline`, `bridge`, `boxSequence`, `hstack`, `vstack` — position and connect sub-graphs
-- **`flatten`** (flatten.ts): Converts graphology graph → flat arrays for SveltePlot marks (nodes, boxes, edges by type, domain)
-- **`resolve`** (palette.ts): Maps role names (`vgae`, `gat`, `kd`) → stroke/fill colors from `styles.yml` palette
-- **Edge types**: `structural`, `flow`, `kd`, `encoded`, `annotation` — bucketed by `flatten`, rendered as separate SveltePlot layers
-- **Boxes**: Standalone boxes use explicit `x`/`y` node attributes; group-derived boxes auto-center on group bounds
-- **Colors**: Defined in `styles.yml` (Observable 10 palette). Use role names, not hex values, in specs.
-- Diagrams are SveltePlot figures (same build pipeline as interactive figures), not separate SVGs
+- **Library**: `interactive/src/lib/flow/` — spec-driven YAML diagrams rendered with SvelteFlow + ELK.
+- **Preferred workflow**: Write a `spec.yaml` per diagram, then in `App.svelte` call `specToFlow(spec)` → bind the returned `{nodes, edges}` to `<DiagramCanvas>`. Diagrams without a spec.yaml inline the spec object in `App.svelte` (e.g. `graph-base`, `gat-layer`).
+- **`specToFlow`** (`convert.ts`): Walks a `FigureSpec` (components + layout + bridges) → SvelteFlow `nodes`/`edges`. Builds nodes from components (graph clusters → circles on a ring; boxes; or recursively-prefixed sub-specs), generates intra-cluster structural edges from `topology`, walks the layout tree to add pipeline flow edges + layout containers, resolves bridge anchors (direct IDs, `compId__top|bottom|left|right`, sub-spec dotted refs), then runs ELK at component granularity for placement and orthogonal bend points.
+- **`layoutWithELK`** (`elk.ts`): Thin wrapper over `elkjs`. Layered + ORTHOGONAL routing; returns positions + bend points per super-edge.
+- **Floating edges + bend-point rendering** (`floating.ts`): Snaps edge endpoints to the cardinal side of each leaf node facing the other endpoint, and renders ELK bend points as a rounded polyline (`roundedPolylinePath`) capped at each leaf boundary.
+- **`resolve`** (`palette.ts`): Maps role names (`vgae`, `gat`, `kd`) → `{stroke, fill}` from `styles.yml`.
+- **Node types**: `circle`, `box`, `container` (parent group with dashed border + label).
+- **Edge types**: `structural` (intra-cluster ring), `flow` (orthogonal smoothstep with optional bend points + label), `encoded` (straight, weight-modulated stroke for attention). The `kd` bridge type is a preset on `flow` (thicker dashed stroke, bold colored label offset to the right) — there is no separate KD edge component.
+- **Sizes & rings**: graph component `scale` is the cluster diameter in px; circle `r` defaults to a heuristic on `scale` but can be overridden per component when you need bigger circles on a small ring.
+- **Colors**: defined in `styles.yml`. Use role names in specs, never hex.
+- Diagrams are full SvelteFlow apps (same build pipeline as interactive figures) — each renders a `<DiagramCanvas>` that sets node/edge type registrations and hides default handles for a clean static look.
 
 ## What NOT To Do
 

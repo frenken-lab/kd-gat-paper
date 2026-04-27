@@ -14,7 +14,7 @@ npm install
 Figures live under `src/figures/` in two categories:
 
 - **`data/`** — data-driven plots consuming `data.json`: `algorithm`, `attention`, `cka`, `fusion`, `reconstruction`, `results-table`, `umap`
-- **`diagrams/`** — SvelteFlow architecture diagrams driven by `spec.yaml` (or inline graph construction): `architecture`, `dqn`, `gat`, `gat-layer`, `graph-base`, `kd-gat`, `kd-vgae`, `vgae`
+- **`diagrams/`** — SvelteFlow architecture diagrams driven by `spec.yaml` (or inline graph construction): `architecture`, `composition-pipeline`, `gat`, `gat-layer`, `graph-base`, `kd-gat`, `kd-vgae`, `vgae`
 
 Figures are served one at a time. Set the `FIGURE` env var to the directory name (category is resolved automatically from the layout):
 

@@ -25,7 +25,15 @@
   }: EdgeProps<FlowEdgeData> = $props();
 
   let stroke = $derived(resolve(data?.color).stroke);
-  let dashed = $derived(data?.dashed ? '4 3' : 'none');
+  let strokeWidth = $derived(data?.strokeWidth ?? 1);
+  let dashArr = $derived(
+    data?.dashArray ?? (data?.dashed ? '4 3' : 'none'),
+  );
+
+  let labelColor = $derived(data?.labelOnStroke ? stroke : '#666');
+  let labelOffsetX = $derived(data?.labelOffsetX ?? 0);
+  let labelBold = $derived(data?.boldLabel ?? false);
+  let labelLeftAlign = $derived(data?.labelLeftAlign ?? false);
 
   const { getInternalNode } = useSvelteFlow();
 
@@ -78,12 +86,17 @@
   {id}
   path={edgePath}
   {markerEnd}
-  style="stroke: {stroke}; stroke-width: 1px; stroke-dasharray: {dashed};"
+  style="stroke: {stroke}; stroke-width: {strokeWidth}px; stroke-dasharray: {dashArr};"
 />
 
 {#if data?.label}
-  <EdgeLabel x={labelX} y={labelY}>
-    <div class="flow-label">
+  <EdgeLabel x={labelX + labelOffsetX} y={labelY}>
+    <div
+      class="flow-label"
+      class:bold={labelBold}
+      class:left-align={labelLeftAlign}
+      style:color={labelColor}
+    >
       {data.label}
     </div>
   </EdgeLabel>
@@ -101,5 +114,17 @@
     background: white;
     padding: 1px 3px;
     border-radius: 2px;
+  }
+
+  .flow-label.bold {
+    font-weight: bold;
+    font-style: normal;
+    font-size: 9px;
+    background: transparent;
+    padding: 0;
+  }
+
+  .flow-label.left-align {
+    transform: translate(0, -50%);
   }
 </style>

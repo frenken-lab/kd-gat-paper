@@ -1,5 +1,5 @@
 import { Position } from '@xyflow/svelte';
-import type { DiagramNode, DiagramEdge } from './types.ts';
+import type { DiagramNode, DiagramEdge, FigureSpec, LayoutNode } from './types.ts';
 import { circularPositions } from './layout.ts';
 import { layoutWithELK } from './elk.ts';
 
@@ -16,61 +16,6 @@ function nodeBoxH(n: DiagramNode): number {
   if (n.type === 'box') return (n.data as { height?: number }).height ?? 32;
   if (n.type === 'container') return n.height ?? 150;
   return 50;
-}
-
-// --- Spec types (mirrored from diagram/spec.ts to avoid import dependency) ---
-
-interface GraphComponentSpec {
-  type: 'graph';
-  n: number;
-  topology: 'sparse' | 'full' | 'none';
-  color?: string;
-  labels?: string[] | 'auto' | 'none';
-  scale?: number;
-  container?: { label: string; color?: string };
-}
-
-interface BoxComponentSpec {
-  type: 'box';
-  label: string;
-  color?: string;
-  width?: number;
-  height?: number;
-}
-
-interface SpecComponentSpec {
-  type: 'spec';
-  ref: string;
-  scale?: number;
-}
-
-type ComponentSpec = GraphComponentSpec | BoxComponentSpec | SpecComponentSpec;
-
-interface LayoutNode {
-  type: 'hstack' | 'vstack' | 'pipeline';
-  children?: (string | LayoutNode)[];
-  elements?: (string | LayoutNode)[];
-  gap?: number;
-  align?: 'left' | 'center' | 'right';
-  direction?: 'horizontal' | 'vertical';
-  flowColor?: string;
-  container?: { label: string; color?: string };
-}
-
-interface BridgeSpec {
-  from: string;
-  to: string;
-  type?: string;
-  color?: string;
-  label?: string;
-  style?: string;
-}
-
-interface FigureSpec {
-  figure: string;
-  components: Record<string, ComponentSpec>;
-  layout: LayoutNode;
-  bridges?: BridgeSpec[];
 }
 
 // --- specToFlow ---
@@ -137,6 +82,7 @@ export async function specToFlow(
       const positions = circularPositions(comp.n, 0, 0, radius);
       const nodeIds: string[] = [];
 
+      const circleR = comp.r ?? (radius < 30 ? 10 : 14);
       for (let i = 0; i < comp.n; i++) {
         const nodeId = `${id}_${i}`;
         nodeIds.push(nodeId);
@@ -147,7 +93,7 @@ export async function specToFlow(
           data: {
             label: labels[i],
             color: comp.color ?? 'grey',
-            r: radius < 30 ? 10 : 14,
+            r: circleR,
           },
           sourcePosition: direction === 'LR' ? Position.Right : Position.Bottom,
           targetPosition: direction === 'LR' ? Position.Left : Position.Top,
@@ -376,6 +322,8 @@ export async function specToFlow(
   walkLayout(spec.layout);
 
   // --- Step 4: Bridge edges ---
+  // bridge `type: 'kd'` is a preset on the unified flow edge: thicker dashed
+  // stroke with a bold colored label offset to the right of the segment.
   if (spec.bridges) {
     for (const b of spec.bridges) {
       const source = resolveRef(b.from);
@@ -385,16 +333,27 @@ export async function specToFlow(
         continue;
       }
 
+      const isKd = b.type === 'kd';
+      const data: Record<string, unknown> = {
+        color: b.color ?? (isKd ? 'kd' : 'grey'),
+        label: b.label ?? (isKd ? 'KD' : undefined),
+        dashed: b.style === 'dashed' || isKd,
+      };
+      if (isKd) {
+        data.strokeWidth = 2;
+        data.dashArray = '6 4';
+        data.boldLabel = true;
+        data.labelOnStroke = true;
+        data.labelOffsetX = 10;
+        data.labelLeftAlign = true;
+      }
+
       edges.push({
         id: `e${edgeIdx++}`,
         source,
         target,
-        type: b.type ?? 'flow',
-        data: {
-          color: b.color ?? 'grey',
-          label: b.label,
-          dashed: b.style === 'dashed',
-        },
+        type: b.type === 'flow' || b.type === undefined || isKd ? 'flow' : b.type,
+        data,
       });
     }
   }

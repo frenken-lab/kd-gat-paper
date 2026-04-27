@@ -141,71 +141,63 @@ These consume `data.json` and render it. No transforms in the component — all 
 
 ## Architecture Diagrams
 
-These use the diagram library (`interactive/src/lib/diagram/`) with graphology. No external data — all topology is inline.
+These use the diagram library (`interactive/src/lib/flow/`) — SvelteFlow + ELK. No external data — all topology comes from each diagram's `spec.yaml` (or an inline spec object passed to `specToFlow`).
 
 ### `architecture` — Full KD-GAT System
 
-- **What it shows:** Complete system overview: VGAE Teacher -> GAT Teacher -> DQN Fusion -> Anomaly Score, with KD distillation edges to student models.
-- **Chart type:** Architecture diagram
-- **Marks:** `Link`, `Arrow`, `Rect`, `Dot`, `Text`
+- **What it shows:** Complete system overview: VGAE Teacher → GAT Teacher → DQN Fusion → Anomaly Score, with KD distillation edges to student models.
+- **Chart type:** Architecture diagram (composed)
 - **Interactions:** None
-- **Data:** Inline graphology graph (5 CAN bus nodes, 7 boxes, ~9 flow edges, 2 KD edges)
+- **Data:** `spec.yaml` composing `vgae` + `gat` sub-specs as scaled components, plus DQN/output/student boxes. ~7 cross-component bridges (flow + KD presets).
+
+### `composition-pipeline` — Deployment-Time Decision Pipeline
+
+- **What it shows:** Five-stage decision pipeline composing the candidacy answers — trust gates → simplex policy → safety shield → UCB deferral → conformal abstain — with confident/defer outputs.
+- **Chart type:** Architecture diagram (spec-driven, candidacy-only)
+- **Interactions:** None
+- **Data:** Inline via `spec.yaml` (8 boxes + 9 flow bridges + 3 dashed defer bridges).
 
 ### `gat` — 3-Layer GAT Classifier
 
 - **What it shows:** Stacked 3-layer GAT with JK concatenation feeding into FC classifier.
-- **Chart type:** Architecture diagram
-- **Marks:** `Link`, `Arrow`, `Rect`, `Dot`, `Text`
+- **Chart type:** Architecture diagram (spec-driven)
 - **Interactions:** None
-- **Data:** Inline (15 nodes across 3 layers, 2 box nodes)
+- **Data:** Inline via `spec.yaml` (3 graph clusters with containers, 2 box stages).
 
 ### `gat-layer` — Single GAT Layer with Attention Heads
 
-- **What it shows:** 3 parallel attention heads within a single GAT layer. Click to drill into head detail showing attention mechanism.
+- **What it shows:** 3 parallel attention heads within a single GAT layer. Click a head thumbnail to expand its internal mechanism (input → attention → output) with weighted attention edges.
 - **Chart type:** Drill-down architecture diagram
-- **Marks:** `Rect`, `Arrow`, `Link`, `Dot`, `Text`
-- **Interactions:** Click head to expand detail panel; close button
-- **Data:** Inline (3 heads x 5 nodes, 6 attention edges per head with hardcoded weights)
+- **Interactions:** Click thumbnail to expand detail panel; close button.
+- **Data:** Inline spec objects passed to `specToFlow`. 3 thumbnail flows (one cluster each) + 3 detail flows (input + attn + output, with 6 encoded edges per head injected post-layout).
 
 ### `graph-base` — CAN Bus Graph
 
-- **What it shows:** Simple 5-node CAN bus input graph illustration.
+- **What it shows:** Simple 5-node CAN bus input graph illustration (sparse cycle + chord).
 - **Chart type:** Network graph
-- **Marks:** `Link`, `Dot`, `Text`, `HTMLTooltip`
-- **Interactions:** Hover tooltip on nodes
-- **Data:** Inline via `buildGraph` (5 nodes, sparse topology)
-
-### `dqn` — DQN Fusion Architecture
-
-- **What it shows:** DQN-based bandit fusion module connecting VGAE and GAT score streams to anomaly output.
-- **Chart type:** Architecture diagram (spec-driven)
-- **Marks:** `Link`, `Arrow`, `Rect`, `Dot`, `Text`
 - **Interactions:** None
-- **Data:** Inline via `spec.yaml`
+- **Data:** Inline spec object passed to `specToFlow` (one graph component, sparse topology).
 
 ### `kd-gat` — KD-GAT Knowledge Distillation
 
 - **What it shows:** Knowledge distillation from GAT teacher to GAT student with feature-matching edges.
 - **Chart type:** Architecture diagram (spec-driven)
-- **Marks:** `Link`, `Arrow`, `Rect`, `Dot`, `Text`
 - **Interactions:** None
-- **Data:** Inline via `spec.yaml`
+- **Data:** Inline via `spec.yaml`. KD bridge between teacher and student is rendered via the `kd` preset on the unified flow edge.
 
 ### `kd-vgae` — KD-VGAE Knowledge Distillation
 
 - **What it shows:** Knowledge distillation from VGAE teacher to VGAE student.
 - **Chart type:** Architecture diagram (spec-driven)
-- **Marks:** `Link`, `Arrow`, `Rect`, `Dot`, `Text`
 - **Interactions:** None
-- **Data:** Inline via `spec.yaml`
+- **Data:** Inline via `spec.yaml`. Same shape as `kd-gat` with VGAE color/labels.
 
 ### `vgae` — VGAE Autoencoder Architecture
 
-- **What it shows:** Variational graph autoencoder: encoder → latent space → decoder with reconstruction.
+- **What it shows:** Variational graph autoencoder: encoder → latent space (μ, log σ, z) → decoder → reconstruction, with auxiliary CAN-ID and neighbor heads off z.
 - **Chart type:** Architecture diagram (spec-driven)
-- **Marks:** `Link`, `Arrow`, `Rect`, `Dot`, `Text`
 - **Interactions:** None
-- **Data:** Inline via `spec.yaml`
+- **Data:** Inline via `spec.yaml` (encoder/latent/decoder containers, 4 graph clusters, 5 boxes).
 
 ---
 
@@ -220,8 +212,8 @@ These use the diagram library (`interactive/src/lib/diagram/`) with graphology. 
 | `reconstruction` | Multi-panel | `data.json` (3 sub-datasets) | Placeholder | `recon_errors.parquet` |
 | `results-table` | Data table | `data.json` | Complete | `metrics.parquet` / `leaderboard.json` |
 | `umap` | Scatter | `data.json` (187 pts) | Partial (2 of 7 classes) | `embeddings.parquet` |
-| `architecture` | Diagram | `spec.yaml` | Complete | — |
-| `dqn` | Diagram | `spec.yaml` | Complete | — |
+| `architecture` | Diagram | `spec.yaml` (composes `vgae` + `gat`) | Complete | — |
+| `composition-pipeline` | Diagram (candidacy) | `spec.yaml` | Complete | — |
 | `gat` | Diagram | `spec.yaml` | Complete | — |
 | `gat-layer` | Diagram | Inline | Complete | — |
 | `graph-base` | Diagram | Inline | Complete | — |

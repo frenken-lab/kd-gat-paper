@@ -2,13 +2,12 @@ import ELK from 'elkjs/lib/elk.bundled.js';
 
 // Minimal ELK wrapper for component-granularity layout. We feed it a flat
 // graph (one super-node per spec component, edges between super-nodes) and
-// read back: (1) placed positions, (2) per-edge bend points. The latter is
-// the actual win over dagre — ELK routes around obstacles instead of just
-// placing endpoints.
+// read back: (1) placed positions, (2) per-edge bend points routed around
+// obstacles.
 //
-// We pick `layered + ORTHOGONAL` because the existing FlowEdge/KDEdge use
-// `getSmoothStepPath` (orthogonal-with-rounded-corners). Orthogonal bend
-// points feed the same aesthetic with the obstacle-avoidance dagre lacked.
+// We pick `layered + ORTHOGONAL` because FlowEdge uses `getSmoothStepPath`
+// (orthogonal-with-rounded-corners); ORTHOGONAL bend points feed that
+// aesthetic.
 
 export interface ELKNodeIn {
   id: string;

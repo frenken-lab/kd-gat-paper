@@ -1,3 +1,30 @@
+/* article-theme wraps every iframe in a padding-bottom:60% aspect-ratio
+   container suited to YouTube embeds. That breaks our content-sized
+   figures (forces 60% of body width as height regardless of content,
+   which causes scrollbars on tall figures). Neutralize the wrapper so
+   the iframe's own height drives layout — autoResizeIframe (see
+   interactive/src/lib/figure-resize.ts) sets element style with
+   !important to update it dynamically on same-origin builds. */
+div.relative.inline-block:has(> iframe) {
+  padding-bottom: 0 !important;
+  height: auto !important;
+  display: block !important;
+}
+
+div.relative.inline-block > iframe {
+  position: static !important;
+  width: 100% !important;
+  height: 400px !important;
+}
+
+/* Per-figure tall override. Apply with `:class: tall-figure` on the
+   {iframe} directive — article-theme passes the class through to the
+   outer wrapper. Use sparingly for figures that genuinely need >400px
+   even on cross-origin builds where autoResize can't reach. */
+.tall-figure div.relative.inline-block > iframe {
+  height: 600px !important;
+}
+
 /* Algorithm blocks — styled admonitions for pseudocode */
 .admonition.algorithm {
   border: 1px solid #0066cc;

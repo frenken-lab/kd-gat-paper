@@ -114,12 +114,16 @@ def _h_container(n: dict) -> str:
 
 
 def _h_iframe(n: dict) -> str:
+    # The iframe height is just an initial placeholder — each figure ships an
+    # autoResizeIframe() call that grows/shrinks the host iframe to fit its
+    # actual content (same-origin direct write on GitHub Pages, postMessage
+    # fallback elsewhere). See interactive/src/lib/figure-resize.ts.
     raw_src = n.get("src", "")
     src = Path(urlparse(raw_src).path).name
     path = f"assets/html/submission/{src}"
     return (
         f"<iframe src=\"{{{{ '{path}' | relative_url }}}}\" "
-        f'width="100%" height="500" '
+        f'width="100%" height="400" '
         f'style="border:none; border-radius:12px; box-shadow:0 4px 10px rgba(0,0,0,0.1);" '
         f'title="{Path(src).stem}"></iframe>'
     )

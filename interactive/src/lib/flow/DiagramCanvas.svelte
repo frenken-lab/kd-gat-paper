@@ -18,17 +18,14 @@
 
   import StructuralEdge from './edges/StructuralEdge.svelte';
   import FlowEdge from './edges/FlowEdge.svelte';
-  import KDEdge from './edges/KDEdge.svelte';
   import EncodedEdge from './edges/EncodedEdge.svelte';
 
-  import DesignPanel from './DesignPanel.svelte';
   import type { DiagramNode, DiagramEdge } from './types.ts';
 
   let {
     nodes = $bindable([]),
     edges = $bindable([]),
     interactive = false,
-    direction = 'LR',
     width = '100%',
     height = '400px',
     fitView = true,
@@ -36,7 +33,6 @@
     nodes: DiagramNode[];
     edges: DiagramEdge[];
     interactive?: boolean;
-    direction?: 'LR' | 'TB';
     width?: string;
     height?: string;
     fitView?: boolean;
@@ -51,7 +47,6 @@
   const edgeTypes: EdgeTypes = {
     structural: StructuralEdge,
     flow: FlowEdge,
-    kd: KDEdge,
     encoded: EncodedEdge,
   };
 
@@ -83,7 +78,6 @@
       <Background />
       <Controls />
       <MiniMap />
-      <DesignPanel bind:nodes bind:edges {direction} />
     {/if}
   </SvelteFlow>
 </div>

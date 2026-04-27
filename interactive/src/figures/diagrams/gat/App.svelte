@@ -13,7 +13,7 @@
 
 <div class="figure">
   <h3>GAT Classifier</h3>
-  <DiagramCanvas bind:nodes bind:edges direction="TB" width="100%" height="450px" />
+  <DiagramCanvas bind:nodes bind:edges width="100%" height="450px" />
 </div>
 
 <style>

@@ -122,7 +122,7 @@ interactive/src/figures/data/umap/
   main.js       Svelte mount
 ```
 
-Figures use [SveltePlot 0.12](https://svelteplot.dev) (grammar-of-graphics): `<Cell>`, `<RectY>`, `<Line>`, `<Dot>`, `<Arrow>`. Architecture diagrams use [graphology](https://graphology.github.io/) graphs rendered through SveltePlot, with the shared library at `interactive/src/lib/diagram/`.
+Figures use [SveltePlot 0.12](https://svelteplot.dev) (grammar-of-graphics): `<Cell>`, `<RectY>`, `<Line>`, `<Dot>`, `<Arrow>`. Architecture diagrams use [SvelteFlow](https://svelteflow.dev/) (`@xyflow/svelte`) with [ELK](https://eclipse.dev/elk/) for orthogonal layout, driven by `spec.yaml`; the shared library is at `interactive/src/lib/flow/`.
 
 **Dev workflow for a single figure:**
 
