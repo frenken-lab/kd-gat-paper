@@ -13,7 +13,8 @@
     AxisY,
   } from "svelteplot";
   import { useToggleFilter } from "../../../lib/useToggleFilter.svelte.js";
-  import { resolve } from "../../../lib/flow/palette.ts";
+  import { buildColorMap } from "../../../lib/usePaletteColors.js";
+  import { resolve } from "../../../lib/flow/palette.js";
   import data from "./data.json";
 
   const isEmpty = !data?.kde;
@@ -32,11 +33,16 @@
   );
 
   // Derive component list and colors from data
-  const components = isEmpty ? [] : [...new Set(data.kde.map((d) => d.component))];
-  const compPaletteKeys = ["vgae", "gat", "dqn", "kd", "data", "attention", "normal"];
-  const componentColors = components.map(
-    (_, i) => resolve(compPaletteKeys[i % compPaletteKeys.length]).stroke,
-  );
+  const components = isEmpty
+    ? []
+    : [...new Set(data.kde.map((d) => d.component))];
+  // Set colors for each component
+  const componentColorMap = buildColorMap(components, [
+    "blue",
+    "orange",
+    "green",
+    "red",
+  ]);
 </script>
 
 <Figure title="VGAE Reconstruction Error Decomposition">
@@ -47,6 +53,7 @@
       {#each types as c}
         <button
           class="toggle"
+          style:--chip-color={componentColorMap[c]}
           class:active={visible[c]}
           class:inactive={!visible[c]}
           onclick={() => toggle(c)}>{c}</button
@@ -55,24 +62,23 @@
     </div>
 
     <h4>Component Distributions</h4>
-    <Plot
-      height={280}
-      x={{ label: "Error Value" }}
-      y={{ label: "Count" }}
-      color={{
-        domain: components,
-        range: componentColors,
-        legend: true,
-      }}
-      fy={{ label: "" }}
-    >
-      <RectY
-        {...binX(
-          { data: filteredKde, x: "value", fill: "component", fy: "class" },
-          { y: "count" },
-        )}
-        opacity={0.7}
-      />
+    <Plot height={280} x={{ label: "Error Value" }} y={{ label: "Count" }}>
+      {#each components as c}
+        {#if visible[c]}
+          <RectY
+            {...binX(
+              {
+                data: filteredKde.filter((d) => d.component === c),
+                x: "value",
+                fy: "class",
+              },
+              { y: "count" },
+            )}
+            fill={componentColorMap[c]}
+            opacity={0.7}
+          />
+        {/if}
+      {/each}
       <RuleY data={[0]} />
     </Plot>
 
@@ -80,10 +86,15 @@
     <Plot
       padding={0}
       height={160}
-      marginLeft={80}
+      marginLeft={12}
       x={{ type: "band", label: "Component" }}
       y={{ type: "band", axis: false }}
-      color={{ scheme: "YlOrRd", label: "Error", legend: true }}
+      color={{
+        type: "linear",
+        scheme: [resolve("yellow").stroke, resolve("red").stroke],
+        label: "Error",
+        legend: true,
+      }}
     >
       <Cell
         data={data.heatmap}
@@ -100,21 +111,20 @@
       marginLeft={30}
       x={{ label: "FPR", domain: [0, 1] }}
       y={{ label: "TPR", domain: [0, 1] }}
-      color={{
-        domain: components,
-        range: componentColors,
-        legend: true,
-      }}
     >
       <AxisX />
       <AxisY />
-      <Line
-        data={filteredRoc}
-        x="fpr"
-        y="tpr"
-        stroke="component"
-        strokeWidth={2}
-      />
+      {#each components as c}
+        {#if visible[c]}
+          <Line
+            data={filteredRoc.filter((d) => d.component === c)}
+            x="fpr"
+            y="tpr"
+            stroke={componentColorMap[c]}
+            strokeWidth={2}
+          />
+        {/if}
+      {/each}
       <Pointer data={filteredRoc} x="fpr" y="tpr" maxDistance={30}>
         {#snippet children({ data })}
           <RuleX {data} x="fpr" opacity="0.3" />

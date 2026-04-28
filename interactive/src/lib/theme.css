@@ -55,9 +55,9 @@
 }
 
 .figure .toggle.active {
-  background: var(--utility-surface-blue);
-  color: var(--utility-on-blue);
-  border: 1px solid var(--utility-on-blue);
+  background: transparent;
+  color: var(--utility-on-light);
+  border: 1px solid var(--chip-color, #ccc);
   border-radius: 25px;
   font-weight: 600;
 }
@@ -68,6 +68,7 @@
 
 .figure .toggle.inactive {
   background: transparent;
+  border: 1px solid #ccc;
   border-radius: 25px;
 }
 

@@ -11,7 +11,7 @@
     densityY,
   } from "svelteplot";
   import { useToggleFilter } from "../../../lib/useToggleFilter.svelte.js";
-  import { resolve } from "../../../lib/flow/palette.ts";
+  import { buildColorMap } from "../../../lib/usePaletteColors.js";
   import data from "./data.json";
 
   // ============================================================================
@@ -63,17 +63,13 @@
   const attackTypes = isEmpty
     ? []
     : [...new Set(data.points.map((d) => d.attack_type))];
-  const paletteKeys = ["normal", "attack", "gat", "dqn", "data", "attention", "kd"];
-  const colorMap = Object.fromEntries(
-    attackTypes.map((t, i) => {
-      const match = paletteKeys.find((k) => k === t.toLowerCase());
-      const key = match ?? paletteKeys[i % paletteKeys.length];
-      return [t, resolve(key).stroke];
-    }),
-  );
+  const colorMap = buildColorMap(attackTypes);
 
   const pointsByType = Object.fromEntries(
-    attackTypes.map((t) => [t, isEmpty ? [] : data.points.filter((d) => d.attack_type === t)]),
+    attackTypes.map((t) => [
+      t,
+      isEmpty ? [] : data.points.filter((d) => d.attack_type === t),
+    ]),
   );
 
   const { x1, y1, x2, y2 } = isEmpty
@@ -95,7 +91,10 @@
     const lo = Math.min(+brush.x1, +brush.x2);
     const hi = Math.max(+brush.x1, +brush.x2);
     return Object.fromEntries(
-      attackTypes.map((t) => [t, pointsByType[t].filter((d) => d.x >= lo && d.x <= hi)]),
+      attackTypes.map((t) => [
+        t,
+        pointsByType[t].filter((d) => d.x >= lo && d.x <= hi),
+      ]),
     );
   });
 
@@ -117,6 +116,7 @@
       {#each types as t}
         <button
           class="toggle"
+          style:--chip-color={colorMap[t]}
           class:active={visible[t]}
           class:inactive={!visible[t]}
           onclick={() => toggle(t)}>{t}</button
