@@ -93,15 +93,6 @@ High reconstruction error indicates ambiguous or boundary-proximate normal sampl
 
 *GraphNorm.* Normalization layers use GraphNorm [@cai2021graphnorm] instead of BatchNorm. BatchNorm normalizes across all nodes in a batch, mixing statistics from different graphs and introducing batch-dependent noise. GraphNorm normalizes per-graph with a learnable shift parameter, preserving graph-level distributional information that is essential for anomaly scoring.
 
-*Masked Feature Reconstruction.* Following GraphMAE [@hou2022graphmae], a configurable fraction ($\rho = 0.3$ by default) of continuous node features are randomly masked to zero before encoding. The reconstruction loss is then computed only on masked positions:
-
-```{math}
-:label: eq-masked-recon
-\mathcal{L}_{\text{recon}} = \frac{1}{|\mathcal{M}|} \sum_{(i,j) \in \mathcal{M}} (x_{ij} - \hat{x}_{ij})^2
-```
-
-where $\mathcal{M}$ is the set of masked (node, feature) positions. This prevents the encoder from trivially copying features through message passing and forces it to learn structural patterns, improving sensitivity to anomalous reconstruction errors at inference time. CAN ID features (column 0) are never masked, preserving the discrete identity structure.
-
 :::
 
 #### Stage 2: GAT Training with Curriculum Learning
@@ -178,13 +169,11 @@ a_t = \begin{cases}
 \end{cases}
 ```
 
-where $\epsilon$ decays as $\epsilon \leftarrow \max(\epsilon_{\min},\; \epsilon \cdot \delta)$ after each episode ($\epsilon_0 = 0.2$, $\delta = 0.995$, $\epsilon_{\min} = 0.01$).
-
-**Target Network:** A separate target network $Q(s, a; \theta^-)$ is hard-copied from $\theta$ every 100 training steps to stabilize updates (Double DQN). With $\gamma = 0$ the target network's role is reduced to providing stable reward baselines during minibatch updates.
+where $\epsilon$ decays as $\epsilon \leftarrow \max(\epsilon_{\min},\; \epsilon \cdot \delta)$ after each episode ($\epsilon_0 = 0.2$, $\delta = 0.995$, $\epsilon_{\min} = 0.01$). Because each graph is treated as an independent episode and $\gamma = 0$ removes bootstrapping, the targets reduce to observed rewards and no separate target network is needed.
 
 ##### Neural-LinUCB Contextual Bandit Fusion
 
-Because the fusion decision for each graph is independent, the sequential MDP assumption underlying DQN is unnecessary. Neural-LinUCB [@xu2022neural] decomposes the fusion problem into *deep representation learning* (the shared backbone) and *shallow exploration* (per-arm ridge regression with UCB). This removes the target network, discount factor, and replay-based gradient updates from the decision loop.
+Because the fusion decision for each graph is independent, the sequential MDP assumption underlying DQN is unnecessary. Neural-LinUCB [@xu2022neural] decomposes the fusion problem into *deep representation learning* (the shared backbone) and *shallow exploration* (per-arm ridge regression with UCB). This replaces gradient-based Q-learning and the experience replay buffer with closed-form per-arm updates over a fixed shared representation.
 
 **UCB Arm Selection:** Given the backbone representation $\mathbf{z} = f_\theta(\mathbf{s})$, each arm's score combines a reward estimate with an uncertainty bonus:
 

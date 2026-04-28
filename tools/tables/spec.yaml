@@ -43,18 +43,6 @@ test_scenarios:
     precision: "{:.4f}"
     recall: "{:.4f}"
 
-model_parameters:
-  title: "Teacher and Student Model Parameters"
-  label: tbl-model-parameters
-  source: csv/model_parameters.csv
-  columns:
-    parameter: Parameter
-    autoencoder_teacher: AE Teacher
-    autoencoder_student: AE Student
-    classifier_teacher: Cls Teacher
-    classifier_student: Cls Student
-  format: {}
-
 vgae_threshold:
   title: "VGAE Anomaly Detection Threshold Analysis"
   label: tbl-vgae-threshold

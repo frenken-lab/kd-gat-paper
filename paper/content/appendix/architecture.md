@@ -46,71 +46,19 @@ Student ensemble members are not equally sized. The GAT classifier and VGAE auto
 
 ### Model Architecture Details
 
-[](#tbl-teacher-student) details the architectural parameters for all teacher and student models across the three ensemble members. Each model follows a teacher-student distillation framework with $\approx 20\times$ compression ratio.
-
-:::{table} Teacher and Student Model Parameters for Classifier and Autoencoder
-:label: tbl-teacher-student
-
-```{include} ../../../_build/tables/model_parameters.md
-```
-
-:::
+The student-teacher pairs share each model's architectural family; the teacher differs by depth, width, or attention-head count rather than kind. Specific hyperparameters (channel widths, embedding dimensions, dropout, exploration rates) are tracked in the configs alongside the training code rather than reproduced here, since they are tuned per ablation.
 
 #### GAT Classifier (55 K Student, 1.100 M Teacher)
 
-Graph attention network over 35 node features with GATv2Conv layers and 11-dimensional edge attributes. Both student and teacher use LSTM-based Jumping Knowledge aggregation, which learns a per-node adaptive combination of layer representations and keeps the output dimension at $d$ (hidden $\times$ heads) rather than $L \times d$. The student model uses 2 GATv2Conv layers with 4 attention heads, 24 hidden channels, 8-dimensional CAN ID embeddings, and a 32-dimensional feature projection, feeding into a 2-layer FC classification head. The teacher expands to 3 GATv2Conv layers with 4 attention heads, 64 hidden channels, 8-dimensional embeddings, and a 48-dimensional feature projection, with a 4-layer FC head for higher representational capacity and softer knowledge targets during distillation.
+Graph attention network over 35-dimensional node features and 11-dimensional edge attributes, built from GATv2Conv layers. Both student and teacher use LSTM-based Jumping Knowledge aggregation, which learns a per-node adaptive combination of layer representations and keeps the output dimension at $d$ (hidden $\times$ heads) rather than $L \times d$. The student is shallow — 2 GATv2Conv layers feeding a 2-layer FC classification head; the teacher expands to 3 GATv2Conv layers and a 4-layer FC head, providing higher representational capacity and softer knowledge targets during distillation.
 
 #### VGAE Autoencoder (86 K Student, 1.710 M Teacher)
 
-Variational graph autoencoder for unsupervised anomaly detection with GATv2Conv layers and 11-dimensional edge attributes. The student model compresses 35-dimensional input features (with a 32-dimensional feature projection) through a 3-layer GATv2Conv encoder (single attention head, progressive schedule $[80 \to 40 \to 16]$) to a 16-dimensional latent space, with 4-dimensional CAN ID embeddings and a symmetric decoder for reconstruction. The teacher uses a deeper encoder with 4 attention heads and a progressive schedule $[480 \to 240 \to 64]$ to a 64-dimensional latent space, with 32-dimensional CAN ID embeddings and a 48-dimensional feature projection for richer representation learning. Both models employ the variational reparameterization trick and masked feature reconstruction ($\rho = 0.3$).
+Variational graph autoencoder for unsupervised anomaly detection, built from GATv2Conv encoder layers and a symmetric MLP decoder. The student progressively compresses 35-dimensional node features through a 3-layer single-head encoder ($[80 \to 40 \to 16]$) into a 16-dimensional latent space; the teacher widens to a 4-head encoder ($[480 \to 240 \to 64]$) and a 64-dimensional latent space for richer representation learning. Both employ the variational reparameterization trick; the CAN ID is separately classified from the latent representation rather than passed through the same reconstruction objective as the continuous features.
 
 #### Fusion Agent (32 K Student, 687 K Teacher)
 
-Fusion agent for multi-model state aggregation, combining features from the VGAE autoencoder (8D: 3 reconstruction error components, 4 latent statistics, 1 confidence score) and GAT classifier (7D: 2 class probabilities, 4 embedding statistics, 1 confidence score) into a combined 15D input state vector. Both DQN and Neural-LinUCB variants share the same MLP backbone architecture: the student uses 3 hidden layers (128 units each) with LayerNorm, ReLU, and 0.2 dropout; the teacher expands to 3 hidden layers (256 units each). The DQN variant adds a target network ($\gamma = 0$, epsilon-greedy exploration); the bandit variant replaces it with per-arm ridge regression and UCB exploration. The action space $|A| = 21$ corresponds to uniformly spaced fusion weights $\alpha \in [0, 1]$.
-
-### GAT Architecture
-
-| Parameter | Teacher (1.100 M) | Student (55 K) |
-|---|---|---|
-| GATv2Conv layers | 3 | 2 |
-| Attention heads | 4 | 4 |
-| Hidden channels | 64 | 24 |
-| CAN ID embeddings | 8-d | 8-d |
-| Feature projection | 48-d | 32-d |
-| JK aggregation | LSTM | LSTM |
-| FC head layers | 4 | 2 |
-| Dropout | 0.11 | 0.1 |
-
-### VGAE Architecture
-
-Our VGAE encoder progressively compresses the input through multiple GATv2Conv layers.
-
-| Parameter | Teacher (1.710 M) | Student (86 K) |
-|---|---|---|
-| Input features | 35-d (48-d projection) | 35-d (32-d projection) |
-| CAN ID embeddings | 32-d | 4-d |
-| Attention heads | 4 | 1 |
-| Encoder schedule | $480 \to 240 \to 64$ | $80 \to 40 \to 16$ |
-| Latent dim ($\mathbf{z}$) | 64 | 16 |
-| Decoder | mirror ($[64, 240, 480]$) | mirror ($[16, 40, 80]$) |
-| Neighborhood decoder | MLP | compact MLP |
-
-Both models employ the variational reparameterization trick and masked feature reconstruction ($\rho = 0.3$). The CAN ID is separately classified from the latent representation.
-
-### Fusion Agent Architecture
-
-Both DQN and bandit variants take a 15-dimensional state vector (8 VGAE features + 7 GAT features): VGAE features (8D) comprise 3 reconstruction error components (node, neighbor, CAN ID), 4 latent statistics (mean, std, max, min of $\mathbf{z}$), and 1 confidence score; GAT features (7D) comprise 2 class probabilities, 4 embedding statistics (mean, std, max, min), and 1 confidence score.
-
-| Parameter | Teacher (687 K) | Student (32 K) |
-|---|---|---|
-| Hidden layers | 3 $\times$ 256 | 3 $\times$ 128 |
-| Normalization | LayerNorm | LayerNorm |
-| Dropout | 0.2 | 0.2 |
-| Actions ($|A|$) | 21 | 21 |
-| DQN target updates | every 100 steps | every 100 steps |
-| DQN $\gamma$ | 0 | 0 |
-| DQN exploration | — | $\epsilon = 0.2$, decay $= 0.995$, $\epsilon_{\min} = 0.01$ |
-| Bandit exploration | UCB ($\beta = 1.0$) | UCB ($\beta = 1.0$), retrain every 50 ep. |
+Fusion agent for multi-model state aggregation. The state vector concatenates VGAE outputs (3 reconstruction error components — node, neighbor, CAN ID; 4 latent statistics — mean, std, max, min of $\mathbf{z}$; 1 confidence score) and GAT outputs (2 class probabilities; 4 embedding statistics — mean, std, max, min; 1 confidence score) into a combined 15-dimensional input. Both DQN and Neural-LinUCB variants share an MLP backbone — 3 hidden layers, 128 units in the student and 256 in the teacher, with LayerNorm and ReLU. The DQN variant trains with bootstrap-free TD targets ($\gamma = 0$, epsilon-greedy exploration); each graph is an independent episode, so no target network is needed. The bandit variant replaces the Q-network with per-arm ridge regression and UCB exploration. The action space $|A| = 21$ corresponds to uniformly spaced fusion weights $\alpha \in [0, 1]$.
 
 ## Distillation Training
 
@@ -151,4 +99,4 @@ This provides $\approx 2.2$ ms safety margin within the 7 ms CAN message cycle (
 
 ## Reproducibility
 
-This work used FP32 for training stability, model interpretability, and benchmark reproducibility. INT8 quantization on student models (providing $\approx 2.1\times$ speedup on ARM Cortex-A7) would enable approximately $2.5\times$ parameter expansion while maintaining the same 4.8 ms inference latency. Current work focuses on FP32.
+The reported parameter budgets are FP32 for the deployed students. Training uses mixed precision (`16-mixed`) for the GAT and VGAE stages, and FP32 for the fusion stage, whose compute footprint is small enough that mixed precision yields no benefit. INT8 quantization on student models (providing $\approx 2.1\times$ speedup on ARM Cortex-A7) would enable approximately $2.5\times$ parameter expansion while maintaining the same 4.8 ms inference latency.
