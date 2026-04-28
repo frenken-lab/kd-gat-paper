@@ -6,123 +6,121 @@ title: "1. Physics and Dynamic Controls"
 
 > When should a detection system trust its physics-based priors versus defer to purely data-driven components? Discuss how model fidelity, operating conditions, and uncertainty interact in this decision.
 
-Trusting a physics prior at deployment time is a conjunction, not a scalar: regime, signal, and residual fail independently and for different reasons.
+The two expert classes encode different priors over the same input. Physics encodes **structure without frequency** — the bicycle+Pacejka equations specify which dynamics are causally consistent, with no opinion about which are common. Data-driven encodes **frequency without structure** — the GAT decision boundary and VGAE benign manifold are fit from data, with no closed-form description of why those patterns exist. Two complementary inductive biases; neither subsumes the other. The trust decision factorizes along their independent axes: *is the input on a known **form**?* (physics applicable) and *is the input in a covered **frequency**?* (data-driven applicable).
 
-### Three conditions for trusting physics
+### The four-cell phase diagram is the thesis statement
 
-Trust physics only when *all three* of the following hold; the moment any one fails, the data-driven experts (GAT, VGAE) should dominate.
+| | **Frequency: in training** | **Frequency: OOD** |
+|---|---|---|
+| **Form: on physics surface** | *Both priors apply.* Single-expert verdict suffices; fuse trivially. | *Physics carries the trust.* Dynamics are causally consistent; data-driven sees a rare pattern. |
+| **Form: off physics surface** | *Data-driven carries the trust.* The pattern is familiar; physics sees an off-manifold residual. | *Neither single prior is sufficient.* The candidacy contribution lives here. |
 
-**1. Regime validity.** The dynamics model must faithfully describe the current operating regime. Writing $\mathcal{M}_\Theta$ for the bicycle-plus-Pacejka model from [](#app:pinn-physics), the gate is
+The first three cells are *control conditions* — the prior structure of one expert (or both) is enough to underwrite the trust claim. The fourth is the *experimental condition* — no single expert is qualified, and the operational answer comes from the joint calibration apparatus spanning the Q1.1 gates below, Q2.1's conformal coverage, and Q4.1's safety shielding. The whole candidacy thesis is about making the bottom-right cell defensible. Empirically the off-diagonal is rare; that rarity is the point — the diagonal is where any sensible system already works, the bottom-right is where the contribution has to deliver.
+
+### Per-sample arbitration via competence gates
+
+The operational structure that the diagram dispatches into. Every expert carries a competence signal — not just the physics one.
+
+**Physics: three gates, conjunctive.** Trust physics only when all three hold; any failure pulls its weight to zero.
+
+*Regime validity* — the dynamics model fits the current operating point. Writing $\mathcal{M}_\Theta$ for the bicycle-plus-Pacejka model from [](#app:pinn-physics):
 
 $$
 \mathcal{V}_{\text{regime}}(s_t) \;=\; \mathbb{1}\!\left[\,\bigl\| \mathcal{M}_\Theta(s_{t-1}) - s_t \bigr\|_2 \;\le\; \tau_{\text{model}}\,\right]
 $$
 
-with the $\tau_{\text{model}}$ envelope sized to model error on benign training data, not attack residuals. Binding regime constraints: linear-tire-region operation ($|\delta| \le \delta^{\text{lin}}$, $|\alpha_f|, |\alpha_r| \le 4°$ on dry asphalt), small-angle steering, longitudinal acceleration inside the powertrain envelope ([](#app:pinn-physics)). Outside that envelope — emergency maneuvers, low-friction surfaces, hard braking — the linear model diverges from real tire behaviour and the residual is model-error-dominated rather than attack-signal-dominated. @Chen2024CADD's analytical residual approach exhibits this failure at high slip; the PINN learns nonlinear corrections within a wider envelope but does not eliminate the boundary.
+with $\tau_{\text{model}}$ sized to benign-training model error. Linear-tire region only ($|\alpha_f|, |\alpha_r| \le 4°$ on dry asphalt); outside that envelope the residual is model-error-dominated, not attack-dominated [@Chen2024CADD].
 
-**2. Signal reliability.** The state vector $\mathbf{x}_t = (v_x, v_y, \dot{\psi}, \delta, a_x)$ must be observed with bounded uncertainty. With observation pipeline $s_t = h(z_t) + \eta_t$ — $z_t$ raw CAN bytes, $h(\cdot)$ ByCAN-extraction + EKF, $\eta_t$ cumulative noise — the gate is
+*Signal reliability* — the state vector is observed with bounded uncertainty. With $s_t = h(z_t) + \eta_t$ ($z_t$ raw CAN, $h$ ByCAN+EKF, $\eta_t$ cumulative noise):
 
 $$
 \mathcal{V}_{\text{signal}}(s_t) \;=\; \mathbb{1}\!\left[\,\mathrm{tr}\bigl(\Sigma_{\eta}(t)\bigr) \;\le\; \tau_{\text{signal}}\,\right]
 $$
 
-where $\Sigma_\eta(t)$ is the EKF posterior covariance. Tier-1 (DBC) collapses $\Sigma_\eta$ to sensor noise; tier-2 (OBD-II ground truth) inflates it by EKF process noise; tier-3 (ByCAN) inflates it further by the 80.21% slicing-accuracy bias [@ByCAN] (data-extraction tiers in [](#subsec:PINN)). Under tier-3, $\Sigma_\eta$ is bias-dominated, so the gate must be one-sided against systematic offset, not symmetric Gaussian.
+Tier-1 (DBC) collapses $\Sigma_\eta$ to sensor noise; tier-3 (ByCAN) inflates it by the 80.21% slicing-accuracy bias [@ByCAN] that the Gaussian posterior reading then misrepresents.
 
-**3. Residual uncertainty tightness.** The PINN's residual $r_t = \|\mathbf{x}_t - \hat{\mathbf{x}}_t\|_2$ from Eq. {eq}`eq-physics-score` is an attack signal only to the extent that it exceeds the baseline under benign operation. With regime-conditioned baseline $p(r \mid \text{benign}, s)$, the gate is
+*Residual implausibility* — the PINN residual $r_t$ from Eq. {eq}`eq-physics-score` exceeds its regime-conditioned baseline:
 
 $$
 \mathcal{V}_{\text{residual}}(s_t, r_t) \;=\; \mathbb{1}\!\left[\,p(r_t \mid \text{benign}, s_t) \;<\; \tau_{\text{ood}}\,\right]
 $$
 
-This is the operational form of the epistemic/aleatoric decomposition from Q2.1: $p(r \mid \text{benign}, s)$ has high variance in regimes poorly covered by training (epistemic), and the gate fires only when the *current* residual is implausible *given the regime*. Self-adaptive PINN weighting [@McClenny2023SAPINN] and the NTK analysis [@Wang2022NTK] handle this *intra-training* — the physics branch shrinks when its gradient norms diverge from the data branch — but the deployment-time question of *when the residual itself is trustworthy* needs the regime-conditioned baseline above.
+The operational form of Q2.1's epistemic/aleatoric decomposition: the gate fires when the residual is implausible *given the regime*, not just large.
 
-**Composite trust score.** Combining the gates into a continuous PINN weight $\lambda_{\text{physics}}(s_t)$:
+The composite physics weight is the conjunction:
 
 $$
-\lambda_{\text{physics}}(s_t) = \lambda_{\text{tier}} \cdot \mathcal{V}_{\text{regime}}(s_t) \cdot \mathcal{V}_{\text{signal}}(s_t) \cdot \mathcal{V}_{\text{residual}}(s_t, r_t)
+\lambda_{\text{physics}}(s_t) = \lambda_{\text{tier}} \cdot \mathcal{V}_{\text{regime}} \cdot \mathcal{V}_{\text{signal}} \cdot \mathcal{V}_{\text{residual}}
 $$
 
-This is a deferral rule in the sense of Chow's reject option [@geifman2017selective]: the PINN expert is *rejected* (weight zeroed) when any one of the three conditions fails, and the fusion policy reweights to GAT and VGAE. The rejection set is operationally defined and inspectable — what the ISO 26262 ASIL C/D safety case from Challenge 3 demands.
+a Chow's reject option [@geifman2017selective] over the physics expert.
 
-The thresholds $\tau_{\text{model}}$, $\tau_{\text{signal}}$, $\tau_{\text{ood}}$ are themselves calibration parameters — statistical fits to the training-residual distribution — not engineering constants. Their joint calibration with classifier outputs is treated in Q2.1; the curriculum-induced drift that propagates through them is in Q3.3.
+**GAT gate.** Post-temperature-scaled softmax $p(y \mid x) > \tau_{\text{gat}}$; below threshold, GAT abstains and weight redistributes. Calibration matters because raw softmax is overconfident by default [@guo2017calibration].
 
-### Mapping the deployment tiers onto the trust conditions
+**VGAE gate.** Composite reconstruction error exceeding $\tau_{\text{vgae}}$ flags OOD against benign training (§Composite VGAE Reconstruction Error). VGAE *gains* weight when the gate fires — its OOD signal is the attack signal.
 
-The $\lambda_{\text{physics}}$ tier system in [](#subsec:PINN) is a *coarse* approximation of the composite trust score above — it conditions on signal availability only. The full mapping:
+The five thresholds $\{\tau_{\text{model}}, \tau_{\text{signal}}, \tau_{\text{ood}}, \tau_{\text{gat}}, \tau_{\text{vgae}}\}$ are statistical fits to held-out benign data, not engineering constants. They share a maintenance loop with the rest of the joint calibration set in the [committee-questions index](index.md) — one natural-distribution split, one recalibration cadence. Treating them as five independent problems, which the field does, breaks the coverage claim Q2.1 builds toward.
 
-| Tier | $\lambda_{\text{tier}}^{(0)}$ | $\lambda_{\max}$ | What's fixed | What's deferred to gates |
-|---|---|---|---|---|
-| 1: DBC available | 0.5 | 1.0 | $\mathcal{V}_{\text{signal}} = 1$ structurally | $\mathcal{V}_{\text{regime}}$, $\mathcal{V}_{\text{residual}}$ at runtime |
-| 2: OBD-II ground truth | 0.3 | 0.5 | Lower $\mathcal{V}_{\text{signal}}$ ceiling | $\mathcal{V}_{\text{regime}}$, $\mathcal{V}_{\text{residual}}$ at runtime |
-| 3: ByCAN extraction | 0.1 | 0.3 | $\mathcal{V}_{\text{signal}}$ degraded by 80.21% slicing accuracy [@ByCAN] | All three gates at runtime |
-| Failed extraction | 0 (frozen) | 0 | $\mathcal{V}_{\text{signal}} = 0$ | None — physics branch disabled |
+The gates are how a sample gets *located* in the phase diagram. Three of the four cells dispatch to a single-expert verdict — the gates' job is to identify which. The fourth cell is the load-bearing one: when the gates report no operational expert qualified, the joint apparatus (Q2.1 conformal set + Q4.1 shield) has to produce the action, because the diagram by itself does not.
 
-Tiers fix the *outer* envelope; the three gates fix the *inner*, sample-by-sample weighting. **Two caveats**: (i) at tier 3, $\Sigma_\eta$ is bias-dominated, so the Gaussian-posterior interpretation behind $\mathcal{V}_{\text{signal}}$ does not strictly apply — the PINN's role narrows from *deployment-time detector* to *training-time regulariser* on the GAT/VGAE branch, with $\lambda_{\max}=0.3$ as a hard cap; (ii) the proposal stops at the outer envelope because the inner gates require regime-stratified evaluation against benign training data. The PINN's load-bearing detector contribution lives at tiers 1 and 2; tier 3 is graceful-degradation engineering.
+### Tier mapping is the coarse outer envelope
 
-### Existing deferral mechanisms
+The $\lambda_{\text{physics}}$ tier system in [](#subsec:PINN) conditions on signal availability only — the *outer* envelope of the composite trust score. The three physics gates above are the *inner* sample-by-sample weighting that the framework doesn't yet implement.
 
-| Mechanism | Role | Where |
-|---|---|---|
-| Tiered $\lambda_{\text{physics}}^{(0)}, \lambda_{\max}$ | Outer envelope; sets $\mathcal{V}_{\text{signal}}$ ceiling | [](#subsec:PINN) |
-| Self-adaptive $\lambda$ via @McClenny2023SAPINN | Intra-training; physics branch shrinks when gradient norms diverge | [](#subsec:PINN) (Adaptive $\lambda_{\text{physics}}$) |
-| NTK analysis [@Wang2022NTK] | Justifies self-adaptive weighting | Same |
-| GradNorm/PCGrad-style multi-objective balancing [@Bischof2024MultiObj] | Outperforms grid-searched static weights | Same |
-| DQN/bandit fusion policy | Regime-dependent deferral; confident-GAT up-weighting, VGAE near boundary; PINN as third expert under Q4.2 simplex | §DQN-Fusion Analysis; [](#fig-fusion); [](#subsec:DQN) |
-| Selective-prediction risk-coverage curves | Evaluation protocol for $\lambda_{\text{physics}}(s_t)$ | Q2.1 |
+| Tier | $\lambda_{\text{tier}}^{(0)}, \lambda_{\max}$ | What's fixed | What gates supply at runtime |
+|---|---|---|---|
+| 1: DBC | 0.5, 1.0 | $\mathcal{V}_{\text{signal}} = 1$ structurally | regime, residual |
+| 2: OBD-II | 0.3, 0.5 | Lower $\mathcal{V}_{\text{signal}}$ ceiling | regime, residual |
+| 3: ByCAN | 0.1, 0.3 | $\mathcal{V}_{\text{signal}}$ bias-dominated [@ByCAN] | all three |
+| Failed | 0, 0 | $\mathcal{V}_{\text{signal}} = 0$ | physics off |
+
+Tier 3's hard cap at $\lambda_{\max}=0.3$ reflects that the Gaussian-posterior reading of $\mathcal{V}_{\text{signal}}$ doesn't apply under bias-dominated noise; the PINN's role there narrows to *training-time regulariser* on the GAT/VGAE branch, not deployment-time detector. Self-adaptive PINN weighting [@McClenny2023SAPINN] and the NTK analysis [@Wang2022NTK] handle that intra-training shrinkage; the gate set above handles deployment-time deferral. The rejection set is operationally inspectable — what the ISO 26262 ASIL C/D safety case from Challenge 3 demands.
 
 ## Question 1.2
 
 > How does reliance on estimated rather than directly measured states affect the reliability of a detection pipeline, and how might an adversary exploit this dependency?
 
-Estimated states are not measurements — they're a chain of inference, and every link is both an uncertainty source and an attack surface.
+Q1.1 argued the two priors are orthogonal — physics encodes structure, data-driven encodes frequency. Q1.2 argues the two *channels* are too: physics reads its inputs through a four-stage estimation chain ($z_t \xrightarrow{\text{ByCAN}} \tilde{z}_t \xrightarrow{\text{EKF}} \hat{\mathbf{x}}_t \xrightarrow{\text{PINN}} r_t$), data-driven reads bytes directly. That estimation opens an attack surface is cybersec 101. The interesting claim is *what shape the surface has*.
 
-### The compounding-uncertainty chain
-
-Estimated states pass through four stages before reaching the PINN's residual loss, each adding uncertainty *and* an attack surface. The chain:
+### The variance equation is a defense-construction recipe
 
 $$
-z_t \;\xrightarrow{\;\text{ByCAN slicing}\;}\; \tilde{z}_t \;\xrightarrow{\;\text{EKF estimation}\;}\; \hat{\mathbf{x}}_t \;\xrightarrow{\;\text{PINN}\;}\; r_t \;\xrightarrow{\;\text{score}\;}\; \text{Physics\_Score}_t
+\mathrm{Var}[r_t] \;\approx\; \mathrm{Var}\!\left[\eta^{\text{sensor}}\right] \;+\; B^2_{\text{slice}} \;+\; \mathrm{tr}(Q_{\text{EKF}}) \;+\; \mathrm{Var}\!\left[\epsilon_{\text{model}}\right]
 $$
 
-Variance under benign operation factors approximately as
+Three of the four terms are introduced *by processing*, and each has a different statistical shape that determines the form of the gate that defends it:
 
-$$
-\mathrm{Var}\!\left[r_t\right] \;\approx\; \underbrace{\mathrm{Var}\!\left[\eta^{\text{sensor}}\right]}_{\text{ECU sensor noise}} \;+\; \underbrace{B^2_{\text{slice}}}_{\text{ByCAN slicing bias}} \;+\; \underbrace{\mathrm{tr}(Q_{\text{EKF}})}_{\text{process noise}} \;+\; \underbrace{\mathrm{Var}\!\left[\epsilon_{\text{model}}\right]}_{\text{PINN model error}}
-$$
+- **$B^2_{\text{slice}}$ — bias, not noise.** ByCAN's 80.21% slicing accuracy [@ByCAN] propagates as systematic offset, not Gaussian residual. Defense is *one-sided* — OBD-II ground-truth cross-check [@Pese2019LibreCAN] or versioned template attestation. A symmetric outlier test misses bias-shaped attacks by construction.
 
-The middle two terms are absent from the GAT/VGAE inputs (§Graph Construction operates on byte-level features), so the data-driven branch is *more* robust to estimation-pipeline issues but *less* sensitive to physics violations. The PINN reads the chain; the GAT and VGAE read the raw bytes — the two branches share no inputs by construction. The trade-off — and why this is a security boundary, not a preprocessing step — is that each new stage adds an attack surface that the byte-level GAT/VGAE pipeline does not expose. ByCAN's 80.21% slicing accuracy [@ByCAN] is a *bias* term ($B^2_{\text{slice}}$, not noise), so the inflation propagates as systematic offset rather than Gaussian residual — the operationally important asymmetry.
+- **$\mathrm{tr}(Q_{\text{EKF}})$ — time-integrating.** Each step is sub-threshold; the noise integrates over the filter window. Defense is *temporal* — CUSUM on the innovation sequence [@Ozdemir2024IVNSurvey]. Per-step thresholds miss per-window drift by construction.
 
-### Threat-model taxonomy
+- **$\mathrm{Var}[\epsilon_{\text{model}}]$ — regime-conditioned.** Variance is high outside the linear-tire envelope. Defense is Q1.1's $\mathcal{V}_{\text{regime}}$. Absolute residual thresholds miss regime-dependent failure by construction.
 
-Three axes: *access location* (where on the chain), *capability* (read, write, replace), and *signature* (what must stay undetectable). Cross-product:
+The byte-level GAT/VGAE branch carries none of these terms — it doesn't traverse the chain. That's the channel-orthogonal defense: an attacker who corrupts the chain hasn't moved the data-driven pipeline at all.
 
-| Stage | Attacker access | Capability | Defence already in framework | Gap |
-|---|---|---|---|---|
-| Bus-injection (raw CAN) | Wired/wireless ECU compromise [@Miller; @Cho] | Arbitrary frames at bus rate | OOV-robust embedding (§Handling OOV IDs); GAT/VGAE anomaly + reconstruction | Byte-level fine; no frame-propagation analysis through ByCAN |
-| ByCAN slicing template | Pre-deployment poisoning of DBSCAN + DTW templates | Crafted payload schema crossing signal boundaries | Cross-validation via @Pese2019LibreCAN if OBD-II ground truth available; plausibility clipping ($\|\delta\|<40°$, $\|\dot{\psi}\|<1$ rad/s) | Wide open band — attacks within $\pm 40°$ produce no clip flag |
-| EKF state estimation | On-line injection biasing innovation sequence | Slow-drift below per-step threshold, integrating over time | None; EKF black-boxed | Innovation-sequence monitoring — known idea, not implemented |
-| PINN residual | Propagated from above | *Physically plausible* states matching bicycle dynamics, defeating $\mathcal{V}_{\text{residual}}$ (Q1.1) | Self-adaptive $\lambda_{\text{physics}}$ [@McClenny2023SAPINN] when residual gradients diverge | No adversarial-training pass against physics-aware attacks |
+### The threat taxonomy instantiates the recipe
 
-@Choi's CAN-attack countermeasure survey and the AI-IDS survey [@rajapaksha2022aiidssurvey] note that nearly all CAN-IDS evaluation uses *naïvely-injected* attacks (random payloads, replay), almost none *physics-aware*. Adding ByCAN-and-EKF-aware attackers to the taxonomy fills the gap.
+Each known attack class maps to one of the term-by-term gates the framework currently doesn't have:
 
-### How adversaries exploit specific stages
+- **Slicing-template poisoning** ($B^2_{\text{slice}}$ gate). ByCAN's DBSCAN+DTW template construction is offline and unprotected; an adversary with pre-deployment access can craft payloads crossing signal boundaries to bias extracted $\delta$ or $\dot{\psi}$ in a chosen direction. Defended by OBD-II cross-validation when available; otherwise the template is part of the security boundary and needs versioned attestation.
 
-**Plausibility-band injection.** The fallback hierarchy in [](#subsec:PINN) discards extracted signals only when they fall *outside* the physical range ($|\delta| < 40°$, $|\dot{\psi}| < 1$ rad/s). Values inside the band produce no clipping flag and pass to the EKF. Defence: tighten per-regime ($|\delta| < 4°$ on highway, derived from $\mathcal{V}_{\text{regime}}$ in Q1.1), not the static bound.
+- **Slow-drift residual attacks** ($\mathrm{tr}(Q_{\text{EKF}})$ gate). Sub-Hz writes shift the steering-angle estimate by sub-threshold amounts per step; cumulative drift over $\sim 10$ s silently exits the linear-tire regime, and the PINN residual becomes model-error-dominated. Innovation-sequence CUSUM is named as a gap, not shipped.
 
-**Slow-drift residual attacks.** Sub-Hz writes shift the steering-angle estimate by a small amount per step. Each step's EKF innovation stays below threshold; the cumulative shift over $\sim 10$ s exits the linear-tire region (Q1.1 condition 1) and silently breaks $\mathcal{V}_{\text{regime}}$ — the PINN residual is now model-error-dominated and the attack is invisible to the residual gate. Defence: monitor the EKF innovation *sequence* via CUSUM or sliding-window mean. The classical observer-fault-detection trick [@Ozdemir2024IVNSurvey] applied to the estimator's internal state, not the raw signal. The general pattern: per-step thresholds miss per-window drift, and defence requires a detector whose natural time scale matches the attack's.
+- **Plausibility-band injection** ($\mathrm{Var}[\epsilon_{\text{model}}]$ gate). The fallback hierarchy in [](#subsec:PINN) clips signals only outside $|\delta|<40°$, $|\dot{\psi}|<1$ rad/s; values inside the band pass to the EKF unflagged. Tightening to regime-conditioned bounds (highway: $|\delta|<4°$) is a one-line fix, not a research project.
 
-**Slicing-template poisoning.** ByCAN's DBSCAN + DTW template construction is offline and unprotected. An adversary with pre-deployment access (poisoned calibration dataset) can craft payloads crossing signal boundaries to bias extracted $\delta$ or $\dot{\psi}$ in a chosen direction. Defence: cross-validate against OBD-II ground truth [@Pese2019LibreCAN] when available; otherwise treat the template as part of the security boundary and version-control under attestation.
+- **Graph-aware decoy** [@zugner2018adversarial]. The byte-level branch isn't immune — GAT attention can be fooled by chosen edge perturbations, and adversarial benign-looking IDs can distort ByCAN's template centroids. The defense isn't "use bytes, they're safe"; it's that the two channels' attacks have *different signatures*, so simultaneous compromise requires two attacks of different kinds.
 
-**Graph-aware decoy attacks.** @zugner2018adversarial shows GAT attention can be fooled by chosen edge perturbations; the analogous estimation-pipeline attack injects *benign-looking* frames whose arbitration IDs ByCAN groups with the steering-angle signal, biasing the template centroid. OOV-robust embedding handles novel attack IDs; it does not handle adversarial *benign-looking* IDs that distort the estimator's preprocessing.
+@Choi's CAN-attack countermeasure survey and the AI-IDS survey [@rajapaksha2022aiidssurvey] note that nearly all CAN-IDS evaluation uses *naïvely-injected* attacks (random payloads, replay), almost none physics-aware. Adding ByCAN-and-EKF-aware attackers to the evaluation closes that gap.
 
-### Defensive posture summary
+### What the tier cap is admitting
+
+The current $\lambda_{\max}=0.3$ cap on tier-3 deployments is a placeholder admission: "we can't yet tell which of the four terms got attacked, so bound the chain's total influence." The proposal is to replace the outer cap with the inner gates the variance equation tells you how to build, each shaped by its term's statistics (one-sided / temporal / regime-conditioned). Until they ship, the tier cap and the byte-level branch are structural defense-in-depth — not a cryptographic guarantee, but: even with full chain compromise, the data-driven branch is unaffected, and the fusion decision can't be moved more than 30%.
 
 | What's there | What's missing |
 |---|---|
-| DBC $\succ$ OBD-II $\succ$ ByCAN fallback hierarchy with plausibility clipping | Band is static, not regime-conditioned |
-| Self-adaptive $\lambda_{\text{physics}}$ shrinks physics term when training gradients diverge | No deployment-time defence against physics-aware injection |
-| Tier-based outer envelope on $\lambda_{\text{physics}}$ | No inner gates (regime, signal, residual) implemented (Q1.1) |
-| GAT+VGAE branch on raw bytes, unaffected by estimator compromise | Fusion policy has no estimator-compromise signal — cannot up-weight the data-driven branch |
-| Adversarial robustness flagged as research direction ([](#subsec:Adversarial)) | No attacker model, red-team protocol, or certified bounds |
+| DBC $\succ$ OBD-II $\succ$ ByCAN fallback + static plausibility clip | Bands are static, not regime-conditioned |
+| Self-adaptive $\lambda_{\text{physics}}$ shrinks physics when training gradients diverge | No deployment-time defense against bias-shaped or time-integrating attacks |
+| Tier cap on $\lambda_{\text{physics}}$ | No inner gates ($\mathcal{V}_{\text{regime}}$ at runtime, innovation-sequence monitor, template attestation) |
+| GAT/VGAE on raw bytes — channel-orthogonal | Fusion policy lacks an estimator-compromise signal — can't up-weight data-driven when the chain is hit |
 
-The GAT+VGAE branch is structurally protected from estimator-pipeline compromise: it doesn't depend on the estimator. The PINN branch is *not* protected, but the tier-based weighting limits the blast radius — a tier-3 deployment (ByCAN extraction) caps PINN contribution at $\lambda_{\max} = 0.3$, so even total estimator compromise cannot drive the fusion decision more than 30%. This is a structural-defence-in-depth argument rather than a cryptographic one.
+Q1 as a unified argument: Q1.1 says the priors are orthogonal and the bottom-right cell of the phase diagram is where the joint apparatus has to deliver; Q1.2 says the channels are orthogonal too, the variance equation is the recipe for the inner gates, and the tier cap is the framework's placeholder until they ship. Both axes serve the same load-bearing case — when no single expert is qualified, neither axis (priors, channels) has collapsed simultaneously.
