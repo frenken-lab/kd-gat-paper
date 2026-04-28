@@ -10,7 +10,9 @@ title: "2. Model Interpretability and Calibration"
 
 A useful detector reports two things at once: a prediction, and how much weight to put on it. The second number is what "knowing what you don't know" actually amounts to — and on a CAN bus it has to do real work, because the cost of a false alert and the cost of a missed attack live on opposite ends of the same operating envelope. A 99% accurate detector that cannot tell the operator whether *this particular alert* is one of the 1% errors offers a confidence number that means nothing.
 
-Two distinct things drive that uncertainty, and they call for opposite responses [@kendall2017uncertainties].
+Post-Gettier epistemology [@gettier1963justified] gives two complementary criteria for what *knowing* requires beyond accidentally being right. **Reliabilism** [@goldman1979reliabilism] says a belief counts as knowledge when it is produced by a process whose outputs track truth at the rate the process asserts — calibration is the engineering operationalisation. **Defeasibility** [@pollock1986contemporary; @lehrer1990knowledge] says it counts when there is no fact about the input the process missed that would undermine the conclusion — OOD detection is its operationalisation. Both criteria have to hold: a reliably-trained classifier whose softmax matches accuracy on every class still does not know once a regime change has invalidated its training distribution, and a defeater-free belief produced by a broken process is Gettier-lucky, not knowledge. The rest of this answer follows the reliabilist thread, because the question asks specifically about *evaluation* and *maintenance* — both reliability operations on the inference process. The defeater-finding side closes the section in §4, where the joint-calibration vector turns out to be the field's accumulated defeater inventory.
+
+Beneath either criterion, uncertainty itself decomposes into two species that call for opposite operational responses [@kendall2017uncertainties].
 
 | Type | Source | Reducible? | What "calibrated" looks like | Operational response |
 |---|---|---|---|---|
@@ -19,7 +21,7 @@ Two distinct things drive that uncertainty, and they call for opposite responses
 
 The split lines up neatly with how a CAN IDS fails. Aleatoric uncertainty flags ambiguous benign/attack boundary windows. Epistemic uncertainty flags attacks the training data never contained — the unknown-attack case where any single specialist breaks down [@OODFailures].
 
-Modern deep networks fail at both, and they fail in a predictable direction. @guo2017calibration documents the systemic version: max-softmax confidence routinely exceeds empirical accuracy, and the gap widens with depth and capacity — networks are overconfident by default. @ovadia2019trust carries the result over to distribution shift. Every post-hoc calibration method tested — temperature scaling, ensembles, MC-dropout, Bayesian methods — degrades under shift, but the *ranking* is preserved: deep ensembles and MC-dropout degrade most gracefully, isotonic regression worst. The structural takeaway is that heterogeneous expert redundancy is what buys calibration *under shift*; a one-shot post-hoc fit on a clean calibration set does not.
+Modern deep networks fail at both, and they fail in a predictable direction. @guo2017calibration documents the systemic version: max-softmax confidence routinely exceeds empirical accuracy, and the gap widens with depth and capacity — networks are overconfident by default. @ovadia2019trust carries the result over to distribution shift. Every post-hoc calibration method tested — temperature scaling, ensembles, MC-dropout, Bayesian methods — degrades under shift, but the *ranking* is preserved: deep ensembles and MC-dropout degrade most gracefully, isotonic regression worst. The structural takeaway is reliabilist — heterogeneous expert redundancy keeps the inference *process* reliable across the shift; a one-shot post-hoc fit on a clean calibration set is not a reliable process, it is a snapshot.
 
 ### Evaluation under class imbalance
 
@@ -53,67 +55,70 @@ The pipeline already carries uncertainty-relevant signals. The measurement layer
 | Neural-LinUCB UCB bonus | Directed exploration under epistemic uncertainty; bonus shrinks as $O(1/\sqrt{n_a})$ [@xu2022neural] | §Methodology |
 | DQN fusion-weight distribution | Emergent attack-type-specific strategies (peaks at $\alpha \in \{0, 0.2, 0.4, 0.6, 0.8\}$); interpretable but not labelled by uncertainty | §DQN-Fusion Analysis |
 
-Outstanding work: class-conditional ECE, per-class risk-coverage curves, and Mondrian conformal predictors on a held-out split — applied to the joint calibration vector enumerated in the [committee-questions index](index.md): classifier logits, per-expert competence gates (Q1.1 at tier 1; VGAE/GAT abstain thresholds at every tier), inter-branch disagreement (Q4.2), UCB confidence radius (Q4.1), reward proxy (Q4.1). That apparatus turns the signals above into the operational coverage guarantee the question asks for. Treating these objects as separate calibration problems — what the field does — breaks the coverage claim; treating them as one is the contribution.
+Outstanding work: class-conditional ECE, per-class risk-coverage curves, and Mondrian conformal predictors on a held-out split — applied to the joint calibration vector enumerated in the [committee-questions index](index.md): classifier logits, per-expert competence gates (Q1.1 at tier 1; VGAE/GAT abstain thresholds at every tier), inter-branch disagreement (Q4.2), UCB confidence radius (Q4.1), reward proxy (Q4.1). Read through defeasibility, the vector is a **defeater inventory** — five places where a missed fact about the input would undermine an otherwise-reliable prediction. The field handles each family separately: minority-class miscalibration (a label defeater), regime / signal / OOD failures at the physics gate (input defeaters), inter-branch disagreement (a cross-process defeater), the UCB radius (a Bayesian defeater on reward estimates), and reward-proxy drift (a deployment-time defeater). The contribution is not a new defeater. It is the claim that these five families share a single calibration apparatus, fit jointly on one held-out split and recalibrated on one cadence — and that treating them as separate problems, which the field does, breaks the operational coverage guarantee at exactly the place a safety case needs it.
 
 ## Question 2.2
 
 > When multiple explainability methods produce different explanations for the same prediction, how should a practitioner determine which explanation to trust and for whom?
 
-### What "trustworthy explanation" means
+### Defining explainer disagreement
 
-Run two explainers on the same prediction and the answers will often differ. There is no universally correct explanation, only explanations trustworthy on their own terms — trustworthiness is the conjunction of three independent properties. Conflating them is the most common error in XAI practice [@ModelInterpretability].
+Two explainers run on the same CAN window and return different attributions. The standard XAI move is to pick the more faithful method, the more stable one, or the one whose abstraction matches the audience [@krishna2024disagreement]. The move here is the opposite — to read the disagreement *as information* about the input or the model, and to pick a single explainer only when the architecture forecloses that reading. The reframe matters because the experts feeding those explainers are structurally orthogonal: GAT classifies on byte-level features, VGAE reconstructs neighbour structure, PINN checks a physics residual on estimated state. Two explainers disagreeing across these are not failing as XAI methods — they are reporting on different decision functions that the fusion policy combined. The operator's question is therefore not "which explainer wins" but "is this disagreement information or noise," and that question has a definite answer per sample, set by the architecture and the calibration apparatus from Q2.1.
 
-**1. Faithfulness — does the explanation track what the model actually uses?** Standard operationalisations: deletion-AUC drops top-$k$ components ranked by the explanation and measures how fast the prediction collapses; insertion-AUC adds them back and measures recovery. A faithful explanation has *low* deletion-AUC and *high* insertion-AUC. With $f$ the model, $x$ the input, $E(x)$ the importance ranking:
+Two literatures bracket the answer. The epistemic side runs from Aumann's agreement theorem [@aumann1976agreeing] — rational Bayesians with common priors cannot persistently disagree unless their information differs — through the equal-weight / steadfast debate over how to aggregate peer judgements [@christensen2007epistemology; @kelly2010peer; @feldman2006epistemological] to the political failure mode where unresolved expert disagreement becomes manufactured doubt [@oreskes2010merchants; @black2024lessdiscriminatory]. The ML side runs from the Krogh–Vedelsby ambiguity decomposition [@krogh1995neural] — ensemble error equals average individual error *minus* disagreement, so disagreement is mathematically part of accuracy under independence — through query-by-committee active learning [@seung1992query] and disagreement-as-generalization-signal [@jiang2022disagreement; @baek2022agreement] to the Rashomon / predictive-multiplicity literature [@breiman2001statistical; @marx2020predictive; @damour2022underspecification] where equally-accurate models disagree without information. Both literatures converge on three conditions for productive disagreement: independence, boundedness, resolvability.
 
-$$
-\mathrm{AUC}_{\text{del}}(E, f, x) = \int_0^1 f\bigl(x \setminus E_{\le k}\bigr)\,dk
-\qquad
-\mathrm{AUC}_{\text{ins}}(E, f, x) = \int_0^1 f\bigl(\emptyset \cup E_{\le k}\bigr)\,dk
-$$
+### When disagreement carries information
 
-The complementary screen is @adebayo2018sanity's model- and data-randomisation **sanity checks**: an explanation unchanged when the model's weights are randomised tracks input statistics rather than model behaviour and is decorative.
+Three conditions, each enforced (or not) by a specific piece of the architecture.
 
-**2. Stability — does it persist under small input perturbations?** A useful explanation does not change discontinuously when the input is perturbed slightly. The local Lipschitz constant of $E$ at $x$ over a perturbation ball of radius $r$:
+- **Independence — the disagreers see different things.** The Krogh–Vedelsby ambiguity term collapses if ensemble members compute the same function, and Galton's wisdom-of-crowds [@galton1907vox; @surowiecki2004wisdom] depends on uncorrelated errors. Heterogeneous experts buy independence by construction: discriminative classification on byte features, generative reconstruction over neighbour structure, physics residual on estimated state. An attack that fools one is unlikely to fool all three, and an explainer riding on each reports a different view of the same window.
+- **Boundedness — magnitudes are comparable across experts.** Two confidence numbers are operationally comparable only when they share a calibration scale. Without the Q2.1 joint-calibration vector — class-conditional ECE, Mondrian conformal coverage, per-expert competence gates fit on a single held-out split — "the explainers disagree" reduces to vibes. Boundedness is the bridge from "two explainers said different things" to "the disagreement is N standard deviations above benign baseline."
+- **Resolvability — there is a downstream protocol that converts disagreement to action.** Adversarial-collaboration protocols in psychology force disputing experts to design joint experiments rather than argue indefinitely [@mellers2001adversarial]; the IDS analogue is conformal abstain (Q2.1), human review on flagged windows, and the PINN safety shield (Q4.1). Without one of these, disagreement degenerates into the manufactured-doubt failure mode at the deployment layer — the existence of disagreement is enough to force a non-decision, and an adversary or a defendant can exploit that gap [@black2024lessdiscriminatory; @mougan2024iso26262].
 
-$$
-\mathrm{Stab}(E, f, x; r) = \max_{\|\delta\|\le r}\;\frac{\bigl\|E(x + \delta) - E(x)\bigr\|}{\|\delta\|}
-$$
+### When disagreement is noise
 
-Low Lipschitz constant means stable, large means brittle. For graph models, $\delta$ should respect the graph structure (small edge perturbations, not arbitrary feature noise). Stability is necessary but not sufficient — a constant explanation is perfectly stable and perfectly useless.
+Each condition has a corresponding failure mode in the literature. The three together cover when the four-cell diagnostic below is empty.
 
-**3. Audience fit — does the abstraction level match the consumer's decision?** A stakeholder-engineering criterion, not a mathematical one. A fleet operator deciding whether to dispatch a tow truck needs case-based ("this CAN sequence resembles known DoS prototypes"); a developer debugging a false positive needs feature attribution ("removing the engine-RPM signal would have flipped the decision"); an ISO 26262 auditor [@ISO26262Part1; @ISO26262SafetyCase] needs concept-level evidence ("the model's response to high-frequency injection scales linearly with frequency"). One prediction warrants different explanations for these three audiences; faithful and stable but mis-targeted is operationally useless.
+- **Correlated experts → false consensus.** The Galton failure case: ensemble members trained on overlapping data with shared inductive biases agree more than independent reasoners would, and the apparent consensus is a measurement artefact. The orthogonality argument above is what guards against it; the federated setting in Q3.2 reintroduces the risk when client populations are non-IID-but-correlated.
+- **Predictive multiplicity / Rashomon.** Two models that fit the training distribution equally well give *different* per-sample verdicts and different feature attributions [@breiman2001statistical; @marx2020predictive; @hsu2022rashomon]. There is no measurement that picks the right one. Black, Raghavan & Barocas show this is empirically near-universal and frame it as an accountability problem [@black2022model]; the partial-order construction over Rashomon-set explanations [@partialorder2023] keeps only what every near-optimal model agrees on. In safety-critical scene understanding the gap between Rashomon-set explanations is large enough to produce operationally different ISO 26262 audits [@rashomonstreets2025].
+- **Underspecification.** Pipelines reliably produce models with equivalent test loss but materially different out-of-distribution behaviour [@damour2022underspecification]. An explainer is faithful to its model, but a different realisation from the same pipeline would have produced a different reasoning — the multiplicity is upstream of the explainer. The empirical version: practitioners running LIME / SHAP / Integrated Gradients on the *same* model resolve the resulting disagreement by ad-hoc trust rather than principle [@krishna2024disagreement].
 
-A useful explanation requires *all three*: pass the sanity check, satisfy a stability bound, match the audience's decision granularity. Most explainers [@LIME; @SHAP; @TCAV; @ProtoPNet; @CFGNNExplainer] provide one or two; none provides all three by construction.
+The Rashomon risk is *not* defused by the heterogeneity argument — it lives one level up, in the calibration vector itself. Two equally-accurate trainings of the same architecture can produce different per-sample weightings of the same five-object vector, and detecting when that has happened is the open piece. The Hsu–Calmon Rashomon Capacity functional [@hsu2022rashomon] and the partial-order construction over Rashomon-set explanations [@partialorder2023] are the constructive directions: keep what the Rashomon set agrees on, refuse to rank what it doesn't.
 
-### A triangulation protocol for disagreement
+### Mapping conditions to the architecture
 
-Rather than picking one explainer, evaluate multiple and treat disagreement as signal. Cross-referencing fusion confidence (Q2.1) with explainer agreement yields four cases:
+The three conditions map to three pieces of the framework — two built, one open.
 
-| Fusion confidence | Explainer agreement | Diagnostic interpretation | Operational action |
+| Condition | Mechanism | Status |
+|---|---|---|
+| Independence | Heterogeneous experts: GAT (discriminative, byte features), VGAE (generative, neighbour structure), PINN (physics residual, estimated state) — orthogonal decision functions by construction | Built (Q1.1, Q1.2) |
+| Boundedness | Joint calibration vector (classifier logits, per-expert competence gates, inter-branch disagreement, UCB radius, reward proxy) fit on a single held-out split | In progress (Q2.1 outstanding work; index page enumerates the five objects) |
+| Resolvability | Conformal abstain (Q2.1), Mondrian per-class coverage, PINN safety shield (Q1.1, Q4.1), human deferral on the contested cell of the diagnostic below | Partial — abstain rule and shield specified; deferral protocol and Rashomon partial order not yet wired |
+
+### The operational diagnostic
+
+Cross-reference fusion confidence (Q2.1) with explainer agreement to locate which condition has failed on a given window.
+
+| Fusion confidence | Explainer agreement | Failed condition | Operational action |
 |---|---|---|---|
-| High | High | Trustworthy decision and explanation | Surface to operator |
-| High | Low | Model is confident but explainers disagree → likely **explainer unreliability** | Run @adebayo2018sanity sanity checks; cross-validate explainers on a calibration set; do not blame the model |
-| Low | High | Model is uncertain but explainers agree on *what little signal exists* → **honest epistemic uncertainty** | Defer to human review (selective-prediction action of Q2.1) |
-| Low | Low | Model is uncertain *and* explainers disagree → **OOD input** | Conformal-prediction abstain / route to PINN safety shield (Q4.1) |
+| High | High | None — informative agreement | Surface to operator; render per audience (below) |
+| High | Low | Independence and boundedness hold; the explainers themselves disagree | Run @adebayo2018sanity sanity checks; cross-validate against the Rashomon partial order [@partialorder2023]; do not blame the model |
+| Low | High | The experts agree on uncertainty | Defer to human review (Q2.1 selective prediction) — honest epistemic uncertainty |
+| Low | Low | Resolvability — disagreement *and* uncertainty | Conformal abstain / route to PINN safety shield (Q4.1) — OOD on the operative envelope |
 
-Only the *high-confidence + low-agreement* cell unambiguously implicates the explainer; the other failure modes implicate the model or input. This matters under ISO 26262 review, where a single brittle explainer would otherwise force unwarranted model rejection.
+Three of four cells diagnose the model or the input rather than the explainers. The high-confidence + low-agreement cell is the only one that genuinely indicts the explainer methodology — and even there, the action is to consult the Rashomon partial order, not to pick a single winner. A complementary move under disagreement: require *consensus on the disqualification direction*. If one explainer flags a feature as critical and another flags it as irrelevant, the conservative action is to treat the window as one whose decision relies on a contested feature, regardless of which explainer is "right."
 
-A complementary move under disagreement: require *consensus on the disqualification direction* — if one explainer flags an input feature as critical and another flags it as irrelevant, the conservative action is to treat the input as one whose decision relies on a contested feature.
+### Delivery: rendering the trust state per audience
 
-### Audience-explainer mapping
+The same per-sample trust state is rendered at the abstraction the consumer can act on. The audience-explainer mapping is delivery, not the substantive answer.
 
-Each XAI method targets a distinct abstraction level; matching level to consumer decision is what audience fit means in practice.
+| Audience | Decision | Abstraction | Renderer | Existing layer that already serves it |
+|---|---|---|---|---|
+| Fleet operator | "Is this alert real?" | Case-based | Prototype-based [@ProtoPNet; @PrototypeLearning] | DQN fusion-weight distributions ([](#fig-fusion)) — interpretable peaks at $\alpha \in \{0, 0.2, 0.4, 0.6, 0.8\}$ as attack-type-specific strategies |
+| Developer | "Which feature drove the prediction?" | Feature attribution | LIME [@LIME], SHAP [@SHAP] | GAT attention weights ([](#fig-attention)) |
+| Safety engineer (anomaly localisation) | "Which structural component flagged?" | Component-level | VGAE reconstruction decomposition | VGAE composite reconstruction error: node + neighbour + CAN-ID ([](#fig-reconstruction)) |
+| Safety engineer (concept-level) | "Does the model behave correctly across a concept?" | Concept geometry | TCAV [@TCAV] | UMAP of GAT penultimate embeddings ([](#fig-umap)) |
+| ISO 26262 auditor [@ISO26262SafetyCase] | "Where is the failure-mode boundary?" | Counterfactual | CF-GNNExplainer [@CFGNNExplainer] | None — added by [](#subsec:XAI) |
+| NIST AI RMF [@NISTAIRisk] | "Does the model meet trustworthy-AI characteristics?" | Aggregate | Triangulation across the above + Rashomon partial order [@partialorder2023] | None — composed at the report layer |
 
-| Audience | Decision they need to make | Required abstraction | Recommended explainer | Faithfulness handle | Stability handle |
-|---|---|---|---|---|---|
-| Fleet operator | "Is this alert real or noise?" | Case-based — match against known patterns | Prototype-based [@ProtoPNet; @PrototypeLearning] | Inherent (model literally uses prototypes) | High by construction (prototypes are fixed) |
-| Developer | "Why did the model fire? Which feature drove it?" | Feature-level attribution | LIME [@LIME], SHAP [@SHAP] | Deletion-/insertion-AUC; @adebayo2018sanity sanity checks | Lipschitz on perturbations of $x$ |
-| Safety engineer | "Does the model behave correctly across a *concept* (e.g., DoS frequency response)?" | Concept-level | TCAV [@TCAV] | Concept-vector statistical testing (built into TCAV) | Concept-vector stability across user-defined concepts |
-| ISO 26262 auditor [@ISO26262SafetyCase] | "Where is the failure-mode boundary?" | Counterfactual — "what's the smallest perturbation that flips the decision?" | CF-GNNExplainer [@CFGNNExplainer; @CounterfactualExplainability] | Built-in: counterfactual is, by definition, an action on the model | Boundary smoothness; small input changes should yield small counterfactuals |
-| NIST AI RMF [@NISTAIRisk] | "Does the model meet trustworthy-AI characteristics?" | Aggregate (multiple methods) | Triangulation across all of the above | Documented per-method | Documented per-method |
-
-**Layered rendering.** Each flagged CAN sequence produces all five explanations together in one report, with separate panels per audience.
-
-### Existing inspection layers as a triangulation set
-
-The existing layers — GAT attention weights ([](#fig-attention)), VGAE composite reconstruction error decomposed into node/neighbour/CAN-ID components ([](#fig-reconstruction)), UMAP of GAT penultimate-layer embeddings ([](#fig-umap)), DQN fusion-weight distributions ([](#fig-fusion)) — already span feature-level attribution, reconstruction-based attribution, latent-space concept geometry, and decision-process interpretability. [](#subsec:XAI) adds LIME, SHAP, TCAV, CF-GNNExplainer, ProtoPNet [@LIME; @SHAP; @TCAV; @CFGNNExplainer; @ProtoPNet] to complete the audience-explainer mapping above.
+Each flagged window produces a single report with one panel per audience reading from the same trust state. The remaining contribution is the diagnostic itself — wiring the four-cell logic and the Rashomon partial order into the maintenance loop alongside the Q2.1 calibration apparatus, so disagreement on a deployed window produces an action rather than a stalemate.
