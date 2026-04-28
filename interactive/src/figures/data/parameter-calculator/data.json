@@ -1,0 +1,84 @@
+{
+  "presets": [
+    {
+      "name": "Deployed GAT student",
+      "knobs": {
+        "model": "gat",
+        "layers": 2,
+        "heads": 4,
+        "hidden": 24,
+        "embed_dim": 8,
+        "proj_dim": 32,
+        "fc_layers": 2
+      }
+    },
+    {
+      "name": "Deployed GAT teacher",
+      "knobs": {
+        "model": "gat",
+        "layers": 3,
+        "heads": 4,
+        "hidden": 64,
+        "embed_dim": 8,
+        "proj_dim": 48,
+        "fc_layers": 4
+      }
+    },
+    {
+      "name": "Deployed VGAE student",
+      "knobs": {
+        "model": "vgae",
+        "schedule": [80, 40, 16],
+        "heads": 1,
+        "embed_dim": 4,
+        "proj_dim": 32
+      }
+    },
+    {
+      "name": "Deployed VGAE teacher",
+      "knobs": {
+        "model": "vgae",
+        "schedule": [480, 240, 64],
+        "heads": 4,
+        "embed_dim": 32,
+        "proj_dim": 48
+      }
+    },
+    {
+      "name": "Deployed Fusion student",
+      "knobs": {
+        "model": "fusion",
+        "layers": 3,
+        "hidden": 128,
+        "action_dim": 21
+      }
+    },
+    {
+      "name": "Deployed Fusion teacher",
+      "knobs": {
+        "model": "fusion",
+        "layers": 3,
+        "hidden": 256,
+        "action_dim": 21
+      }
+    }
+  ],
+  "ensemble_presets": [
+    {
+      "name": "Deployed Ensemble (student)",
+      "components": [
+        "Deployed GAT student",
+        "Deployed VGAE student",
+        "Deployed Fusion student"
+      ]
+    },
+    {
+      "name": "Deployed Ensemble (teacher)",
+      "components": [
+        "Deployed GAT teacher",
+        "Deployed VGAE teacher",
+        "Deployed Fusion teacher"
+      ]
+    }
+  ]
+}
