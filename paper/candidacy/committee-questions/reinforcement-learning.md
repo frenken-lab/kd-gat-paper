@@ -18,52 +18,37 @@ The first term is *covariate shift* on the fusion-state distribution — a diffe
 
 The second term is more pernicious and specific to label-dependent rewards: at deployment, $y_{\text{true}}$ is unknown, so $R_{\text{train}}$ must be replaced by an estimator $\hat{R}(s, a)$ — typically the model's own confidence, the very signal the policy is trying to fuse. Optimising a self-referential reward is the classical Goodhart pathology: the policy drives up $\hat{R}$ without driving up $R_{\text{true}}$. The five strategies below tackle one or both terms and are not interchangeable. Both terms are calibration objects — state-distribution calibration on the first, reward-proxy calibration on the second — so the strategies are correction primitives for the Q2.1 maintenance loop applied to RL.
 
+This proxy–target divergence is the entry in the Q2.1 inventory of justification failures that the policy *creates itself* — every other family (classifier logits, competence gates, inter-branch disagreement, UCB radius) drifts on environmental timescales the deployment delivers, while reward-proxy drift moves with the policy's own optimization at the backbone-retrain cadence. *Safe adaptation* is therefore the Q2.2 **resolvability** condition applied to action selection rather than detection: there must be a downstream protocol that converts the policy's disagreement-with-itself into deferral or override, otherwise the policy Goodharts its own proxy with no external signal to stop it. The PINN safety shield (Q1.1) is structurally one such protocol — its authority rests on physics consistency rather than label-derived confidence, so a shift that drives the policy's reward proxy off-target does not move the shield's verdict in the same direction. The five strategies below are the menu of resolution protocols at different costs and coverage.
+
 ### Taxonomy of safe-adaptation strategies
 
-Five strategies, ordered by distance from the current implementation.
+Strategies fall into three categories by *when* they act and *which signal channel* carries their authority.
 
-**1. Train-time reward robustness (domain randomisation on $R$).** Treat the reward coefficients $\boldsymbol{c} = (c_{\text{agree}}, c_{\text{conf}}, c_{\text{disagree}}, c_{\text{overconf}})$ as a distribution rather than fixed values; minimise worst-case return:
+**Pre-deployment robustness** — shape the policy to be insensitive to reward drift before deployment.
 
-$$
-\pi^\star = \arg\max_{\pi}\; \min_{\boldsymbol{c} \in \mathcal{C}}\; \mathbb{E}_{(s,a)\sim\rho^\pi}\bigl[R(s, a; \boldsymbol{c})\bigr]
-$$
+- *Domain randomisation on the reward coefficients* [@iyengar2005robustmdp; @tobin2017domainrand]. Treat $\boldsymbol{c} = (c_{\text{agree}}, c_{\text{conf}}, c_{\text{disagree}}, c_{\text{overconf}})$ as a Dirichlet centred on the hand-tuned values; minimise worst-case return $\pi^\star = \arg\max_\pi \min_{\boldsymbol{c}\in\mathcal{C}} \mathbb{E}_{(s,a)\sim\rho^\pi}[R(s,a;\boldsymbol{c})]$. The DRL-IDS survey [@drlids_survey2024] flags this as one of the few interventions that survives heterogeneous-attack evaluation.
+- *Bayesian reward as a prior*. Treat the reward population above as a posterior $p(R \mid \mathcal{D})$ and act under the posterior mean with a CVaR penalty on the lower tail.
 
-The robust-MDP framing of @iyengar2005robustmdp: the policy holds if the deployment reward differs from any single training reward in a bounded set $\mathcal{C}$. Cheap — sample $\boldsymbol{c}$ per episode from a Dirichlet centred on the hand-tuned values (the simulation-to-real domain-randomisation move of @tobin2017domainrand). No online adaptation; trades peak performance on the tuned reward for robustness across the band. The DRL-IDS survey [@drlids_survey2024] flags this as one of the few interventions that survives evaluation across heterogeneous attack distributions.
+**Deployment-time deferral** — recognise drift online and defer rather than commit.
 
-**2. Uncertainty-aware deferral at deployment.** Neural-LinUCB [@xu2022neural] (Eq. {eq}`eq-bandit-ucb`) already implements directed exploration via the UCB bonus $\beta\sqrt{\mathbf{z}^\top\mathbf{A}_a^{-1}\mathbf{z}}$, which shrinks as $O(1/\sqrt{n_a})$ in visit count. The deferral interpretation: when the deployment reward distribution shifts, recent states $\mathbf{z}_t$ fall outside the column space of $\mathbf{A}_a$, the bonus widens, and the policy explores rather than exploiting a stale $\boldsymbol{\theta}_a$. The agent doesn't model shift directly; its uncertainty quantifies "how confident am I that this arm's expected reward still applies?" The $\tilde{O}(\sqrt{T})$ regret bound of @xu2022neural carries to the simplex generalisation from Q4.2 with the same rate.
+- *UCB deferral via Neural-LinUCB* [@xu2022neural] (Eq. {eq}`eq-bandit-ucb`). The bonus $\beta\sqrt{\mathbf{z}^\top\mathbf{A}_a^{-1}\mathbf{z}}$ widens when recent states fall outside the column space of $\mathbf{A}_a$; the policy explores rather than exploiting a stale $\boldsymbol{\theta}_a$. The $\tilde{O}(\sqrt{T})$ regret bound carries to the Q4.2 simplex generalisation. **Already operational.**
+- *Conservative offline updates* on the periodic backbone retrain (every 50 episodes). Conservative Q-Learning [@kumar2020conservative] regularises Q-values to be lower bounds on OOD actions; Batch-Constrained Q-Learning [@fujimoto2019offpolicy] restricts the policy to the support of the offline data.
+- *Thompson sampling over the per-arm reward posterior* [@riquelme2018deep] — drop-in randomised alternative to UCB.
 
-**3. Conservative offline updates.** If the policy updates online from deployment data, the standard offline-RL recipe penalises out-of-distribution actions relative to the offline replay buffer. Conservative Q-Learning [@kumar2020conservative] regularises Q-values to be lower-bound estimates on OOD actions; Batch-Constrained Q-Learning [@fujimoto2019offpolicy] constrains the policy to the support of the offline data. Both belong on the periodic Neural-LinUCB backbone retrain (every 50 episodes) — the current implementation does standard SGD on the replay buffer, where offline-RL conservatism applies.
+**Channel-orthogonal shielding** — defense by reward-channel independence [@alshiekh2018shielding].
 
-**4. Safety shielding.** A hard constraint filter overrides the learned policy when physics or safety invariants are violated [@alshiekh2018shielding]: the policy proposes $\boldsymbol{\alpha}_t$, the shield evaluates a constraint $\Phi(s_t, \boldsymbol{\alpha}_t)$, and either passes the action or projects it onto the constraint-satisfying subset. The PINN residual gate $\mathcal{V}_{\text{regime}} \cdot \mathcal{V}_{\text{signal}} \cdot \mathcal{V}_{\text{residual}}$ from Q1.1 is the shield — when any gate fails, $\lambda_{\text{physics}}\to 0$ is enforced exogenously regardless of policy state, so the composite trust score from Q1.1 does double duty: regime-aware deferral for the *physics expert specifically*, and a deployment-time safety shield over the *whole policy*.
-
-**5. Bayesian reward modelling.** Treat reward as a random variable with posterior $p(R \mid \mathcal{D})$ and act under reward uncertainty. The posterior admits two operational forms: (i) ensemble the reward coefficients (the population from strategy 1) and act under the posterior mean with a CVaR penalty on the lower tail; (ii) Thompson sampling [@riquelme2018deep] over the per-arm posterior — drop-in for UCB, randomised rather than deterministic deferral. Both are unimplemented but cheap given the existing bandit infrastructure.
+The PINN residual gate $\mathcal{V}_{\text{regime}}\cdot\mathcal{V}_{\text{signal}}\cdot\mathcal{V}_{\text{residual}}$ from Q1.1 is a hard filter over the policy's output. Its authority rests on physics consistency, not label-derived confidence — so a shift that moves the policy's reward proxy off-target does not move the shield's verdict in the same direction. The composite trust score from Q1.1 does double duty: regime-aware deferral for the physics expert specifically, and a deployment-time safety shield over the whole policy.
 
 ### Strategy comparison
 
-The table compares the five strategies on shift term targeted, online cost, theoretical guarantee, and current status.
-
-| Strategy | Targets which shift term | Online cost | Theoretical guarantee | Already in framework |
-|---|---|---|---|---|
-| 1. Domain randomisation [@iyengar2005robustmdp; @tobin2017domainrand] | Both | None — train-time only | Robust-MDP worst-case bound over $\mathcal{C}$ | No (open question) |
-| 2. UCB deferral | Both (implicitly) | $O(d^2)$ per step (existing) | $\tilde{O}(d\sqrt{T})$ regret [@xu2022neural] | **Yes** — Neural-LinUCB |
-| 3. Conservative offline updates [@kumar2020conservative; @fujimoto2019offpolicy] | Proxy–target divergence | Per backbone retrain | Conservative lower bound on $Q$; bounded policy support | No — backbone retrain hook exists but conservatism not added |
-| 4. Safety shielding [@alshiekh2018shielding] | Both — overrides regardless | $O(N)$ per step | Hard constraint by construction | Partial — Q1.1 gates not yet wired into the fusion policy |
-| 5. Bayesian reward (Thompson) | Both | $O(d^2)$ per step | Bayes-optimal regret under prior | No — Thompson variant not implemented |
-
-### Mapping strategies to existing work
-
-Each strategy rides on pieces already built; the table shows which piece carries which.
-
-| Component | Existing role | Reward-shift role |
-|---|---|---|
-| Reward function Eq. {eq}`eq-reward` | F1-tied training signal | Coefficients are exactly the randomisation axis for strategy 1 |
-| Neural-LinUCB UCB bonus | Directed exploration via Eq. {eq}`eq-bandit-ucb` | Deferral signal for strategy 2 — already operational |
-| 15-dim fusion state | Includes VGAE+GAT confidence | Reward-proxy drift detector candidate; an EKF-innovation feature from Q1.2 would extend this to estimator-pipeline drift |
-| Backbone retraining cycle | Periodic representation update every 50 episodes | The natural insertion point for CQL/BCQ-style conservative updates (strategy 3) |
-| PINN composite trust score (Q1.1) | $\lambda_{\text{physics}}(s_t) = \lambda_{\text{tier}}\prod_i\mathcal{V}_i$ | Hard shield — strategy 4 — applied as a post-hoc filter over the fusion policy's output simplex |
-| Continuous-simplex policy (Q4.2) | Linear-in-$N$ action representation | Required substrate for CQL/BCQ in continuous-action form; discrete 21-bin DQN cannot natively use them |
-
-Strategy 2 is largely implemented; strategy 4's mechanism is specified in Q1.1 but not wired into the fusion policy; strategies 1, 3, 5 follow once the simplex formulation from Q4.2 lands.
+| Strategy | Category | Targets shift term | Online cost | Theoretical guarantee | In framework |
+|---|---|---|---|---|---|
+| Domain randomisation [@iyengar2005robustmdp; @tobin2017domainrand] | Pre-deployment | Both | None — train-time only | Robust-MDP worst-case bound over $\mathcal{C}$ | No |
+| Bayesian reward prior + CVaR | Pre-deployment | Both | None — train-time only | Bayes-optimal under prior | No |
+| UCB deferral via Neural-LinUCB | Deployment-time | Both implicitly | $O(d^2)$ per step | $\tilde{O}(d\sqrt{T})$ regret [@xu2022neural] | **Yes** |
+| Conservative offline updates [@kumar2020conservative; @fujimoto2019offpolicy] | Deployment-time | Proxy–target | Per backbone retrain | $Q$ lower bound; bounded policy support | Retrain hook exists |
+| Thompson sampling [@riquelme2018deep] | Deployment-time | Both | $O(d^2)$ per step | Bayes-optimal regret | No |
+| Safety shielding (PINN gates, Q1.1) [@alshiekh2018shielding] | Channel-orthogonal | Both — overrides | $O(N)$ per step | Hard constraint by construction | Partial |
 
 ### Composing the gates, policy, and bandit deferral
 
@@ -75,7 +60,7 @@ The three answers compose into a deployment-time architecture for safe adaptatio
 4. Remaining mass redistributes to $\{\alpha_{\text{GAT}}, \alpha_{\text{VGAE}}, \alpha_{\text{CWD}}\}$ via softmax restricted to the feasible subset.
 5. Neural-LinUCB (strategy 2) on the unprojected logits provides UCB-driven deferral when the *whole policy* is uncertain, regardless of which expert.
 
-Gate-then-policy-then-bandit-deferral is one decision pipeline, each stage targeting a distinct failure mode (regime mismatch, action-space combinatorics, reward-proxy drift). Each stage is also a calibration object — gate thresholds (Q1.1), simplex-policy softmax temperature, bandit UCB confidence radius $\beta$ — so the Q2.1 joint-calibration apparatus covers them as one correction problem at three points.
+Gate-then-policy-then-bandit-deferral is one decision pipeline, each stage targeting a distinct failure mode (regime mismatch, action-space combinatorics, reward-proxy drift). Each stage is also a calibration object — gate thresholds (Q1.1), simplex-policy softmax temperature, bandit UCB confidence radius $\beta$ — so the Q2.1 joint-calibration apparatus covers them as one correction problem at three points. Each stage also draws authority from a different signal channel — physics at the gates, label-derived confidence at the policy, reward history at the bandit — so no single drift on one channel collapses the whole resolution protocol.
 
 ## Question 4.2
 

@@ -87,72 +87,36 @@ The resulting client distributions are non-IID along three independent axes, eac
 
 ### Three axes of non-IID heterogeneity
 
-Indexing fleet vehicles by $i \in \{1, \ldots, K\}$ with local distribution $p_i(x, y)$:
+Indexing fleet vehicles by $i \in \{1, \ldots, K\}$ with local distribution $p_i(x, y)$, three independent axes differ in *which* marginal or conditional varies across clients:
 
-**1. Label shift — attack-exposure heterogeneity.** Different vehicles see different attack-class mixes. The base CAN-IDS imbalance is already 927:1; on a single vehicle some attack subclasses never appear:
+- **Label shift** ($p_i(y) \ne p_j(y)$, conditionals match) — attack-exposure heterogeneity. The base 927:1 imbalance is amplified per vehicle; some attack subclasses never appear locally.
+- **Feature shift** ($p_i(x \mid y) \ne p_j(x \mid y)$, marginals match) — wear, weather, route. Tire wear changes the dynamics signals feeding the PINN (Q1.1).
+- **Concept shift** ($p_i(y \mid x) \ne p_j(y \mid x)$) — OEM-specific protocol semantics. Two OEMs can assign the same arbitration ID to different signals; same input, different label.
 
-$$
-p_i(y) \;\ne\; p_j(y) \quad\text{for}\quad i \ne j, \qquad p_i(y \mid x) \;=\; p_j(y \mid x)
-$$
-
-**2. Feature shift — wear, environment, route.** Same labels, different conditional feature distributions. Cold-weather and hot-weather baselines differ; tire wear changes the dynamics signals feeding the PINN (Q1.1):
-
-$$
-p_i(x \mid y) \;\ne\; p_j(x \mid y), \qquad p_i(y) \;=\; p_j(y)
-$$
-
-**3. Concept shift — OEM-specific protocol semantics.** Two OEMs can assign the same arbitration ID to different signals — "engine RPM at byte 4" on vehicle $i$, "throttle position at byte 4" on vehicle $j$. Same input, different label:
-
-$$
-p_i(y \mid x) \;\ne\; p_j(y \mid x)
-$$
-
-These three are different in kind and need different remedies. Most FL-IDS literature collapses them into a single "non-IID" category and reports FedAvg degradation as if it were one phenomenon; the VGAE / GAT / fusion pipeline factors cleanly per stage.
+Each axis breaks a different optimisation property of FedAvg. Most FL-IDS literature collapses them into a single "non-IID" category and reports degradation as if it were one phenomenon; the VGAE / GAT / fusion pipeline factors cleanly per axis.
 
 ### Convergence challenges of FedAvg under non-IID
 
-FedAvg [@mcmahan2017fedavg] averages $\theta^{(t+1)} = \sum_i \frac{n_i}{n} \theta_i^{(t)}$ over $E$ local SGD steps per client. Under IID data local trajectories track the global gradient; under non-IID they *drift*, and the FedAvg update is no longer a descent direction on the global loss [@kairouz2021advances]:
+FedAvg [@mcmahan2017fedavg] averages $\theta^{(t+1)} = \sum_i \frac{n_i}{n} \theta_i^{(t)}$ over $E$ local SGD steps per client. Under IID data local trajectories track the global gradient; under non-IID the per-client drift $\delta_i^{(t)} = \nabla F_i(\theta^{(t)}) - \nabla F(\theta^{(t)})$ accumulates, and FedAvg converges to a stationary point of $\sum_i \frac{n_i}{n} F_i$ rather than of $F$ [@kairouz2021advances]. Two standard remedies, each handling a different axis:
 
-$$
-\text{Client drift:}\quad \delta_i^{(t)} \;=\; \nabla F_i(\theta^{(t)}) \;-\; \nabla F(\theta^{(t)})
-$$
+- **FedProx** [@li2020fedprox] adds a proximal term $\frac{\mu}{2}\|\theta - \theta^{(t)}\|^2$ to each client's local loss, penalising drift from the round's anchor at the cost of slower local progress — the right primitive for *feature shift* (axis 2), which manifests as client-specific overfitting.
+- **SCAFFOLD** [@karimireddy2020scaffold] subtracts a control variate $c_i - c$ from each local gradient, with $c = \frac{1}{K}\sum_j c_j$. Under bounded gradient variance, SCAFFOLD recovers IID-like rates for any $E$ — the right primitive for *label shift* (axis 1), where class-imbalance-induced gradient variance is the failure.
 
-When $\sum_i \frac{n_i}{n} \|\delta_i\|^2$ is large, FedAvg converges to a stationary point of $\sum_i \frac{n_i}{n} F_i$, not of $F$. Two standard remedies:
+Concept shift (axis 3) is not handled by either: a single shared model is the wrong target. Concept shift forces *personalisation* — a shared backbone with per-client heads, which is also the answer to graph heterogeneity below.
 
-**FedProx [@li2020fedprox] — proximal regularisation.** Each client minimises a regularised local loss:
+### Architectural answer: federated body, local heads
 
-$$
-\theta_i^{(t+1)} \;=\; \arg\min_\theta \; F_i(\theta) \;+\; \tfrac{\mu}{2}\,\|\theta - \theta^{(t)}\|^2
-$$
+CAN graphs from different OEMs have different node counts (variable ECU topology), edge structures, and per-node feature semantics. None of the per-axis remedies above address graph heterogeneity: all assume a fixed parameter space across clients. The architectural answer is to federate the shared substrate and localise the OEM-specific or per-vehicle pieces — *federated body, local heads* — applied per pipeline stage.
 
-The proximal term penalises drift from $\theta^{(t)}$; FedAvg's bias decays with $\mu$, at the cost of slower local progress.
+| Stage / Component | Local | Shared (federated) | Strategy / rationale |
+|---|---|---|---|
+| Stage 1 — VGAE | Per-vehicle anomaly thresholds, hard-sample buffer | Encoder + decoder weights | SCAFFOLD on the encoder; reconstruction is symmetric across protocols, thresholds remain vehicle-specific |
+| Stage 2 — GAT backbone | Per-platform input projection (35-dim → shared $d$-dim, OEM-specific signal layouts), per-vehicle curriculum schedule | GAT layers, KD teacher logits | FedAvg/SCAFFOLD on the backbone; federated KD with federated teacher logits; protocol-invariant features (timing anomalies, frequency deviations) generalise across vehicles |
+| Stage 2 — OOV embedding (§Handling OOV IDs) | Lookup-plus-UNK variant requires shared vocabulary (per-OEM ID leak) | Hash-bucket variant | $k$-probe hash maps every ID to bucketed shared rows by construction |
+| Stage 2 — Classification head | Per-platform output head (different attack-class distributions, OEM-specific semantics) | — | Local only, or clustered FL across OEM cohorts |
+| Stage 3 — Fusion policy | Per-vehicle calibration (Q2.1), reward coefficients (Q4.1) | Policy backbone | Federated initialisation; per-vehicle online adaptation via Neural-LinUCB (Eq. {eq}`eq-bandit-accum` adapts locally without re-federation) |
 
-**SCAFFOLD [@karimireddy2020scaffold] — control-variate variance reduction.** Each client maintains a drift estimate $c_i$ subtracted at the local update:
-
-$$
-\theta_i^{(t+1)} \;\leftarrow\; \theta_i^{(t)} \;-\; \eta \bigl(\nabla F_i(\theta_i^{(t)}) \;-\; c_i \;+\; c\bigr)
-$$
-
-with $c = \tfrac{1}{K}\sum_j c_j$. Under bounded gradient variance, SCAFFOLD recovers IID-like rates for any $E$.
-
-**Per-axis remedy.** Label shift (axis 1) responds to SCAFFOLD: variance reduction compensates for class-imbalance-induced gradient bias. Feature shift (axis 2) responds to FedProx: it slows client-specific overfitting. Concept shift (axis 3) cannot be handled by either — a single shared model is the wrong target — and forces *personalisation*: a shared backbone with per-client heads, which is also the answer to graph heterogeneity below.
-
-### Why standard FL remedies miss graph heterogeneity
-
-CAN graphs from different OEMs have different node counts (variable ECU topology), different edge structures, and different per-node feature semantics. None of the remedies above address graph heterogeneity directly: all assume a fixed parameter space across clients.
-
-**Architectural answer: federated shared backbone + per-platform input projection and output head.**
-
-| Component | Federated? | Rationale |
-|---|---|---|
-| Per-platform input projection (35-dim node feature → shared $d$-dim) | **Local only** | Absorbs OEM-specific feature semantics; cannot be shared across vehicles with different CAN signal layouts |
-| Shared GAT backbone | **Federated (FedAvg/SCAFFOLD)** | Protocol-invariant features (timing anomalies, frequency deviations) generalise across vehicles |
-| Per-platform output head | **Local only** (or clustered FL across OEM cohorts) | Different attack-class distributions and OEM-specific semantics |
-| OOV-robust embedding (§Handling OOV IDs) | **Hash-based version federates cleanly**; lookup table does not | The $k$-probe hash variant maps every ID to bucketed shared rows by construction; the lookup-plus-UNK variant requires shared vocabulary which leaks per-OEM IDs |
-| VGAE encoder/decoder | **Federated** | Reconstruction is symmetric across protocols; per-platform anomaly thresholds remain local |
-| Fusion policy (DQN / Neural-LinUCB) | **Personalised local fine-tune from federated initialisation** | The fusion policy directly depends on per-vehicle confidence calibration (Q2.1) which differs across feature distributions |
-
-The pattern — federated body, local heads — is standard for architectural heterogeneity in personalised FL. The CAN-IDS-specific contribution is *which* component goes local: the input projection (OEM-specific signal layouts) and the fusion head (per-vehicle calibration, Q2.1).
+The CAN-IDS-specific contribution is *which* components go local: the per-platform input projection (OEM signal layouts) and the per-vehicle fusion head (calibration + reward). This dovetails with Q3.1: federated KD is genuinely bilevel — the federated body runs at round-time, the local head at deployment-epoch time — so federated-body / local-head is the multi-scale bilevel decomposition, not just architectural convenience.
 
 ### Defending against poisoned client updates
 
@@ -167,18 +131,6 @@ This adds a new attack surface to the Q1.2 threat-model taxonomy. The Q1.2 defen
 ### Privacy under DP-SGD interacts with class imbalance
 
 DP-SGD [@abadi2016dpsgd] adds Gaussian noise to clipped gradients with budget $(\varepsilon, \delta)$. A uniform budget over-noises minority gradients under 927:1 imbalance: the minority-class gradient norm scales with $p(\text{attack})\approx 0.1\%$, collapsing SNR. Remedies: class-conditional clipping ($C_y$ per class) or amplification by sampling, which the Q3.3 curriculum already provides. Privacy accounting under a *time-varying* curriculum distribution is an open theoretical question at the Q3.2 / Q3.3 boundary.
-
-### FL adoption per pipeline stage
-
-The three-stage pipeline factors cleanly along the FL boundary:
-
-| Stage | Local | Shared | FL strategy |
-|---|---|---|---|
-| Stage 1: VGAE training and hard-sample selection | Per-vehicle hard-sample buffer | VGAE encoder/decoder weights | SCAFFOLD on encoder; local hard-sample mining (per-vehicle benign distribution is local) |
-| Stage 2: GAT training with curriculum + KD | Per-vehicle curriculum momentum schedule, per-vehicle batch composition | GAT backbone, KD teacher logits | Federated KD with federated teacher logits; shared backbone with per-platform input projection |
-| Stage 3: Adaptive fusion (DQN/bandit) | Per-vehicle calibration (Q2.1), per-vehicle reward function coefficients | Fusion-policy backbone | Federated initialisation; per-vehicle online adaptation via Neural-LinUCB (closed-form update Eq. {eq}`eq-bandit-accum` adapts locally without re-federation) |
-
-The decomposition follows the pipeline: the VGAE+GAT teacher is the federation target (high benefit, low privacy risk — gradients aggregate), and the fusion policy is the personalisation point (per-vehicle calibrated, Q4.1 reward shift local). This dovetails with Q3.1: federated KD is genuinely bilevel — the inner problem distills a per-client student against a *federated* teacher; the outer chooses federation strategy and student capacity jointly. The bilevel also spans time scales — federated body at round-time, local head at deployment-epoch time — so the federated-body / local-head split is the multi-scale bilevel decomposition, not just architectural convenience.
 
 ## Question 3.3
 

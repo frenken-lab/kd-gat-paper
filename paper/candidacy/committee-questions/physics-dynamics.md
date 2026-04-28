@@ -21,39 +21,17 @@ The first three cells are *control conditions* — the prior structure of one ex
 
 The operational structure that the diagram dispatches into. Every expert carries a competence signal — not just the physics one.
 
-**Physics: three gates, conjunctive.** Trust physics only when all three hold; any failure pulls its weight to zero.
-
-*Regime validity* — the dynamics model fits the current operating point. Writing $\mathcal{M}_\Theta$ for the bicycle-plus-Pacejka model from [](#app:pinn-physics):
+**Physics: three gates, conjunctive.** Trust physics only when all three indicators hold; any failure pulls its weight to zero. Writing $\mathcal{M}_\Theta$ for the bicycle-plus-Pacejka model from [](#app:pinn-physics) and $r_t$ for the PINN residual from Eq. {eq}`eq-physics-score`:
 
 $$
-\mathcal{V}_{\text{regime}}(s_t) \;=\; \mathbb{1}\!\left[\,\bigl\| \mathcal{M}_\Theta(s_{t-1}) - s_t \bigr\|_2 \;\le\; \tau_{\text{model}}\,\right]
+\lambda_{\text{physics}}(s_t) \;=\; \lambda_{\text{tier}} \cdot \underbrace{\mathbb{1}\!\left[\,\bigl\|\mathcal{M}_\Theta(s_{t-1}) - s_t\bigr\|_2 \le \tau_{\text{model}}\,\right]}_{\mathcal{V}_{\text{regime}}}\;\cdot\; \underbrace{\mathbb{1}\!\left[\,\mathrm{tr}(\Sigma_\eta(t)) \le \tau_{\text{signal}}\,\right]}_{\mathcal{V}_{\text{signal}}}\;\cdot\; \underbrace{\mathbb{1}\!\left[\,p(r_t \mid \text{benign}, s_t) < \tau_{\text{ood}}\,\right]}_{\mathcal{V}_{\text{residual}}}
 $$
 
-with $\tau_{\text{model}}$ sized to benign-training model error. Linear-tire region only ($|\alpha_f|, |\alpha_r| \le 4°$ on dry asphalt); outside that envelope the residual is model-error-dominated, not attack-dominated [@Chen2024CADD].
+a Chow's reject option [@geifman2017selective] over the physics expert. The three indicators catch different failures:
 
-*Signal reliability* — the state vector is observed with bounded uncertainty. With $s_t = h(z_t) + \eta_t$ ($z_t$ raw CAN, $h$ ByCAN+EKF, $\eta_t$ cumulative noise):
-
-$$
-\mathcal{V}_{\text{signal}}(s_t) \;=\; \mathbb{1}\!\left[\,\mathrm{tr}\bigl(\Sigma_{\eta}(t)\bigr) \;\le\; \tau_{\text{signal}}\,\right]
-$$
-
-Tier-1 (DBC) collapses $\Sigma_\eta$ to sensor noise; tier-3 (ByCAN) inflates it by the 80.21% slicing-accuracy bias [@ByCAN] that the Gaussian posterior reading then misrepresents.
-
-*Residual implausibility* — the PINN residual $r_t$ from Eq. {eq}`eq-physics-score` exceeds its regime-conditioned baseline:
-
-$$
-\mathcal{V}_{\text{residual}}(s_t, r_t) \;=\; \mathbb{1}\!\left[\,p(r_t \mid \text{benign}, s_t) \;<\; \tau_{\text{ood}}\,\right]
-$$
-
-The operational form of Q2.1's epistemic/aleatoric decomposition: the gate fires when the residual is implausible *given the regime*, not just large.
-
-The composite physics weight is the conjunction:
-
-$$
-\lambda_{\text{physics}}(s_t) = \lambda_{\text{tier}} \cdot \mathcal{V}_{\text{regime}} \cdot \mathcal{V}_{\text{signal}} \cdot \mathcal{V}_{\text{residual}}
-$$
-
-a Chow's reject option [@geifman2017selective] over the physics expert.
+- **Regime validity** ($\mathcal{V}_{\text{regime}}$, threshold sized to benign-training model error). Linear-tire region only ($|\alpha_f|, |\alpha_r| \le 4°$ on dry asphalt); outside that envelope the residual is model-error-dominated, not attack-dominated [@Chen2024CADD].
+- **Signal reliability** ($\mathcal{V}_{\text{signal}}$, on the cumulative noise covariance from $s_t = h(z_t) + \eta_t$). Tier 1 (DBC) collapses $\Sigma_\eta$ to sensor noise; tier 3 (ByCAN) inflates it by the 80.21% slicing-accuracy bias [@ByCAN] that the Gaussian posterior reading then misrepresents.
+- **Residual implausibility** ($\mathcal{V}_{\text{residual}}$). The operational form of Q2.1's epistemic/aleatoric decomposition: the gate fires when the residual is implausible *given the regime*, not just large.
 
 **GAT gate.** Post-temperature-scaled softmax $p(y \mid x) > \tau_{\text{gat}}$; below threshold, GAT abstains and weight redistributes. Calibration matters because raw softmax is overconfident by default [@guo2017calibration].
 
