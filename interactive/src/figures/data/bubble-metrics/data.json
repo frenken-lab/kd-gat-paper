@@ -1,0 +1,12 @@
+[
+  { "model": "GAT-Large",    "model_type": "GAT",     "f1": 0.94, "accuracy": 0.97, "params": 1200000 },
+  { "model": "GAT-Small",    "model_type": "GAT",     "f1": 0.88, "accuracy": 0.91, "params": 320000  },
+  { "model": "VGAE-Base",    "model_type": "VGAE",    "f1": 0.81, "accuracy": 0.85, "params": 480000  },
+  { "model": "VGAE-Deep",    "model_type": "VGAE",    "f1": 0.86, "accuracy": 0.89, "params": 950000  },
+  { "model": "KD-GAT",       "model_type": "KD",      "f1": 0.92, "accuracy": 0.95, "params": 210000  },
+  { "model": "KD-GAT-Tiny",  "model_type": "KD",      "f1": 0.87, "accuracy": 0.90, "params": 85000   },
+  { "model": "DQN-Fusion",   "model_type": "DQN",     "f1": 0.79, "accuracy": 0.83, "params": 640000  },
+  { "model": "DQN-Lite",     "model_type": "DQN",     "f1": 0.74, "accuracy": 0.78, "params": 180000  },
+  { "model": "Attention-Net","model_type": "Attention","f1": 0.90, "accuracy": 0.93, "params": 760000  },
+  { "model": "Attention-Slim","model_type":"Attention","f1": 0.83, "accuracy": 0.87, "params": 290000  }
+]

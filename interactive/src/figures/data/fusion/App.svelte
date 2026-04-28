@@ -2,7 +2,7 @@
   import Figure from "../../../lib/Figure.svelte";
   import { Plot, RectY, RuleY, binX } from "svelteplot";
   import { useToggleFilter } from "../../../lib/useToggleFilter.svelte.js";
-  import { resolve } from "../../../lib/flow/palette.ts";
+  import { buildColorMap } from "../../../lib/usePaletteColors.js";
   import data from "./data.json";
 
   const isEmpty = !Array.isArray(data) || data.length === 0;
@@ -13,11 +13,10 @@
   );
 
   // Derive color domain from data so it adapts to both binary and multi-class exports
-  const attackTypes = isEmpty ? [] : [...new Set(data.map((d) => d.attack_type))];
-  const paletteKeys = ["normal", "attack", "gat", "dqn", "data", "attention", "kd"];
-  const attackTypeColors = attackTypes.map(
-    (_, i) => resolve(paletteKeys[i % paletteKeys.length]).stroke,
-  );
+  const attackTypes = isEmpty
+    ? []
+    : [...new Set(data.map((d) => d.attack_type))];
+  const colorMap = buildColorMap(attackTypes);
 </script>
 
 <Figure title="Bandit Fusion Weight Analysis">
@@ -28,6 +27,7 @@
       {#each types as t}
         <button
           class="toggle"
+          style:--chip-color={colorMap[t]}
           class:active={visible[t]}
           class:inactive={!visible[t]}
           onclick={() => toggle(t)}>{t}</button
@@ -37,18 +37,18 @@
     <Plot
       x={{ label: "Fusion Weight α (0 = VGAE, 1 = GAT)" }}
       y={{ label: "Count" }}
-      color={{
-        domain: attackTypes,
-        range: attackTypeColors,
-        legend: true,
-      }}
     >
-      <RectY
-        {...binX(
-          { data: filtered, x: "alpha", fill: "attack_type" },
-          { y: "count" },
-        )}
-      />
+      {#each attackTypes as t}
+        {#if visible[t]}
+          <RectY
+            {...binX(
+              { data: filtered.filter((d) => d.attack_type === t), x: "alpha" },
+              { y: "count" },
+            )}
+            fill={colorMap[t]}
+          />
+        {/if}
+      {/each}
       <RuleY data={[0]} />
     </Plot>
   {/if}
