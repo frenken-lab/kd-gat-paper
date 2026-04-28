@@ -85,6 +85,12 @@ Building on the current framework, we propose the following extensions to addres
 ◉ = primary contribution, ◐ = secondary contribution.
 :::
 
+### The methodological thesis: calibration as the unifying axis
+
+The four committee-question domains — physics-informed dynamics (Q1), interpretability and calibration (Q2), federated optimization (Q3), reinforcement learning (Q4) — appear to address four independent topics. They do not. Each reduces to a calibration question on a different axis. Q1 asks when to trust a physics prior — when its competence gates are calibrated against benign training data. Q2 asks when to trust a classifier confidence — when its softmax is calibrated under class imbalance and when the inter-branch disagreement signal can substitute for a label. Q3 asks when curriculum and federation drift those calibrations off their training baselines. Q4 asks when a reward proxy and a bandit confidence radius can be trusted at deployment without ground-truth labels.
+
+The methodological position of this work is that the classifier softmax, the per-expert competence gates, the inter-branch disagreement signal, the bandit's UCB confidence radius, and the reward proxy are not five separate calibration problems but one apparatus that requires *joint* correction on a single held-out natural-distribution split. Treating them as independent loops, as the field does, breaks the operational coverage guarantee the ensemble would otherwise deliver. The thesis-level contribution is the joint-calibration apparatus that holds them together; the four committee questions are the axes against which it is stress-tested. Per-axis derivations live in [](committee-questions/index.md) and are referenced from each subsection of [](proposed-research.md).
+
 ### Ensemble Architecture: Multi-Expert Model Selection
 
 Automotive anomaly detection requires robust detection across diverse attack vectors distributed across temporal sequences, structural message relationships, payload dynamics, and unknown attack variants. Rather than relying on a single detection paradigm, we design a multi-expert ensemble with adaptive fusion. The current framework implements GAT and VGAE with DQN/bandit-weighted fusion; proposed extensions add PINN and CWD to form a four-expert ensemble. This section justifies each expert selection based on complementary strengths.
@@ -116,4 +122,9 @@ We propose the first unified framework to reconcile the distinct paradigms of gr
 **Emergent properties.** Detection dimensions interact with deployment-relevant properties that cannot be reduced to per-expert ratings. *Generalization to unknown attacks* arises primarily from the distributional and physical dimensions: VGAE flags any deviation from learned normal topology regardless of attack mechanism, while PINN rejects physically infeasible states without requiring attack-specific training. Relational and temporal dimensions are more dependent on training coverage but contribute complementary signals when novel attacks perturb message patterns or timing. *Interpretability* similarly varies by dimension: GAT attention weights and fusion policy weights are directly inspectable, PINN provides physics-grounded explanations via constraint violations, while VGAE's latent-space anomaly scores require post-hoc analysis. The adaptive fusion agent amplifies these properties by learning *which expert to trust* for each sample, providing a decision audit trail that no single expert offers alone.
 
 
-:::{figure} https://frenken-lab.github.io/kd-gat-paper/assets/images/Framework_Fig.svg 🏷️ fig-framework :width: Graph Fusion Framework :::
+:::{figure} https://frenken-lab.github.io/kd-gat-paper/assets/images/Framework_Fig.svg
+:label: fig-framework
+:width: 100%
+
+Graph Fusion Framework
+:::
