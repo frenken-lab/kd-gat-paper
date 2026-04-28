@@ -73,8 +73,11 @@ Three sources:
 | E6 | Vaswani et al. — §3.1–3.2 of *Attention Is All You Need* | Extracted (§2.6) |
 | V1 | Q2.1 opener of `interpretability-calibration.md` | Anchored (§2.7) |
 | V2 | Q1.1 three-conditions structure of `physics-dynamics.md` | Anchored (§2.8) |
+| V3 | Q2.1 §"Maintenance under operational drift" opener of `interpretability-calibration.md` | Anchored (§2.9) |
+| V4 | Q1.2 §"compounding-uncertainty chain" closing of `physics-dynamics.md` | Anchored (§2.10) |
+| V5 | Q1.2 closing of `physics-dynamics.md` (defensive-posture summary) | Anchored (§2.11) |
 
-Triangulation has six external sources (E1, E2, E3, E4, E5, E6) plus two voice anchors (V1, V2). Rules in §3 cite ≥2 exemplars per the methodology.
+Triangulation has six external sources (E1, E2, E3, E4, E5, E6) plus five voice anchors (V1–V5). Rules in §3 cite ≥2 exemplars per the methodology.
 
 ### 2.1 E1 — Distill: Feature Visualization
 
@@ -322,6 +325,48 @@ This is the user's own demonstration that R1 + R2 + R7 (see §3) can land togeth
 
 This is the user's demonstration that headings, openers, and lists can collaborate. R1 (commit immediately) + R2 (earn what follows) read as one move here.
 
+### 2.9 V3 — Q2.1 §"Maintenance under operational drift" opener (tautology-landing)
+
+`paper/candidacy/committee-questions/interpretability-calibration.md` line 38 (post-revision, 2026-04-27).
+
+> "A calibration guarantee that holds at deployment but not three months later is not a guarantee. Three operational pieces keep it alive."
+
+**Moves.**
+
+- *Tautology-landing opener:* "X that doesn't hold is not X" forces a definitional revisit. The circularity is rhetorical, not logical — *guarantee* carries an implicit temporal scope, and the opener makes that scope visible in one sentence.
+- *Three earns the bullets:* the second sentence commits to a count ("three operational pieces") rather than a hedge ("several considerations"). V2's commit-to-structure move in bridge form.
+- *Two-sentence opener doing R1 + R2 together:* sentence one earns the heading by reframing what *maintenance* requires; sentence two earns the apparatus.
+
+V3 demonstrates that R1 admits a tautology-landing form alongside V1's stakes-image form — two distinct opener shapes under the same rule.
+
+### 2.10 V4 — Q1.2 §"compounding-uncertainty chain" closing (em-dash X-not-Y reframe)
+
+`paper/candidacy/committee-questions/physics-dynamics.md` line 87.
+
+> "The trade-off — and why this is a security boundary, not a preprocessing step — is that each new stage adds an attack surface that the byte-level GAT/VGAE pipeline does not expose."
+
+**Moves.**
+
+- *Mid-sentence frame correction:* the em-dashes interrupt the trade-off claim to insert "and why this is a security boundary, not a preprocessing step." The reader's mental model is corrected mid-sentence rather than after the fact.
+- *X-not-Y inside the dashes:* "security boundary, not a preprocessing step" forces the reader to commit to one frame and reject the other in five words.
+- *Closing clause carries the consequence:* "an attack surface that the byte-level GAT/VGAE pipeline does not expose" lands what the reframing earned.
+
+V4 demonstrates a sentence-internal move not currently named in §3 — the em-dash X-not-Y reframe as paragraph-closing landing. Candidate seed for a future rule once a second exemplar with the same move is identified.
+
+### 2.11 V5 — Q1.2 closing (register-shift closer)
+
+`paper/candidacy/committee-questions/physics-dynamics.md` line 122.
+
+> "...the tier-based weighting limits the blast radius — a tier-3 deployment (ByCAN extraction) caps PINN contribution at $\lambda_{\max} = 0.3$, so even total estimator compromise cannot drive the fusion decision more than 30%. This is a structural-defence-in-depth argument rather than a cryptographic one."
+
+**Moves.**
+
+- *Concrete bound under abstract phrase:* "limits the blast radius" → "$\lambda_{\max} = 0.3$" → "30%". R6's concrete-images discipline in three escalating steps — abstract image, formal cap, plain-English consequence.
+- *Register-shift closer:* "This is a structural-defence-in-depth argument rather than a cryptographic one." The closing sentence names the *kind* of argument just made, directing the reader's takeaway. Distinct from naming the content.
+- *X-rather-than-Y in the closer:* "structural ... rather than cryptographic" forces the reader to retain the right frame for what was just shown.
+
+V5 demonstrates the register-shift closer as paragraph-close discipline. Karpathy's "training recurrent nets is optimization over programs" does the same kind of work. Candidate for promotion to a §3 rule (R8: paragraph closers name the argument's *kind*) once a second exemplar is identified.
+
 ---
 
 ## 3. Rules
@@ -342,6 +387,7 @@ Six rules. Each cites at least two exemplars and points at a specific passage in
 - 3B1B: "The fundamental building block for linear algebra is the vector, so it's worth making sure we're all on the same page about *what* exactly a vector *is*." (stakes-by-necessity)
 - V1: "A useful detector reports two things at once: a prediction, and how much weight to put on it." (stakes by image)
 - V2: "Trust physics only when *all three* of the following hold." (commits to the structure in six words)
+- V3: "A calibration guarantee that holds at deployment but not three months later is not a guarantee." (tautology-landing opener)
 
 **Bite.** Q2.1 §"What 'know what it doesn't know' means" was previously: *"A model 'knows what it doesn't know' when its probabilistic output separates two qualitatively different kinds of uncertainty and communicates each honestly to downstream consumers. The canonical decomposition, formalised in the Bayesian deep-learning literature, is: [bullets]."* The opener was a cold definition handing off to a list. The revision (V1) opens with the operating-envelope image and earns the table.
 
@@ -358,6 +404,7 @@ Both sentences are scaffold. Cut. The heading already says "Evaluation under cla
 
 **Anchors.**
 - V1: opener paragraph names "two distinct things drive that uncertainty" → comparison table.
+- V3: "Three operational pieces keep it alive." → bullet list of drift-detection / re-calibration / online-conformal pieces. The bridge sentence commits to the count and the apparatus follows.
 - Distill: prose lays out the optimization-as-search frame, then a labeled table of objectives.
 - Vaswani: "In practice, we compute the attention function on a set of queries simultaneously..." → Equation (1) → comparison paragraphs.
 - Weng: "Let's label each component in the variational lower bound loss separately:" → labeled equations.
@@ -442,6 +489,7 @@ Five citations for one assertion is decoration. Either pick the canonical refere
 - Distill: "These patterns seem to be the images kind of cheating, finding ways to activate neurons that don't occur in real life." (anthropomorphic image; sticks)
 - V1: "the cost of a false alert and the cost of a missed attack live on opposite ends of the same operating envelope" (operational image)
 - V2: "the moment any one fails" (concrete pivot in a structural rule)
+- V5: "the tier-based weighting limits the blast radius — ... caps PINN contribution at $\lambda_{\max} = 0.3$ ... cannot drive the fusion decision more than 30%" (abstract image → formal cap → plain-English consequence)
 - d2l.ai: "You can think of the parameters as knobs that we can turn, manipulating the behavior of the program." (domestic metaphor for an abstract concept)
 - 3B1B: "'vector' is pretty much a fancy word for list" (jargon defused with colloquial anchoring)
 
@@ -464,6 +512,7 @@ No image; abstract; entirely deletable. Replace with the specific cost being pai
 | Stacking | "stack of N=6 identical layers" | Vaswani (E6) |
 | Failure / threshold | "the moment any one fails" | V2 |
 | Load-bearing / structural | "the pathology becomes load-bearing" | Q4.2 of `reinforcement-learning.md` |
+| Blast radius / containment | "the tier-based weighting limits the blast radius" | V5 |
 
 The list extends as new archetypes get triangulated across exemplars and V-anchors. Mechanical use under deadline: when the next sentence wants an abstract structural noun, scan this list first.
 
@@ -618,6 +667,9 @@ One screen. No exemplars, no citations. Pure muscle memory for a writing pass.
 | 2026-04-27 | First §7.1–§7.3 pass on `reinforcement-learning.md` complete. Twelve fixes applied. | Initial calibration audit (§7.9). |
 | 2026-04-27 | Added R7 (heading is the question or its answer; body is setup → solution). Refined R1's *Why* to reference R7. Added section-heading line to §5 cheat sheet. | Editor pushback on the first audit pass: *"open should be like 'Defining reward shift' or 'What is reward shift' and then a smooth and brief walkthrough, setup, solution."* The first audit cut "in this framework" via B7 but left the heading topic-shaped — R7 makes the heading-shape rule explicit. |
 | 2026-04-27 | Added image inventory under R6 (anthropomorphism / domestic / code / geometry / walks / stacking / failure-threshold / load-bearing) and connector-verb vocabulary under B4 (*admits, rides on, carries, limits/caps, and therefore, amounts to, plays the role of*) as positive-space companions. V3+ candidates surfaced separately at `paper/STYLE-AUDIT/V3-candidates.md` for editor validation before they enter §2. | Editor + cross-Claude diagnosis: STYLE.md was a hygiene tool with a hard ceiling; juice is voice-specific and AI cannot reliably generate it. The right complement is positive-space references (palette + connector list) attached to existing rules, plus more user-validated voice anchors — not a "write with juice" rule. |
+| 2026-04-27 | First triage of `paper/STYLE-AUDIT/V3-candidates.md`. Three anchors promoted: V3 (C4 — tautology-landing opener, `interpretability-calibration.md` line 38), V4 (C2 — em-dash X-not-Y mid-sentence reframe, `physics-dynamics.md` line 87), V5 (C3 — register-shift closer, `physics-dynamics.md` line 122). Three skips: C1 (mild parallel image; the paragraph's actual landing is later), C5 (functional engineering tag, not landing-tier), C6 (closer is too 2x2-table-specific to transfer). R1 anchors extended with V3; R2 anchors extended with V3 bridge; R6 anchors and image inventory extended with V5 ("blast radius / containment" archetype). V4 and V5 are currently anchors-only — a second exemplar of em-dash X-not-Y and of register-shift closer would promote them to §3 rule candidates (R8 register-shift-closer). | First V3-candidates triage pass; pending Robert's review. |
+| 2026-04-27 | Style audit + apply pass on `proposed-research.md` and three committee-question files (`federated-optimization.md`, `physics-dynamics.md`, `interpretability-calibration.md`). proposed-research: D1–D5 structural cuts (~35 lines, eliminating duplication of Q1.1 trust-gates and Q4.2 architectural-deltas) + 8 prose fixes (R1, R4, R7, B3, B7). Q3: 9 fixes (5× R7+B3 heading rewrites, 4× B6 natural-as-design-choice). Q1: 4 fixes (B1 canonical, B2 exactly-this, B7 in-this-framework, R7+B3 heading). Q2: 2 fixes (B6, R7+B3 heading). Two new V-anchor candidates from Q3 stashed for next sweep (L31 X-not-Y opener, L174 bold-dispatch opener). Closure docs at `paper/STYLE-AUDIT/proposed-research.md` and `paper/STYLE-AUDIT/committee-questions-2026-04-27.md`. | First post-V3-anchors application pass. |
+| 2026-04-27 | §7.4 bite-back candidates surfaced from the application pass: (a) **B6 refinement** — extend B6 to ban "natural" as adjective for design choices, while keeping the technical sense ("natural distribution," "natural parameterisation"). Five hits across the pass meet the bite threshold. (b) **§5 cheat sheet anti-pattern** — `### How [framework] X` heading shape is now triangulated across Q3 (×4), Q1 (×1), Q2 (×1), Q4 (×3 prior). Worth an explicit cheat-sheet line. Both deferred to the next bite-back pass. | Aggregation across audit + apply passes. |
 
 ### Outstanding
 

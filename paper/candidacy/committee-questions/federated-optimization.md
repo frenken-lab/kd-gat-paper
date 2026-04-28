@@ -44,7 +44,7 @@ with empirically $\beta \in [0.3, 0.7]$ depending on architecture family [@disti
 
 A complementary observation from the graph-distillation survey [@kdgraph_survey2023]: graph KD is *empirically* tolerant of larger compression ratios than vision/NLP KD on equal task complexity, because attention-graph structures expose more redundant computation than dense feature stacks. This widens $\Delta^\star_{\text{cap}}$ for the GAT student here relative to a vision baseline at the same task difficulty.
 
-### How this framework maps onto the bilevel view
+### The current single-level reduction
 
 The current setup is a *single-level reduction*: the outer choice has been made by hand and the inner problem is what gets solved.
 
@@ -62,7 +62,7 @@ The $68\times$ ratio is well above the conservative $2$–$3\times$ scaling-law 
 
 > How could federated learning enable collaborative model improvement across a fleet of edge devices with heterogeneous, privacy-sensitive data? What convergence challenges arise from non-IID distributions in this setting?
 
-### Why FL is the natural fit
+### Why FL applies to fleet-scale IDS
 
 Three properties of the automotive IDS setting jointly motivate federated learning:
 
@@ -104,7 +104,7 @@ $$
 \text{Client drift:}\quad \delta_i^{(t)} \;=\; \nabla F_i(\theta^{(t)}) \;-\; \nabla F(\theta^{(t)})
 $$
 
-When $\sum_i \frac{n_i}{n} \|\delta_i\|^2$ is large (non-IID is severe and $E$ is large), the FedAvg iterate converges to a stationary point of $\sum_i \frac{n_i}{n} F_i$ that is not a stationary point of $F$ — the well-known "drift" pathology. Two standard remedies:
+When $\sum_i \frac{n_i}{n} \|\delta_i\|^2$ is large (non-IID is severe and $E$ is large), the FedAvg iterate converges to a stationary point of $\sum_i \frac{n_i}{n} F_i$ that is not a stationary point of $F$ — the drift pathology. Two standard remedies:
 
 **FedProx [@li2020fedprox] — proximal regularisation on the local objective.** Each client minimises a regularised version of its local loss:
 
@@ -122,9 +122,9 @@ $$
 
 with $c = \tfrac{1}{K}\sum_j c_j$ the global control variate. Under bounded gradient variance, SCAFFOLD recovers IID-like convergence rates regardless of $E$.
 
-**Per-axis recommendation.** Label shift (axis 1) is well-handled by SCAFFOLD; the variance-reduction step exactly compensates for class-imbalance-induced gradient bias. Feature shift (axis 2) responds to FedProx because it primarily slows down client-specific overfitting. Concept shift (axis 3) cannot be handled by either — the conditional distribution mismatch means a single shared model is the wrong target. The remedy is *personalisation*: a shared backbone with per-client heads, which is also the natural answer to graph heterogeneity below.
+**Per-axis recommendation.** Label shift (axis 1) is handled by SCAFFOLD; the variance-reduction step compensates for class-imbalance-induced gradient bias. Feature shift (axis 2) responds to FedProx because it primarily slows down client-specific overfitting. Concept shift (axis 3) cannot be handled by either — the conditional distribution mismatch means a single shared model is the wrong target. The remedy is *personalisation*: a shared backbone with per-client heads, which is also the answer to graph heterogeneity below.
 
-### Graph-heterogeneity-specific challenges
+### Why standard FL remedies miss graph heterogeneity
 
 CAN graphs from different OEMs have different node counts (variable ECU topology), different edge structures (transition patterns), and different per-node feature semantics. None of the three remedies above addresses graph heterogeneity directly because they all assume a fixed parameter space across clients.
 
@@ -141,7 +141,7 @@ CAN graphs from different OEMs have different node counts (variable ECU topology
 
 This pattern — federated body, local heads — is the standard answer to architectural heterogeneity in personalised FL. The CAN-IDS-specific contribution is the choice of *which* component is local: the input projection (because OEM-specific) and the fusion head (because Q2.1 calibration is per-vehicle).
 
-### The Byzantine-robustness dimension
+### Defending against poisoned client updates
 
 In FedAvg, a single malicious client can poison the global model unboundedly: by sending an arbitrary $\theta_i^{(t)}$ they can shift the average by $\Theta(1/K)$ per round, which compounds over training. For an IDS specifically, this is a *deployment-time* attack — an attacker who compromises one vehicle in the fleet can degrade detection for the rest. Three layers of defence:
 
@@ -155,7 +155,7 @@ This connects directly to Q1.2 — the FL setting introduces a *new* attack surf
 
 DP-SGD [@abadi2016dpsgd] adds Gaussian noise to clipped gradients with budget $(\varepsilon, \delta)$, but a uniform noise budget over-noises minority gradients under 927:1 imbalance — the minority-class gradient norm scales with $p(\text{attack})\approx 0.1\%$, so the SNR collapses without intervention. Remedies are class-conditional clipping bounds ($C_y$ per class) or amplification by sampling, which the curriculum schedule of Q3.3 already provides. The privacy accounting under amplification by a *time-varying* curriculum sampling distribution remains an open theoretical question at the Q3.2 / Q3.3 boundary.
 
-### How this framework would adopt FL
+### FL adoption per pipeline stage
 
 The three-stage pipeline factors cleanly along the FL boundary:
 
@@ -165,7 +165,7 @@ The three-stage pipeline factors cleanly along the FL boundary:
 | Stage 2: GAT training with curriculum + KD | Per-vehicle curriculum momentum schedule, per-vehicle batch composition | GAT backbone, KD teacher logits | Federated KD (clients receive teacher logits from a federated teacher), shared backbone with per-platform input projection |
 | Stage 3: Adaptive fusion (DQN/bandit) | Per-vehicle calibration (Q2.1), per-vehicle reward function coefficients | Fusion-policy backbone | Federated initialisation, per-vehicle online adaptation via Neural-LinUCB (the closed-form linear update Eq. {eq}`eq-bandit-accum` is amenable to local adaptation without re-federation) |
 
-This decomposition uses the existing pipeline structure: the VGAE+GAT teacher is the natural federation target (high benefit, low privacy risk because gradients are aggregated); the fusion policy is the natural personalisation point (low federation benefit because it's per-vehicle calibrated, and Q4.1 reward shift is a local phenomenon). It also dovetails with Q3.1 — federated KD is genuinely bilevel: the inner problem distills a per-client student against a *federated* teacher, and the outer problem chooses both the federation strategy and the student capacity simultaneously.
+This decomposition uses the existing pipeline structure: the VGAE+GAT teacher is the federation target (high benefit, low privacy risk because gradients are aggregated); the fusion policy is the personalisation point (low federation benefit because it's per-vehicle calibrated, and Q4.1 reward shift is a local phenomenon). It also dovetails with Q3.1 — federated KD is genuinely bilevel: the inner problem distills a per-client student against a *federated* teacher, and the outer problem chooses both the federation strategy and the student capacity simultaneously.
 
 ## Question 3.3
 
@@ -193,7 +193,7 @@ is not the deployment distribution $p_{\text{nat}}(x, y)$. The resulting bias ha
 
 Biases (1) and (2) are features by design — this framework explicitly targets minority-attack recall under 927:1 imbalance. Bias (3) is a liability that should be measured (it directly re-enters Q2.1) and corrected at inference via temperature scaling on a natural-distribution calibration split.
 
-### How the curriculum in this framework behaves
+### Anti-curriculum with difficulty-aware replay
 
 The momentum-based curriculum is worth unpacking because it is subtly different from the Bengio easy-to-hard paradigm:
 

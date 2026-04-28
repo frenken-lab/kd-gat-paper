@@ -16,7 +16,7 @@ $$
 \mathcal{V}_{\text{regime}}(s_t) \;=\; \mathbb{1}\!\left[\,\bigl\| \mathcal{M}_\Theta(s_{t-1}) - s_t \bigr\|_2 \;\le\; \tau_{\text{model}}\,\right]
 $$
 
-evaluated against benign training data alone (i.e., the $\tau_{\text{model}}$ envelope is sized to model error, not to attack residuals). For the CAN dynamics in this framework, the binding regime constraints are: linear-tire-region operation ($|\delta| \le \delta^{\text{lin}}$, $|\alpha_f|, |\alpha_r| \le 4°$ on dry asphalt), small-angle steering, and longitudinal acceleration within powertrain envelope (see [](#app:pinn-physics) for the $\dot{v}_x$ equation). Outside that envelope — emergency maneuvers, low-friction surfaces, hard braking — the linear bicycle model diverges from real tire behaviour and the residual is dominated by model error rather than attack signal. @Chen2024CADD's analytical residual approach exhibits exactly this failure mode at high slip; the PINN can learn nonlinear corrections within a wider envelope but does not eliminate the boundary.
+evaluated against benign training data alone (i.e., the $\tau_{\text{model}}$ envelope is sized to model error, not to attack residuals). For CAN dynamics, the binding regime constraints are: linear-tire-region operation ($|\delta| \le \delta^{\text{lin}}$, $|\alpha_f|, |\alpha_r| \le 4°$ on dry asphalt), small-angle steering, and longitudinal acceleration within powertrain envelope (see [](#app:pinn-physics) for the $\dot{v}_x$ equation). Outside that envelope — emergency maneuvers, low-friction surfaces, hard braking — the linear bicycle model diverges from real tire behaviour and the residual is dominated by model error rather than attack signal. @Chen2024CADD's analytical residual approach exhibits this failure mode at high slip; the PINN can learn nonlinear corrections within a wider envelope but does not eliminate the boundary.
 
 **2. Signal reliability.** The state vector $\mathbf{x}_t = (v_x, v_y, \dot{\psi}, \delta, a_x)$ must be observed with bounded uncertainty. Writing the observation pipeline as $s_t = h(z_t) + \eta_t$ with $z_t$ the raw CAN bytes, $h(\cdot)$ the ByCAN-extraction-plus-EKF state estimator, and $\eta_t$ the cumulative observation noise, the signal-reliability gate is
 
@@ -55,7 +55,7 @@ The $\lambda_{\text{physics}}$ tier system in [](#subsec:PINN) is a *coarse* app
 
 Tiers fix the *outer* envelope; the three gates fix the *inner*, sample-by-sample weighting. **Two important caveats follow from this mapping**: (i) at tier 3, $\Sigma_\eta$ is bias-dominated rather than noise-dominated, so the Gaussian-posterior interpretation underlying $\mathcal{V}_{\text{signal}}$ does not strictly apply — under tier 3 the PINN's role narrows from *deployment-time detector* to *training-time regulariser* on the GAT/VGAE branch, with $\lambda_{\max}=0.3$ as a hard cap rather than a learned weight; (ii) the current proposal stops at the outer envelope because the inner gates require regime-stratified evaluation against the benign training data. The PINN's load-bearing detector contribution therefore lives at tiers 1 and 2 (DBC or OBD-II ground truth); tier 3 is graceful-degradation engineering.
 
-### How the framework operationalises deferral
+### Existing deferral mechanisms
 
 | Mechanism | Role | Where |
 |---|---|---|
@@ -92,7 +92,7 @@ Three independent axes describe the adversary: *access location* (where on the c
 
 | Stage | Attacker access | Capability | Defence already in framework | Gap |
 |---|---|---|---|---|
-| Bus-injection (raw CAN) | Wired/wireless ECU compromise [@Miller; @Cho]; the canonical Jeep-hack threat model | Inject arbitrary frames at native bus rate | OOV-robust embedding (§Handling OOV IDs); GAT graph anomaly score; VGAE composite reconstruction | None for byte-level; no analysis of how injected frames propagate through ByCAN slicing |
+| Bus-injection (raw CAN) | Wired/wireless ECU compromise [@Miller; @Cho]; the Jeep-hack threat model | Inject arbitrary frames at native bus rate | OOV-robust embedding (§Handling OOV IDs); GAT graph anomaly score; VGAE composite reconstruction | None for byte-level; no analysis of how injected frames propagate through ByCAN slicing |
 | ByCAN slicing template | Pre-deployment poisoning of the DBSCAN + DTW templates | Replace template with crafted payload schema that crosses signal boundaries | Cross-validation via @Pese2019LibreCAN if OBD-II ground truth is available; plausibility clipping ($\|\delta\|<40°$, $\|\dot{\psi}\|<1$ rad/s) | The plausibility band is a wide *open* interval — values inside the band produce no clipping flag, so attacks are unconstrained within $\pm 40°$ |
 | EKF state estimation | On-line frame injection that biases the innovation sequence | Slow-drift attacks that stay below the per-step innovation threshold but integrate over time | None — EKF is treated as black-box preprocessing | Innovation-sequence monitoring as a meta-detector is a known idea but not implemented |
 | PINN residual | Any of the above propagate here | Inject *physically plausible* states that match the bicycle-model dynamics, defeating $\mathcal{V}_{\text{residual}}$ from Q1.1 | Self-adaptive $\lambda_{\text{physics}}$ [@McClenny2023SAPINN] dampens reliance when residual gradients diverge | No adversarial-training pass against physics-aware attacks |

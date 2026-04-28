@@ -49,7 +49,7 @@ The pipeline already carries several uncertainty-relevant signals; what sits on 
 |---|---|---|
 | VGAE reconstruction error (composite: node + neighbour + CAN-ID) | OOD / epistemic score, useful for unknown-attack generalisation | [](#fig-reconstruction) |
 | GAT softmax probability | Aleatoric (boundary) confidence; expected to be overconfident by default [@guo2017calibration] | §Methodology |
-| 15-dim fusion state | All confidence signals in one place — the natural input to an uncertainty head | §Methodology |
+| 15-dim fusion state | All confidence signals in one place — the input to an uncertainty head | §Methodology |
 | Neural-LinUCB UCB bonus | Directed exploration under epistemic uncertainty; bonus shrinks as $O(1/\sqrt{n_a})$ [@xu2022neural] | §Methodology |
 | DQN fusion-weight distribution | Emergent attack-type-specific strategies (peaks at $\alpha \in \{0, 0.2, 0.4, 0.6, 0.8\}$); interpretable but not labelled by uncertainty | §DQN-Fusion Analysis |
 
@@ -114,6 +114,6 @@ Each XAI method targets a distinct level of abstraction; matching the level to t
 
 **Layered rendering.** Each flagged CAN sequence produces all five explanations together in one report, with separate panels per audience.
 
-### How this framework's existing layers form a triangulation set
+### Existing inspection layers as a triangulation set
 
 The existing inspection layers — GAT attention weights ([](#fig-attention)), VGAE composite reconstruction error decomposed into node/neighbour/CAN-ID components ([](#fig-reconstruction)), UMAP of GAT penultimate-layer embeddings ([](#fig-umap)), and DQN fusion-weight distributions ([](#fig-fusion)) — already span feature-level attribution, reconstruction-based attribution, latent-space concept geometry, and decision-process interpretability. [](#subsec:XAI) adds LIME [@LIME], SHAP [@SHAP], TCAV [@TCAV], CF-GNNExplainer [@CFGNNExplainer], and ProtoPNet [@ProtoPNet] to complete the audience-explainer mapping above.
