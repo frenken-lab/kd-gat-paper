@@ -38,8 +38,9 @@ The evaluation protocol falls out of these three points: temperature-scale on a 
 A calibration guarantee that holds at deployment but not three months later is not a guarantee. Three operational pieces keep it alive.
 
 - **Drift detection.** Predicted-confidence histograms and VGAE reconstruction-error distributions (§Composite VGAE Reconstruction Error) can be monitored online with a population stability index or a Kolmogorov–Smirnov statistic. Drift past threshold triggers re-calibration.
-- **Re-calibration without labels.** Labelled drift events are rare in deployment; the most degradation-resistant uncertainty signals under shift — deep ensembles and MC-dropout [@ovadia2019trust] — are exactly the ones that need none. Disagreement *between* the GAT and VGAE confidences plays the same role as disagreement *with* a label, and that disagreement is already exposed in the 15-dim fusion state.
+- **Re-calibration without labels.** Labelled drift events are rare in deployment; the most degradation-resistant uncertainty signals under shift — deep ensembles and MC-dropout [@ovadia2019trust] — are exactly the ones that need none. Disagreement *between* the GAT and VGAE confidences plays the same role as disagreement *with* a label, and that disagreement is already exposed in the 15-dim fusion state. The disagreement signal is well-conditioned because the branches use complementary decision functions — discriminative classification on the GAT, generative reconstruction on the VGAE, physics-residual on the PINN over structurally orthogonal estimated-state input — so attacks evading one are unlikely to evade all three.
 - **Online conformal recalibration.** Online conformal prediction maintains coverage under streaming non-stationary data with bounded additional memory — a natural pairing with the streaming-detection direction in [](#subsec:Streaming).
+- **Joint recalibration of gate thresholds.** The Q1.1 gates ($\tau_{\text{model}}$, $\tau_{\text{signal}}$, $\tau_{\text{ood}}$) drift with the same statistics that drive classifier miscalibration; periodic recalibration on the same held-out natural-distribution split is part of the same maintenance loop, not a separate one.
 
 ### Where the signals live, and what's still to build
 
@@ -53,7 +54,7 @@ The pipeline already carries several uncertainty-relevant signals; what sits on 
 | Neural-LinUCB UCB bonus | Directed exploration under epistemic uncertainty; bonus shrinks as $O(1/\sqrt{n_a})$ [@xu2022neural] | §Methodology |
 | DQN fusion-weight distribution | Emergent attack-type-specific strategies (peaks at $\alpha \in \{0, 0.2, 0.4, 0.6, 0.8\}$); interpretable but not labelled by uncertainty | §DQN-Fusion Analysis |
 
-The outstanding work is class-conditional ECE, per-class risk-coverage curves, and Mondrian conformal predictors fit on a held-out split. That apparatus is what turns the signals above into the operational coverage guarantee the question asks for.
+The outstanding work is class-conditional ECE, per-class risk-coverage curves, and Mondrian conformal predictors fit on a held-out split — applied to the joint calibration vector enumerated in the [committee-questions index](index.md): classifier logits, per-expert competence gates (Q1.1 at tier 1, VGAE / GAT abstain thresholds at every tier), inter-branch disagreement (Q4.2), UCB confidence radius (Q4.1), and reward proxy (Q4.1). That apparatus is what turns the signals above into the operational coverage guarantee the question asks for. Treating these objects as separate calibration problems — which the field does — breaks the coverage claim; treating them as one is the contribution.
 
 ## Question 2.2
 

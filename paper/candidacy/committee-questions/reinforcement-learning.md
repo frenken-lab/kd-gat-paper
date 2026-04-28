@@ -16,7 +16,7 @@ $$
 
 The first term is *covariate shift* on the fusion-state distribution — a different vehicle, a different fleet attack mix, or wear-induced drift changes which $s$ values are seen, with the proxy still well-calibrated. Standard distribution-shift remedies apply (e.g., importance reweighting against $p_{\text{deploy}}/p_{\text{train}}$).
 
-The second term is the more pernicious one and is specific to label-dependent rewards: at deployment, $y_{\text{true}}$ is unknown, so $R_{\text{train}}$ must be replaced by an *estimator* $\hat{R}(s, a)$ — typically the model's own confidence (the very signal the policy is trying to fuse). Optimising against a self-referential reward is the classical Goodhart pathology: the policy can drive up $\hat{R}$ without driving up $R_{\text{true}}$. The five strategies below tackle one or both terms; they are not interchangeable.
+The second term is the more pernicious one and is specific to label-dependent rewards: at deployment, $y_{\text{true}}$ is unknown, so $R_{\text{train}}$ must be replaced by an *estimator* $\hat{R}(s, a)$ — typically the model's own confidence (the very signal the policy is trying to fuse). Optimising against a self-referential reward is the classical Goodhart pathology: the policy can drive up $\hat{R}$ without driving up $R_{\text{true}}$. The five strategies below tackle one or both terms; they are not interchangeable. Both shift terms are calibration objects — state-distribution calibration on the first, reward-proxy calibration on the second — so the strategies are correction primitives for the Q2.1 maintenance loop applied to RL.
 
 ### Taxonomy of safe-adaptation strategies
 
@@ -75,7 +75,7 @@ Composing the three answers gives a coherent deployment-time architecture for sa
 4. The remaining mass redistributes to $\{\alpha_{\text{GAT}}, \alpha_{\text{VGAE}}, \alpha_{\text{CWD}}\}$ via the policy's softmax-restricted-to-the-feasible-subset.
 5. Neural-LinUCB (strategy 2) on the unprojected logits provides UCB-driven deferral when the *whole policy* is uncertain, regardless of which expert is involved.
 
-This is a single coherent decision pipeline: gate-then-policy-then-bandit-deferral, with each stage targeting a distinct failure mode (regime mismatch, action-space combinatorics, reward-proxy drift).
+This is a single coherent decision pipeline: gate-then-policy-then-bandit-deferral, with each stage targeting a distinct failure mode (regime mismatch, action-space combinatorics, reward-proxy drift). Each stage is also a calibration object — gate thresholds (Q1.1), simplex-policy softmax temperature, bandit UCB confidence radius $\beta$ — so the joint-calibration apparatus from Q2.1 covers them as one correction problem at three points in the pipeline.
 
 ## Question 4.2
 
