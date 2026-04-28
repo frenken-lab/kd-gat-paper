@@ -8,58 +8,62 @@ title: "2. Model Interpretability and Calibration"
 
 ### What "know what it doesn't know" means
 
-A model "knows what it doesn't know" when its probabilistic output separates two qualitatively different kinds of uncertainty and communicates each honestly to downstream consumers. The canonical decomposition, formalised in the Bayesian deep-learning literature [@kendall2017uncertainties], is:
+A useful detector reports two things at once: a prediction, and how much weight to put on it. The second number is what "knowing what you don't know" actually amounts to — and on a CAN bus it has to do real work, because the cost of a false alert and the cost of a missed attack live on opposite ends of the same operating envelope. A 99% accurate detector that cannot tell the operator whether *this particular alert* is one of the 1% errors offers a confidence number that means nothing.
 
-- **Aleatoric uncertainty** is irreducible noise inherent in the data — two CAN windows with identical byte profiles but different attack labels (class overlap near the decision boundary). No amount of additional data can collapse this. The correct behaviour is a softmax probability near 0.5 for binary classification, which a well-calibrated classifier produces automatically.
-- **Epistemic uncertainty** is reducible ignorance about model parameters, arising from finite training data or from inputs that fall outside the training distribution (OOD samples). A model that has never seen a masquerade attack should output a low *confidence*, not a confident wrong prediction. Out-of-distribution detection is the operational form of this requirement [@OODSurvey; @OODDetection].
+Two distinct things drive that uncertainty, and they call for opposite responses [@kendall2017uncertainties].
 
-For a CAN IDS these map cleanly onto attack-type coverage: aleatoric uncertainty flags ambiguous benign/attack boundary cases; epistemic uncertainty flags attacks we have not seen during training — exactly the "specialist weakness" failure mode that motivates the ensemble [@OODFailures].
+| Type | Source | Reducible? | What "calibrated" looks like | Operational response |
+|---|---|---|---|---|
+| **Aleatoric** | Irreducible data noise — two CAN windows with identical byte profiles but different labels | No, even with infinite training data | Softmax near 0.5 on borderline cases | Trust the confidence; defer borderline cases for review |
+| **Epistemic** | Model ignorance — finite training data, novel attack types, OOD inputs | Yes, shrinks with more / better data | Low confidence on OOD inputs — *not* a confident wrong answer | Abstain via OOD detection [@OODSurvey; @OODDetection]; route to a fallback |
 
-A model that *fails* to know what it doesn't know tends to produce high-confidence wrong predictions on OOD inputs. @guo2017calibration documents this as a systemic property of modern deep networks: they are *overconfident*, their maximum-softmax probability systematically exceeds their empirical accuracy, and the gap widens with model depth and capacity. @ovadia2019trust extend this to distribution shift: every post-hoc calibration method they tested (temperature scaling, ensembles, Bayesian methods) degrades under shift, but the *ranking* is preserved — deep ensembles and MC-dropout degrade most gracefully, isotonic regression degrades worst. Both results directly motivate the ensemble design used here.
+The split lines up neatly with how a CAN IDS fails. Aleatoric uncertainty flags ambiguous benign/attack boundary windows. Epistemic uncertainty flags attacks the training data never contained — the unknown-attack case where any single specialist breaks down [@OODFailures].
+
+Modern deep networks fail at both, and they fail in a predictable direction. @guo2017calibration documents the systemic version: max-softmax confidence routinely exceeds empirical accuracy, and the gap widens with depth and capacity — networks are overconfident by default. @ovadia2019trust carries the result over to distribution shift. Every post-hoc calibration method tested — temperature scaling, ensembles, MC-dropout, Bayesian methods — degrades under shift, but the *ranking* is preserved: deep ensembles and MC-dropout degrade most gracefully, isotonic regression worst. The structural takeaway is that heterogeneous expert redundancy is what buys calibration *under shift*; a one-shot post-hoc fit on a clean calibration set does not.
 
 ### Evaluation under class imbalance
 
-Safety-critical automotive IDS inherits all these calibration failure modes and adds two that standard calibration practice ignores:
+Standard calibration practice — average ECE on a held-out split — falls apart on a 927:1 imbalance. Three things have to be fixed before any selective-prediction rule built on confidence will mean what its name suggests.
 
-**Aggregate ECE is misleading under 927:1 imbalance.** Expected Calibration Error [@guo2017calibration] is an average over bins of the gap between predicted confidence and empirical accuracy. When 99.89% of samples are benign, the benign bin dominates the average and a model that is accurate on benign and *miscalibrated on the minority class* can still report near-zero aggregate ECE. The minority class is exactly where miscalibration hurts — a missed attack is a safety event. The fix is **class-conditional ECE** (compute ECE per class and report separately, or compute *adaptive* ECE with equal-mass bins) and reporting **reliability diagrams stratified by class**. The motivation for this is already implicit in the abstract's framing of imbalance as driving "poorly calibrated predictions" (`paper/content/introduction.md:15`) but the measurement is not yet there.
+**Aggregate ECE hides the failure that actually matters.** Expected Calibration Error [@guo2017calibration] averages, across confidence bins, the gap between predicted confidence and empirical accuracy. When 99.89% of samples are benign, the benign bin dominates the average; a model that is accurate on benign and *miscalibrated on the minority class* still reports near-zero aggregate ECE. The minority class is precisely where miscalibration costs lives — a missed attack is a safety event. The fix is **class-conditional ECE** (compute per class and report separately, or use *adaptive* ECE with equal-mass bins) alongside **reliability diagrams stratified by class**.
 
-**Aggregate metrics hide selective-prediction failure.** In a safety-critical system the right operating question is *not* "what is the accuracy at 100% coverage?" but "what is the accuracy when we only act on the top-$k\%$ most confident predictions, and how does that curve look in the tails?" This is the risk-coverage framing of @geifman2017selective. A well-calibrated model's risk-coverage curve should be monotone decreasing with coverage; if it is non-monotone, the confidence signal is unreliable precisely where the operator most needs it (the tail of high-uncertainty samples deferred for human review or ECU shutdown).
+**Coverage-naive metrics hide selective-prediction failure.** The right operating question for a safety-critical detector is not "what is the accuracy at 100% coverage?" but "what is the accuracy on the top-$k\%$ most confident predictions, and how does that curve behave in the tails?" — the risk-coverage framing of @geifman2017selective. A well-calibrated model's risk-coverage curve is monotone decreasing in coverage; if it is non-monotone, the confidence signal is unreliable precisely where the operator most needs it — the high-uncertainty tail flagged for human review or ECU shutdown.
 
-**Conformal prediction for coverage guarantees.** Neither ECE nor selective prediction gives a hard guarantee; both are averaged over a held-out distribution. For ISO 26262 ASIL C/D-equivalent claims, a *distribution-free* coverage guarantee is preferable. Conformal prediction [@angelopoulos2023conformal] provides exactly this: given a calibration set and a user-chosen miscoverage rate $\alpha$, the method produces prediction sets whose marginal coverage is $\geq 1-\alpha$ by construction, with no modelling assumptions. Under imbalance, *Mondrian* conformal prediction conditions on class to produce class-conditional coverage guarantees — directly addressing the aggregate-ECE failure above.
+**Conformal prediction for guaranteed coverage.** Neither ECE nor selective prediction gives a hard guarantee; both are averages over a held-out distribution. ISO 26262 ASIL C/D-equivalent claims call for something stronger: a distribution-free coverage guarantee. Conformal prediction [@angelopoulos2023conformal] provides exactly that — given a calibration set and a chosen miscoverage rate $\alpha$, the method produces prediction sets with marginal coverage $\geq 1-\alpha$ by construction, with no modelling assumptions. Under imbalance, *Mondrian* conformal prediction conditions on class to deliver class-conditional coverage — the structural answer to the aggregate-ECE failure above.
 
-A pragmatic evaluation protocol — temperature-scale on a held-out calibration split; report class-conditional ECE, Brier score, per-class reliability diagrams, and risk-coverage curves; fit Mondrian conformal predictors and report per-class coverage gap — is operationalised in [](../proposed-research.md#subsec:Calibration) deliverables 1–4.
+The evaluation protocol falls out of these three points: temperature-scale on a held-out split, report class-conditional ECE, Brier score, and per-class reliability diagrams, plot risk-coverage curves, then fit Mondrian conformal predictors and report the per-class coverage gap.
 
 ### Maintenance under operational drift
 
-"Maintenance" implies the calibration guarantee must hold *after* deployment, which raises three operational challenges:
+A calibration guarantee that holds at deployment but not three months later is not a guarantee. Three operational pieces keep it alive.
 
-- **Drift detection.** Predicted-confidence histograms and VGAE reconstruction-error distributions (`paper/content/explainability.md` §Composite VGAE Reconstruction Error) can be monitored online with a population stability index or Kolmogorov–Smirnov statistic. Drift past threshold triggers re-calibration.
-- **Re-calibration without labels.** Label-free approaches — @ovadia2019trust's deep ensembles and MC-dropout — provide the most degradation-resistant uncertainty under shift. The current framework's ensemble is *de facto* a small deep ensemble; its disagreement rate between GAT and VGAE is a usable drift signal already available in the 15-dim fusion state (`paper/content/methodology.md:126`).
-- **Conformal recalibration.** Online conformal prediction can maintain coverage guarantees under streaming non-stationary data with bounded additional memory; this is a natural pairing with the streaming-detection direction of [](#subsec:Streaming).
+- **Drift detection.** Predicted-confidence histograms and VGAE reconstruction-error distributions (§Composite VGAE Reconstruction Error) can be monitored online with a population stability index or a Kolmogorov–Smirnov statistic. Drift past threshold triggers re-calibration.
+- **Re-calibration without labels.** Labelled drift events are rare in deployment; the most degradation-resistant uncertainty signals under shift — deep ensembles and MC-dropout [@ovadia2019trust] — are exactly the ones that need none. Disagreement *between* the GAT and VGAE confidences plays the same role as disagreement *with* a label, and that disagreement is already exposed in the 15-dim fusion state.
+- **Online conformal recalibration.** Online conformal prediction maintains coverage under streaming non-stationary data with bounded additional memory — a natural pairing with the streaming-detection direction in [](#subsec:Streaming).
 
-### How the current framework addresses "know what it doesn't know"
+### Where the signals live, and what's still to build
 
-The framework contains the structural pieces for epistemic-uncertainty awareness, but does not yet measure or expose them formally:
+The pipeline already carries several uncertainty-relevant signals; what sits on top of them — the measurement layer that turns those signals into a defensible coverage claim — is the part of the answer that is still future work.
 
-| Mechanism | Role | Where |
+| Signal | What it carries | Where it lives |
 |---|---|---|
-| VGAE reconstruction error (composite: node + neighbour + CAN-ID) | OOD/epistemic score for unknown-attack generalisation | `paper/content/explainability.md:21`, [](#fig-reconstruction) |
-| GAT softmax probability | Aleatoric (boundary) confidence; overconfident by default [@guo2017calibration] | `paper/content/methodology.md:128` |
-| 15-dim fusion state (VGAE/GAT confidences, latent statistics) | Inputs already available to an uncertainty head | `paper/content/methodology.md:126` |
-| Neural-LinUCB UCB bonus | Directed exploration under epistemic uncertainty; bonus shrinks as $O(1/\sqrt{n_a})$ [@xu2022neural] | `paper/content/methodology.md:173` |
-| DQN fusion weight distribution (peaks at $\alpha \in \{0, 0.2, 0.4, 0.6, 0.8\}$) | Emergent attack-type-specific strategies; interpretable but unlabelled by uncertainty | `paper/content/explainability.md:42` |
+| VGAE reconstruction error (composite: node + neighbour + CAN-ID) | OOD / epistemic score, useful for unknown-attack generalisation | [](#fig-reconstruction) |
+| GAT softmax probability | Aleatoric (boundary) confidence; expected to be overconfident by default [@guo2017calibration] | §Methodology |
+| 15-dim fusion state | All confidence signals in one place — the natural input to an uncertainty head | §Methodology |
+| Neural-LinUCB UCB bonus | Directed exploration under epistemic uncertainty; bonus shrinks as $O(1/\sqrt{n_a})$ [@xu2022neural] | §Methodology |
+| DQN fusion-weight distribution | Emergent attack-type-specific strategies (peaks at $\alpha \in \{0, 0.2, 0.4, 0.6, 0.8\}$); interpretable but not labelled by uncertainty | §DQN-Fusion Analysis |
 
-Three pieces are missing — formal calibration measurement, selective-prediction evaluation, and conformal coverage guarantees — and are operationalised as deliverables in [](../proposed-research.md) §Calibration and Selective Prediction.
+The outstanding work is class-conditional ECE, per-class risk-coverage curves, and Mondrian conformal predictors fit on a held-out split. That apparatus is what turns the signals above into the operational coverage guarantee the question asks for.
 
 ## Question 2.2
 
 > When multiple explainability methods produce different explanations for the same prediction, how should a practitioner determine which explanation to trust and for whom?
 
-### What "trustworthy explanation" means, formally
+### What "trustworthy explanation" means
 
-There is no universally correct explanation; trustworthiness factors into three independent criteria. Conflating them is the most common error in XAI practice [@ModelInterpretability].
+Run two explainers on the same prediction and you will often get different answers. There is no universally correct explanation, only explanations that are trustworthy on their own terms — and trustworthiness is the conjunction of three independent properties. Conflating them is the most common error in XAI practice [@ModelInterpretability].
 
-**1. Faithfulness — does the explanation track what the model actually uses?** Writing $f$ for the model, $x$ for the input, and $E(x)$ for an explanation that ranks input components by importance, the standard operationalisations are:
+**1. Faithfulness — does the explanation track what the model actually uses?** The standard operationalisations are deletion- and insertion-AUC: deletion-AUC drops the top-$k$ components ranked by the explanation and measures how fast the prediction collapses; insertion-AUC adds them back and measures how fast it recovers. A faithful explanation has *low* deletion-AUC and *high* insertion-AUC. Formally, with $f$ the model, $x$ the input, and $E(x)$ ranking components by importance:
 
 $$
 \mathrm{AUC}_{\text{del}}(E, f, x) = \int_0^1 f\bigl(x \setminus E_{\le k}\bigr)\,dk
@@ -67,9 +71,9 @@ $$
 \mathrm{AUC}_{\text{ins}}(E, f, x) = \int_0^1 f\bigl(\emptyset \cup E_{\le k}\bigr)\,dk
 $$
 
-— deletion-AUC drops the top-$k$ components ranked by $E$ and measures how fast the prediction collapses; insertion-AUC adds them back and measures how fast it recovers. A faithful explanation has *low* deletion-AUC and *high* insertion-AUC. An *unfaithful* explanation passes the model-randomisation and data-randomisation **sanity checks** of @adebayo2018sanity: if the explanation looks the same when the model's weights are randomised, the "explanation" is decorative — it tracks input statistics rather than model behaviour. This is the disqualifying test, applied first.
+The complementary screen is the model- and data-randomisation **sanity checks** of @adebayo2018sanity: an explanation that looks the same when the model's weights are randomised tracks input statistics rather than model behaviour, and is decorative.
 
-**2. Stability — does it persist under small input perturbations?** A useful explanation should not change discontinuously when $x$ is perturbed to $x + \delta$ for small $\delta$. The Lipschitz formulation:
+**2. Stability — does it persist under small input perturbations?** A useful explanation should not change discontinuously when the input is perturbed slightly. Formally, the local Lipschitz constant of $E$ at $x$ over a perturbation ball of radius $r$:
 
 $$
 \mathrm{Stab}(E, f, x; r) = \max_{\|\delta\|\le r}\;\frac{\bigl\|E(x + \delta) - E(x)\bigr\|}{\|\delta\|}
@@ -83,7 +87,7 @@ A useful explanation requires *all three*: pass the sanity check, satisfy a stab
 
 ### A triangulation protocol for disagreement
 
-Rather than picking a single explainer, evaluate multiple and treat disagreement as a *signal*. The diagnostic move is to cross-reference explainer agreement with Q2.1's calibration framework:
+Rather than picking a single explainer, evaluate multiple and treat disagreement as a signal. Cross-referencing fusion confidence (from Q2.1) with explainer agreement yields four cases:
 
 | Fusion confidence | Explainer agreement | Diagnostic interpretation | Operational action |
 |---|---|---|---|
@@ -92,9 +96,9 @@ Rather than picking a single explainer, evaluate multiple and treat disagreement
 | Low | High | Model is uncertain but explainers agree on *what little signal exists* → **honest epistemic uncertainty** | Defer to human review (selective-prediction action of Q2.1) |
 | Low | Low | Model is uncertain *and* explainers disagree → **OOD input** | Conformal-prediction abstain / route to PINN safety shield (Q4.1) |
 
-This 2×2 is the operational core of "disagreement is informative, not noise." Notably, only the *high-confidence + low-agreement* cell unambiguously implicates the explainer; the other failure modes implicate the model or the input. The protocol therefore protects the model's reputation against unfaithful explainers — important under ISO 26262 review where a single brittle explainer can otherwise force unwarranted model rejection.
+Only the *high-confidence + low-agreement* cell unambiguously implicates the explainer; the other failure modes implicate the model or the input. This matters under ISO 26262 review, where a single brittle explainer can otherwise force unwarranted model rejection.
 
-A complementary aggregation move under disagreement is to require *consensus on the disqualification direction* — if any explainer flags an input feature as critical and another flags it as irrelevant, the conservative move is to assume both, i.e., treat the input as one whose decision relies on a contested feature. This is the dual of disagreement-as-signal: agreement is informative *for trust*; disagreement is informative *for caution*.
+A complementary aggregation move under disagreement is to require *consensus on the disqualification direction* — if any explainer flags an input feature as critical and another flags it as irrelevant, the conservative move is to assume both, i.e., treat the input as one whose decision relies on a contested feature.
 
 ### Audience-explainer mapping
 
@@ -108,8 +112,8 @@ Each XAI method targets a distinct level of abstraction; matching the level to t
 | ISO 26262 auditor [@ISO26262SafetyCase] | "Where is the failure-mode boundary?" | Counterfactual — "what's the smallest perturbation that flips the decision?" | CF-GNNExplainer [@CFGNNExplainer; @CounterfactualExplainability] | Built-in: counterfactual is, by definition, an action on the model | Boundary smoothness; small input changes should yield small counterfactuals |
 | NIST AI RMF [@NISTAIRisk] | "Does the model meet trustworthy-AI characteristics?" | Aggregate (multiple methods) | Triangulation across all of the above | Documented per-method | Documented per-method |
 
-**Layered rendering of the same prediction.** The framework should produce, for any flagged CAN sequence, *all five* explanations and surface them in a single audit-ready report. The fleet operator reads only the prototype panel; the auditor reads all five. This is a presentation-layer commitment, not an architectural one — the model produces the same outputs in either case.
+**Layered rendering.** Each flagged CAN sequence produces all five explanations together in one report, with separate panels per audience.
 
 ### How this framework's existing layers form a triangulation set
 
-The existing inspection layers — GAT attention weights ([](#fig-attention)), VGAE composite reconstruction error decomposed into node/neighbour/CAN-ID components ([](#fig-reconstruction)), UMAP of GAT penultimate-layer embeddings ([](#fig-umap)), and DQN fusion-weight distributions ([](#fig-fusion); see `paper/content/explainability.md`) — already span feature-level attribution, reconstruction-based attribution, latent-space concept geometry, and decision-process interpretability. Together they constitute a triangulation set even before the proposed XAI extension. [](#subsec:XAI) adds LIME [@LIME], SHAP [@SHAP], TCAV [@TCAV], CF-GNNExplainer [@CFGNNExplainer], and ProtoPNet [@ProtoPNet] to complete the audience-explainer mapping above.
+The existing inspection layers — GAT attention weights ([](#fig-attention)), VGAE composite reconstruction error decomposed into node/neighbour/CAN-ID components ([](#fig-reconstruction)), UMAP of GAT penultimate-layer embeddings ([](#fig-umap)), and DQN fusion-weight distributions ([](#fig-fusion)) — already span feature-level attribution, reconstruction-based attribution, latent-space concept geometry, and decision-process interpretability. [](#subsec:XAI) adds LIME [@LIME], SHAP [@SHAP], TCAV [@TCAV], CF-GNNExplainer [@CFGNNExplainer], and ProtoPNet [@ProtoPNet] to complete the audience-explainer mapping above.

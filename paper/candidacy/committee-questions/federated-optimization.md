@@ -6,13 +6,9 @@ title: "3. Federated Learning, Optimization, and Convergence"
 
 > Knowledge distillation can be framed as a bilevel optimization problem. Discuss the relationship between teacher capacity, student capacity, and task complexity.
 
-### Bilevel formulation made explicit
+### Bilevel formulation
 
-:::{dropdown} Bilevel framing is clarifying, not operational
-Knowledge distillation can be *framed* as a bilevel program, but in practice — and in this framework — the outer choice is fixed by hardware constraint Eq. {eq}`eq-flops-budget` and only the inner problem is solved. The bilevel framing is therefore *clarifying* (it gives a vocabulary for the teacher-capacity / student-capacity / task-complexity coupling) rather than *operational* (no bilevel solver runs). The proposed extension is a sweep over the (capacity-ratio, task-complexity) grid that empirically traces the inverted-U from @Towards-Law-of-Capacity-Gap2025 — *not* a bilevel solve.
-:::
-
-The formal program: KD [@hinton2015distilling; @bucilua2006model]'s outer problem chooses a student architecture (capacity, depth, width) under deployment constraints; the inner problem fits the student's weights to a frozen teacher under a chosen distillation loss. Writing the student architecture as $\mathcal{A}_S$ from a search space $\Omega$, student weights as $\theta_S$, and the frozen teacher as $f_T$:
+KD [@hinton2015distilling; @bucilua2006model]'s outer problem chooses a student architecture (capacity, depth, width) under deployment constraints; the inner problem fits the student's weights to a frozen teacher under a chosen distillation loss. Writing the student architecture as $\mathcal{A}_S$ from a search space $\Omega$, student weights as $\theta_S$, and the frozen teacher as $f_T$:
 
 $$
 \begin{aligned}
@@ -28,7 +24,7 @@ This recovers Eq. {eq}`eq-kd-total-loss` and Eq. {eq}`eq-temperature-scaling` fr
 - **Student capacity** $|f_S|$ — the outer decision variable, bounded above by $C_{\text{hw}}$ and below by the task's intrinsic dimension.
 - **Task complexity** $\mathcal{T}$ — fixes the minimum student capacity that can absorb the teacher's function. Operationalised by Bayes-optimal error or, more practically, by the size of the smallest model that can solo-train to the teacher's accuracy.
 
-Because the inner solution $\theta_S^\star(\mathcal{A}_S)$ depends on the outer choice, the gradient of the outer objective passes through the inner optimum. Most production KD pipelines (including this one) replace the bilevel solve with a single-level approximation: pick $\mathcal{A}_S$ by hand, then solve only the inner problem. Genuine bilevel approaches — gradient-based architecture search applied to KD, gradient-of-the-inner-optimum methods, or population-based co-search — are uncommon in practice but are the formally correct treatment.
+Because the inner solution $\theta_S^\star(\mathcal{A}_S)$ depends on the outer choice, the gradient of the outer objective passes through the inner optimum. Most production KD pipelines (including this one) replace the bilevel solve with a single-level approximation: pick $\mathcal{A}_S$ by hand, then solve only the inner problem. Genuine bilevel approaches — gradient-based architecture search applied to KD, gradient-of-the-inner-optimum methods, or population-based co-search — are uncommon in practice but are the formally correct treatment. The proposed extension here is an empirical sweep over the (capacity-ratio, task-complexity) grid that traces the inverted-U from @Towards-Law-of-Capacity-Gap2025, not a bilevel solve.
 
 ### How task complexity coupling shrinks the viable capacity gap
 
@@ -48,17 +44,17 @@ with empirically $\beta \in [0.3, 0.7]$ depending on architecture family [@disti
 
 A complementary observation from the graph-distillation survey [@kdgraph_survey2023]: graph KD is *empirically* tolerant of larger compression ratios than vision/NLP KD on equal task complexity, because attention-graph structures expose more redundant computation than dense feature stacks. This widens $\Delta^\star_{\text{cap}}$ for the GAT student here relative to a vision baseline at the same task difficulty.
 
-### How this framework specifically maps onto the bilevel view
+### How this framework maps onto the bilevel view
 
 The current setup is a *single-level reduction*: the outer choice has been made by hand and the inner problem is what gets solved.
 
 | Bilevel role | This framework | Where |
 |---|---|---|
-| Outer space $\Omega$ | Implicit: chosen student is a 33K-parameter GAT (`paper/content/methodology.md:109`); 68× compression ratio | [](#subsec:IntelKD) |
+| Outer space $\Omega$ | Implicit: chosen student is a 33K-parameter GAT; 68× compression ratio | [](#subsec:IntelKD) |
 | Hardware constraint $C_{\text{hw}}$ | $\mathrm{FLOPs}_{\max} = 2.5\times 10^6$ on ARM Cortex-A7 | Eq. {eq}`eq-flops-budget` |
-| Teacher $f_T$ | Pretrained GAT teacher (frozen) | `paper/content/methodology.md:109` |
+| Teacher $f_T$ | Pretrained GAT teacher (frozen) | §Methodology |
 | Inner objective | $\mathcal{L}_{\text{total}} = (1-\lambda)\mathcal{L}_{\text{hard}} + \lambda\mathcal{L}_{\text{KD}}$ with $T=4$, $\lambda=0.7$ | Eq. {eq}`eq-kd-total-loss` |
-| Inner solution evidence | F1 reported in `paper/content/ablation.md` §Knowledge Distillation Effects; CKA layer-similarity in [](#fig-cka) shows the student tracks the teacher representation despite the 20× parameter reduction | `paper/content/ablation.md:30, :39` |
+| Inner solution evidence | F1 reported in §Knowledge Distillation Effects of the ablation; CKA layer-similarity in [](#fig-cka) shows the student tracks the teacher representation despite the 20× parameter reduction | §Ablation |
 
 The $68\times$ ratio is well above the conservative $2$–$3\times$ scaling-law sweet spot, which is permissible only because the binary CAN attack/benign task sits at the easy end of the complexity curve. The actual constraint that fixes the student size is $C_{\text{hw}}$, not statistical optimality — this is the standard automotive trade-off: hardware closes the outer optimisation before task complexity does.
 
@@ -70,17 +66,17 @@ The $68\times$ ratio is well above the conservative $2$–$3\times$ scaling-law 
 
 Three properties of the automotive IDS setting jointly motivate federated learning:
 
-- **Privacy.** Per-vehicle CAN traces expose proprietary OEM signal layouts, driver behaviour, and route patterns — none of which OEMs are willing to upload to a central server. The trust paradox flagged in `paper/candidacy/introduction.md` Challenge 3 [@Trustworthiness; @BlackBoxRisk] applies a fortiori at the *data* layer: even a perfectly explainable model is unacceptable if training requires raw CAN upload.
+- **Privacy.** Per-vehicle CAN traces expose proprietary OEM signal layouts, driver behaviour, and route patterns — none of which OEMs are willing to upload to a central server. The trust paradox flagged in Challenge 3 of the introduction [@Trustworthiness; @BlackBoxRisk] applies a fortiori at the *data* layer: even a perfectly explainable model is unacceptable if training requires raw CAN upload.
 - **Attack-diversity coverage.** Any single vehicle observes a vanishingly small fraction of the attack distribution ([](#subsec:FL)). Federation pools gradient information across the fleet without pooling raw data, addressing the long-tail problem on rare attack types.
 - **Edge-compute constraint.** The Cortex-A7 budget Eq. {eq}`eq-flops-budget` already constrains the *student* model size; federation amortises the *teacher* training cost across the fleet, which is the reason KD and FL appear in the same proposal section.
 
 The challenge is that the resulting client distributions are non-IID along three independent axes, each of which breaks a different optimisation property of FedAvg.
 
-### Three axes of non-IID heterogeneity, formalised
+### Three axes of non-IID heterogeneity
 
 Indexing fleet vehicles by $i \in \{1, \ldots, K\}$ with local distribution $p_i(x, y)$:
 
-**1. Label shift — attack-exposure heterogeneity.** Different vehicles see different attack-class mixes. The natural CAN-IDS class imbalance from `paper/content/introduction.md:15` already runs at 927:1 benign-to-attack; on a single vehicle some attack subclasses may *never* appear. Formally:
+**1. Label shift — attack-exposure heterogeneity.** Different vehicles see different attack-class mixes. The natural CAN-IDS class imbalance already runs at 927:1 benign-to-attack; on a single vehicle some attack subclasses may *never* appear. Formally:
 
 $$
 p_i(y) \;\ne\; p_j(y) \quad\text{for}\quad i \ne j, \qquad p_i(y \mid x) \;=\; p_j(y \mid x)
@@ -139,7 +135,7 @@ CAN graphs from different OEMs have different node counts (variable ECU topology
 | Per-platform input projection (35-dim node feature → shared $d$-dim) | **Local only** | Absorbs OEM-specific feature semantics; cannot be shared across vehicles with different CAN signal layouts |
 | Shared GAT backbone | **Federated (FedAvg/SCAFFOLD)** | Protocol-invariant features (timing anomalies, frequency deviations) generalise across vehicles |
 | Per-platform output head | **Local only** (or clustered FL across OEM cohorts) | Different attack-class distributions and OEM-specific semantics |
-| OOV-robust embedding (`paper/content/methodology.md` §Handling OOV IDs) | **Hash-based version federates cleanly**; lookup table does not | The $k$-probe hash variant maps every ID to bucketed shared rows by construction; the lookup-plus-UNK variant requires shared vocabulary which leaks per-OEM IDs |
+| OOV-robust embedding (§Handling OOV IDs) | **Hash-based version federates cleanly**; lookup table does not | The $k$-probe hash variant maps every ID to bucketed shared rows by construction; the lookup-plus-UNK variant requires shared vocabulary which leaks per-OEM IDs |
 | VGAE encoder/decoder | **Federated** | Reconstruction is symmetric across protocols; per-platform anomaly thresholds remain local |
 | Fusion policy (DQN / Neural-LinUCB) | **Personalised local fine-tune from federated initialisation** | The fusion policy directly depends on per-vehicle confidence calibration (Q2.1) which differs across feature distributions |
 
@@ -157,15 +153,15 @@ This connects directly to Q1.2 — the FL setting introduces a *new* attack surf
 
 ### Privacy under DP-SGD interacts with class imbalance
 
-DP-SGD [@abadi2016dpsgd] adds Gaussian noise to clipped gradients with budget $(\varepsilon, \delta)$, but a uniform noise budget over-noises minority gradients under 927:1 imbalance — the minority-class gradient norm scales with $p(\text{attack})\approx 0.1\%$, so the SNR collapses without intervention. Remedies are class-conditional clipping bounds ($C_y$ per class) or amplification by sampling, which the curriculum schedule of Q3.3 already provides. The privacy accounting under amplification by a *time-varying* curriculum has not been worked out and is the Q3.2 ∩ Q3.3 contribution flagged in the index.
+DP-SGD [@abadi2016dpsgd] adds Gaussian noise to clipped gradients with budget $(\varepsilon, \delta)$, but a uniform noise budget over-noises minority gradients under 927:1 imbalance — the minority-class gradient norm scales with $p(\text{attack})\approx 0.1\%$, so the SNR collapses without intervention. Remedies are class-conditional clipping bounds ($C_y$ per class) or amplification by sampling, which the curriculum schedule of Q3.3 already provides. The privacy accounting under amplification by a *time-varying* curriculum sampling distribution remains an open theoretical question at the Q3.2 / Q3.3 boundary.
 
-### How this framework specifically would adopt FL
+### How this framework would adopt FL
 
 The three-stage pipeline factors cleanly along the FL boundary:
 
 | Stage | Local | Shared | FL strategy |
 |---|---|---|---|
-| Stage 1: VGAE training and hard-sample selection | Per-vehicle hard-sample buffer (`paper/content/methodology.md:55`) | VGAE encoder/decoder weights | SCAFFOLD on encoder; local hard-sample mining (per-vehicle benign distribution is local) |
+| Stage 1: VGAE training and hard-sample selection | Per-vehicle hard-sample buffer | VGAE encoder/decoder weights | SCAFFOLD on encoder; local hard-sample mining (per-vehicle benign distribution is local) |
 | Stage 2: GAT training with curriculum + KD | Per-vehicle curriculum momentum schedule, per-vehicle batch composition | GAT backbone, KD teacher logits | Federated KD (clients receive teacher logits from a federated teacher), shared backbone with per-platform input projection |
 | Stage 3: Adaptive fusion (DQN/bandit) | Per-vehicle calibration (Q2.1), per-vehicle reward function coefficients | Fusion-policy backbone | Federated initialisation, per-vehicle online adaptation via Neural-LinUCB (the closed-form linear update Eq. {eq}`eq-bandit-accum` is amenable to local adaptation without re-federation) |
 
@@ -195,21 +191,21 @@ is not the deployment distribution $p_{\text{nat}}(x, y)$. The resulting bias ha
 2. **Feature-selection bias.** Because minority-class features are seen *first*, the network develops its earliest-layer filters around minority-discriminative patterns. Later imbalanced exposure fine-tunes the classifier head but leaves the representation layer biased toward the minority. This is analogous to the transfer-of-easy-example learning argued for by @hacohen2019power.
 3. **Calibration drift.** If curriculum produces a different effective prior than $p_{\text{nat}}$, the model's softmax probabilities no longer match empirical frequencies under deployment. This is not a theoretical worry: every class-rebalancing intervention — oversampling, class-weighted loss, focal loss [@lin2017focal] — produces miscalibration relative to the natural distribution [@guo2017calibration]. Curriculum is a time-varying version of the same intervention and inherits the same pathology.
 
-Biases (1) and (2) are features by design — this framework explicitly targets minority-attack recall under 927:1 imbalance (`paper/content/introduction.md:15`). Bias (3) is a liability that should be measured (it directly re-enters Q2.1) and corrected at inference via temperature scaling on a natural-distribution calibration split.
+Biases (1) and (2) are features by design — this framework explicitly targets minority-attack recall under 927:1 imbalance. Bias (3) is a liability that should be measured (it directly re-enters Q2.1) and corrected at inference via temperature scaling on a natural-distribution calibration split.
 
-### How the curriculum in this framework specifically behaves
+### How the curriculum in this framework behaves
 
-The momentum-based curriculum in `paper/content/methodology.md:93` is worth unpacking because it is subtly different from the Bengio easy-to-hard paradigm:
+The momentum-based curriculum is worth unpacking because it is subtly different from the Bengio easy-to-hard paradigm:
 
 $$p_t = 1 - \exp(-t / \tau),\qquad B_t = (1 - p_t)\,B_{\text{bal}} + p_t\,B_{\text{nat}} + \alpha_{\text{buf}}\,B_{\text{hard}}$$
 
 At $t=0$, batches are fully class-*balanced* ($p_t\to 0$) — meaning the minority attack class is *oversampled* rather than undersampled. As $t$ grows, the mixture exponentially blends toward the natural imbalanced distribution. The hard-sample buffer $B_{\text{hard}}$ (refreshed every 100 steps from the highest-VGAE-error samples) contributes a persistent $\alpha_{\text{buf}}=0.2$ weight throughout.
 
-This is not "easy-to-hard" in the Bengio sense — the rare attacks are arguably the *hardest* examples. It is closer to *anti-curriculum with difficulty-aware replay* [@soviany2022curriculum §§ Self-Paced Learning and Hard Example Mining]. The design rationale in `paper/content/methodology.md:107` makes this explicit: "This prevents premature majority bias while maintaining natural distribution awareness."
+This is not "easy-to-hard" in the Bengio sense — the rare attacks are arguably the *hardest* examples. It is closer to *anti-curriculum with difficulty-aware replay* [@soviany2022curriculum §§ Self-Paced Learning and Hard Example Mining]. The design rationale states it directly: "This prevents premature majority bias while maintaining natural distribution awareness."
 
 The biases this specific schedule introduces are therefore:
 
-- **Intended:** Minority-attack recall gains, documented in the ablation design of `paper/content/ablation.md` §GAT Training Strategy and the 927:1-imbalance motivation. The momentum schedule gives a continuous knob $\tau$ trading precision for recall.
+- **Intended:** Minority-attack recall gains, documented in the §GAT Training Strategy ablation and the 927:1-imbalance motivation. The momentum schedule gives a continuous knob $\tau$ trading precision for recall.
 - **Intended:** Hard-sample replay biases the learned representation toward the VGAE's error surface, coupling the two stages and providing a form of curriculum-by-model rather than curriculum-by-heuristic.
 - **Unintended (and measurable):** Calibration drift on the majority class — predicted $P(\text{attack})$ will systematically exceed the natural $0.1\%$–$3\%$ base rate. This should be quantified with class-conditional ECE (Q2.1).
 - **Unintended (and worth testing):** Final-weight divergence from a non-curriculum baseline. Two concrete tests, both cheap at $N=3$ seeds:
