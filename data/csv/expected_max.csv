@@ -1,0 +1,17 @@
+variant,n_seeds,expected_max,group,dataset
+gps,1,0.7264183759689331,conv_type,set_01
+gat,1,0.6896640062332153,conv_type,set_01
+gatv2,1,0.6871997117996216,conv_type,set_01
+mlp,1,0.9884816408157349,fusion,set_01
+bandit,1,0.9869400262832642,fusion,set_01
+dqn,1,0.98647540807724,fusion,set_01
+weighted_avg,1,0.10019348561763763,fusion,set_01
+ce,1,0.6941876411437988,gat_loss,set_01
+weighted_ce,1,0.6916482448577881,gat_loss,set_01
+focal,1,0.689330518245697,gat_loss,set_01
+none,1,0.6903334856033325,gat_sampling,set_01
+curriculum_random,1,0.49112439155578613,gat_sampling,set_01
+curriculum_vgae,1,0.4876596927642822,gat_sampling,set_01
+hash,1,0.7272869944572449,id_encoding,set_01
+learned_unk,1,0.7119622230529785,id_encoding,set_01
+lookup,1,0.6962863206863403,id_encoding,set_01
