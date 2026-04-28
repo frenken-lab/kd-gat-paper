@@ -12,3 +12,4 @@ myst.yml
 Makefile
 tools/tmlr/build.py
 tools/pdf/extract-svg.js
+paper/STYLE.md
