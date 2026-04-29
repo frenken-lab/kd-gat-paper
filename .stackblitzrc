@@ -1,0 +1,4 @@
+{
+  "installDependencies": false,
+  "startCommand": "cd interactive && npm install && npm run dev -- --port 5173"
+}

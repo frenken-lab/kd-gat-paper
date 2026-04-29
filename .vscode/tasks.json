@@ -4,7 +4,8 @@
     {
       "label": "Start Dev Session",
       "type": "shell",
-      "command": "bash scripts/dev-session.sh",
+      "command": "cd interactive && npm install && npm run dev -- --port 5173",
+      "isBackground": true,
       "problemMatcher": [],
       "presentation": { "reveal": "always", "panel": "dedicated" },
       "runOptions": { "runOn": "folderOpen" }
@@ -37,7 +38,7 @@
     {
       "label": "Pull Data",
       "type": "shell",
-      "command": "python scripts/pull_data.py",
+      "command": "uv run python tools/pull_data.py",
       "problemMatcher": []
     },
     {

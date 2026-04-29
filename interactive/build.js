@@ -9,7 +9,9 @@
  */
 import { readdirSync, existsSync, renameSync, rmSync, writeFileSync, statSync } from "fs";
 import { resolve } from "path";
-import { execSync } from "child_process";
+import { exec } from "child_process";
+import { promisify } from "util";
+const execAsync = promisify(exec);
 
 const srcDir = resolve(import.meta.dirname, "src/figures");
 const outDir = resolve(import.meta.dirname, "..", "_build", "figures");
@@ -135,10 +137,12 @@ const passed = [];
 const failed = [];
 const skipped = [];
 
+// Pre-pass: mtime check, scaffold missing files, clear stale outputs.
+// Done serially before parallel builds to avoid concurrent fs races.
+const toBuild = [];
 for (const { name, category, dir: figDir } of filtered) {
   const outFile = resolve(outDir, `${name}.html`);
 
-  // Incremental skip: existing output newer than figure dir + shared deps.
   if (!force && existsSync(outFile)) {
     const figMtime = maxMtime([figDir]);
     const outMtime = statSync(outFile).mtimeMs;
@@ -152,35 +156,47 @@ for (const { name, category, dir: figDir } of filtered) {
 
   ensureIndexHtml(figDir, name);
   ensureMainJs(figDir, name);
-
-  // Remove stale output so the new build isn't merged with old content
   rmSync(outFile, { force: true });
-
-  console.log(`  ${category}/${name}...`);
-  try {
-    execSync(`npx vite build`, {
-      cwd: import.meta.dirname,
-      env: { ...process.env, FIGURE: name, FIGURE_CATEGORY: category },
-      stdio: "inherit",
-    });
-    // Vite outputs to outDir/src/figures/<category>/<name>/index.html — rename to outDir/<name>.html
-    const nestedHtml = resolve(outDir, "src", "figures", category, name, "index.html");
-    const rootIndexHtml = resolve(outDir, "index.html");
-    const outputHtml = existsSync(nestedHtml) ? nestedHtml : existsSync(rootIndexHtml) ? rootIndexHtml : null;
-    if (outputHtml) {
-      renameSync(outputHtml, resolve(outDir, `${name}.html`));
-      passed.push(name);
-    } else {
-      console.error(`  ERROR: ${name} — vite produced no output`);
-      failed.push(name);
-    }
-  } catch (err) {
-    console.error(`  ERROR: ${name} — build failed: ${err.message}`);
-    failed.push(name);
-  }
+  toBuild.push({ name, category });
 }
 
-// Clean up stray files from the nested output path
+// Parallel Vite builds. Each build writes to its own nested path under outDir
+// (outDir/src/figures/<category>/<name>/index.html) so there are no write conflicts.
+const buildResults = await Promise.all(
+  toBuild.map(async ({ name, category }) => {
+    try {
+      const { stderr } = await execAsync(`npx vite build`, {
+        cwd: import.meta.dirname,
+        env: { ...process.env, FIGURE: name, FIGURE_CATEGORY: category },
+      });
+
+      // Vite outputs to outDir/src/figures/<category>/<name>/index.html — rename flat.
+      const nestedHtml = resolve(outDir, "src", "figures", category, name, "index.html");
+      const rootIndexHtml = resolve(outDir, "index.html");
+      const outputHtml = existsSync(nestedHtml) ? nestedHtml : existsSync(rootIndexHtml) ? rootIndexHtml : null;
+
+      if (outputHtml) {
+        renameSync(outputHtml, resolve(outDir, `${name}.html`));
+        console.log(`  ok: ${category}/${name}`);
+        return { name, ok: true };
+      } else {
+        console.error(`  ERROR: ${name} — vite produced no output\n${stderr}`);
+        return { name, ok: false };
+      }
+    } catch (err) {
+      const detail = err.stderr || err.stdout || err.message;
+      console.error(`  ERROR: ${name} — build failed:\n${detail}`);
+      return { name, ok: false };
+    }
+  })
+);
+
+for (const { name, ok } of buildResults) {
+  if (ok) passed.push(name);
+  else failed.push(name);
+}
+
+// Clean up stray nested dirs left by Vite (done once after all builds finish).
 rmSync(resolve(outDir, "index.html"), { force: true });
 rmSync(resolve(outDir, "src"), { recursive: true, force: true });
 
