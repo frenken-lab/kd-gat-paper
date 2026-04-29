@@ -93,7 +93,7 @@ const devShellPlugin = {
   configureServer(server) {
     server.middlewares.use((req, res, next) => {
       const url = req.url?.split("?")[0];
-      if (url !== "/" && url !== "/__dev__") return next();
+      if (url !== "/" && url !== "/__dev__" && url !== "/__dev__/") return next();
 
       const firstFig = figures[0];
       const firstCat = figureCategoryByName[firstFig];
@@ -126,7 +126,7 @@ const devShellPlugin = {
       ${options}
     </select>
   </div>
-  <iframe id="frame" src="/src/figures/${firstCat}/${firstFig}/"></iframe>
+  <iframe id="frame" src="${firstFig ? `/src/figures/${firstCat}/${firstFig}/` : 'about:blank'}"></iframe>
   <script>
     document.getElementById('sel').addEventListener('change', e => {
       document.getElementById('frame').src = e.target.value;
