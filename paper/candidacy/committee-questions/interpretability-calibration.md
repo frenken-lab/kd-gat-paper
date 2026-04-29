@@ -18,7 +18,7 @@ Q2.1 investigates when a prediction is _justified_; Q2.2 investigates how to _ex
 
 ### What "know what it doesn't know" means
 
-A useful model reports multiple things at once: a prediction, its confidence, and a retrospective account of how it reached that decision. Take an umpire at a baseball game. For every pitch there is the correctness of the call (strike or ball?), a justification (was the umpire in position with a clear view of the plate?), and an explanation (modern broadcasts overlay a bounding box showing the strike zone). Even if a system achieves sufficient correctness (e.g., 99.9% accuracy), a detector that cannot tell an operator whether _this particular alert_ is one of its rare errors offers a confidence score that is operationally meaningless — and operationally meaningless is worse than absent, because it crowds out the abstain signal.
+A model reports multiple signals at once: a prediction, its confidence, and a retrospective account of how it reached that decision. Take an umpire at a baseball game. For every pitch there is the correctness of the call (strike or ball?), a justification (was the umpire in position with a clear view of the plate?), and an explanation (modern broadcasts overlay a bounding box showing the strike zone). Even if a system achieves sufficient correctness (e.g., 99.9% accuracy), a detector that cannot tell an operator whether _this particular alert_ is one of its rare errors offers a confidence score that is operationally meaningless — and operationally meaningless is worse than absent, because it crowds out the abstain signal.
 
 A more formal approach runs through epistemology. Post-Gettier epistemology [@gettier1963justified] gives two complementary criteria for _justification_ — both per-prediction.
 
