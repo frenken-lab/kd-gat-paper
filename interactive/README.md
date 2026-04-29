@@ -9,26 +9,18 @@ cd interactive
 npm install
 ```
 
-## Running a figure in dev mode
+## Dev
+
+```bash
+npm run dev    # shell at localhost:5173
+```
+
+The dev server serves a shell page at `/` with a dropdown and iframe. Selecting a figure swaps `iframe.src` without navigating the outer page, so the HMR WebSocket stays connected. This also works in StackBlitz WebContainers (hard MPA navigation between figure URLs tears down the WS; iframe swap does not).
 
 Figures live under `src/figures/` in two categories:
 
-- **`data/`** — data-driven plots consuming `data.json`: `algorithm`, `attention`, `cka`, `fusion`, `reconstruction`, `results-table`, `umap`
-- **`diagrams/`** — SvelteFlow architecture diagrams driven by `spec.yaml` (or inline graph construction): `architecture`, `composition-pipeline`, `gat`, `gat-layer`, `graph-base`, `kd-gat`, `kd-vgae`, `vgae`
-
-Figures are served one at a time. Set the `FIGURE` env var to the directory name (category is resolved automatically from the layout):
-
-```bash
-FIGURE=umap npm run dev
-```
-
-Or copy `.env.example` to `.env` and set the value there:
-
-```bash
-cp .env.example .env
-# edit .env → FIGURE=umap
-npm run dev
-```
+- **`data/`** — data-driven plots that import `data.json`
+- **`diagrams/`** — SvelteFlow architecture diagrams driven by `spec.yaml`
 
 ## Starting a new figure
 

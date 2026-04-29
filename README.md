@@ -124,12 +124,14 @@ interactive/src/figures/data/umap/
 
 Figures use [SveltePlot 0.12](https://svelteplot.dev) (grammar-of-graphics): `<Cell>`, `<RectY>`, `<Line>`, `<Dot>`, `<Arrow>`. Architecture diagrams use [SvelteFlow](https://svelteflow.dev/) (`@xyflow/svelte`) with [ELK](https://eclipse.dev/elk/) for orthogonal layout, driven by `spec.yaml`; the shared library is at `interactive/src/lib/flow/`.
 
-**Dev workflow for a single figure:**
+**Dev workflow:**
 
 ```bash
 cd interactive
-FIGURE=umap npx vite dev       # Live-reload one figure at localhost:5173
+npm run dev    # shell at localhost:5173 — pick figure from dropdown
 ```
+
+The shell page keeps HMR alive across figure switches (iframe swap, not hard navigation). Works in StackBlitz.
 
 **Build all figures:**
 
