@@ -81,58 +81,59 @@ const stylesVirtualPlugin = {
 };
 
 // ---------------------------------------------------------------------------
-// Plugin: compact dropdown figure-switcher injected into every dev HTML page
+// Plugin: dev shell served at / and /__dev__
 //
-// - One small button top-right showing the active figure name
-// - Click to open dropdown, click away to close
-// - Refresh stays on the current figure
-// - Dev only — not present in production builds
+// A stable outer page with a <select> + <iframe>. Switching figures sets
+// iframe.src only — the outer page never navigates, so StackBlitz
+// WebContainers don't crash the preview (MPA hard-nav tears down the WS
+// connection; iframe.src swap does not).
 // ---------------------------------------------------------------------------
-const devNavPlugin = {
-  name: "dev-nav",
+const devShellPlugin = {
+  name: "dev-shell",
   configureServer(server) {
     server.middlewares.use((req, res, next) => {
-      const originalEnd = res.end.bind(res);
+      const url = req.url?.split("?")[0];
+      if (url !== "/" && url !== "/__dev__") return next();
 
-      res.end = function (chunk, ...args) {
-        const isHtml =
-          typeof chunk === "string" &&
-          chunk.includes("</body>") &&
-          !chunk.includes("data-dev-nav");
+      const firstFig = figures[0];
+      const firstCat = figureCategoryByName[firstFig];
+      const options = figures
+        .map(
+          (f) =>
+            `<option value="/src/figures/${figureCategoryByName[f]}/${f}/">${f}</option>`,
+        )
+        .join("\n      ");
 
-        if (!isHtml) return originalEnd(chunk, ...args);
-
-        const match = req.url.match(/\/src\/figures\/(?:data|diagrams)\/([^/]+)/);
-        const active = match ? match[1] : figures[0];
-
-        const navHtml = `
-<div data-dev-nav style="position:fixed;top:8px;right:8px;z-index:99999;font-family:monospace;font-size:11px;">
-  <button
-    onclick="var d=this.nextElementSibling;d.style.display=d.style.display==='none'?'block':'none'"
-    style="cursor:pointer;padding:3px 8px;background:#fff;border:1px solid #ccc;border-radius:3px;font-family:monospace;font-size:11px;box-shadow:0 1px 4px rgba(0,0,0,0.1);"
-  >${active} &#9662;</button>
-  <div style="display:none;margin-top:2px;background:#fff;border:1px solid #ccc;border-radius:3px;box-shadow:0 2px 8px rgba(0,0,0,0.12);overflow:hidden;">
-    ${figures.map((f) => `<a
-      href="/src/figures/${figureCategoryByName[f]}/${f}/"
-      style="display:block;padding:4px 10px;text-decoration:none;color:${f === active ? "#000" : "#444"};background:${f === active ? "#f0f0f0" : "#fff"};font-weight:${f === active ? "bold" : "normal"};"
-      onmouseover="this.style.background='#f0f0f0'"
-      onmouseout="this.style.background='${f === active ? "#f0f0f0" : "#fff"}'"
-    >${f}</a>`).join("")}
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.end(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Figures</title>
+  <style>
+    *{box-sizing:border-box;margin:0}
+    body{display:flex;flex-direction:column;height:100vh;background:#111}
+    #bar{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#1a1a1a;border-bottom:1px solid #333;flex-shrink:0}
+    #bar span{color:#888;font:12px/1 monospace}
+    #bar select{font:12px/1 monospace;background:#222;color:#ddd;border:1px solid #444;border-radius:3px;padding:2px 6px;cursor:pointer}
+    iframe{flex:1;border:none;width:100%;background:#fff}
+  </style>
+</head>
+<body>
+  <div id="bar">
+    <span>figure</span>
+    <select id="sel">
+      ${options}
+    </select>
   </div>
-</div>
-<script>
-  document.addEventListener("click", function(e) {
-    if (!e.target.closest("[data-dev-nav]"))
-      document.querySelector("[data-dev-nav] div").style.display = "none";
-  });
-</script>`;
-
-        chunk = chunk.replace("</body>", navHtml + "\n</body>");
-        res.setHeader("Content-Type", "text/html; charset=utf-8");
-        return originalEnd(chunk, ...args);
-      };
-
-      next();
+  <iframe id="frame" src="/src/figures/${firstCat}/${firstFig}/"></iframe>
+  <script>
+    document.getElementById('sel').addEventListener('change', e => {
+      document.getElementById('frame').src = e.target.value;
+    });
+  </script>
+</body>
+</html>`);
     });
   },
 };
@@ -182,19 +183,16 @@ export default defineConfig(({ command }) => {
         figures.map((f) => [f, resolve(figureSrcPath(f), "index.html")])
       );
 
-  const firstFig = figures[0];
-  const firstFigCategory = figureCategoryByName[firstFig];
-
   return {
     plugins: [
       yamlImportPlugin,
       stylesVirtualPlugin,
       svelte(),
-      ...(isServe ? [devNavPlugin, figureAliasPlugin] : [viteSingleFile()]),
+      ...(isServe ? [devShellPlugin, figureAliasPlugin] : [viteSingleFile()]),
     ],
     root: __dirname,
     server: {
-      open: `/src/figures/${firstFigCategory}/${firstFig}/`,
+      open: "/",
       fs: {
         allow: [resolve(__dirname, "..")],
       },
