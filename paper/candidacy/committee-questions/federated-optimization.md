@@ -10,48 +10,117 @@ Knowledge distillation is typically presented as a pragmatic problem — use of 
 
 $$
 \begin{aligned}
-\text{(outer)}\quad & \mathcal{A}_S^\star = \arg\min_{\mathcal{A}_S \in \Omega}\; \mathcal{R}_{\text{val}}\bigl(f_{S}(\,\cdot\,;\,\theta_S^\star(\mathcal{A}_S),\,\mathcal{A}_S)\bigr) \\
-\text{s.t.}\quad & \mathrm{FLOPs}(\mathcal{A}_S) \le C_{\text{hw}},\quad \mathrm{Latency}(\mathcal{A}_S) \le L_{\text{hw}} \\[4pt]
-\text{(inner)}\quad & \theta_S^\star(\mathcal{A}_S) = \arg\min_{\theta_S}\; \underbrace{(1-\lambda)\,\mathcal{L}_{\text{hard}}(\theta_S)}_{\text{ground-truth CE}} + \underbrace{\lambda\,\mathcal{L}_{\text{KD}}(\theta_S; f_T, T)}_{\text{KL to soft teacher targets}}
+\text{(outer)}\quad & \mathcal{A}_S^\star
+    = \arg\min_{\mathcal{A}_S \in \Omega}\;
+      \mathcal{R}_{\text{val}}\!\bigl(f_{S}(\,\cdot\,;\,\theta_S^\star(\mathcal{A}_S),\,\mathcal{A}_S)\bigr) \\
+\text{s.t.}\quad
+    & \mathrm{FLOPs}(\mathcal{A}_S) \le C_{\text{hw}},\quad
+      \mathrm{Latency}(\mathcal{A}_S) \le L_{\text{hw}} \\[6pt]
+\text{(inner)}\quad & \theta_S^\star(\mathcal{A}_S)
+    = \arg\min_{\theta_S}\;
+      \underbrace{(1-\lambda)\,\mathcal{L}_{\text{hard}}(\theta_S)}_{\text{ground-truth CE}}
+    + \underbrace{\lambda\,\mathcal{L}_{\text{KD}}(\theta_S;\,f_T,\,T)}_{\text{KL to soft teacher targets}}
 \end{aligned}
 $$
 
-Standard KD fixes the student architecture and solves only the inner problem; the bilevel frame is applied here to make the architecture-selection decision and its dependencies on the three shaping parameters explicit:
+where the terms are defined as follows.
 
-- **Teacher capacity** $|f_T|$: fixed before the bilevel program runs; sets the ceiling on soft-target entropy. A near-random teacher degenerates KD into label-smoothed CE.
-- **Student capacity** $|f_S|$: the outer decision variable, bounded above by the hardware budget and below by the task's intrinsic dimension.
-- **Task complexity** $\mathcal{T}$: fixes the minimum student capacity that can absorb the teacher's function. Typically represented as Bayes-optimal error or the smallest model that solo-trains to the teacher's accuracy.
+$\mathcal{A}_S \in \Omega$
+: The student architecture, a discrete choice from search space $\Omega$ (e.g., layer counts, widths, kernel sizes) subject to hardware feasibility constraints.
 
-The outer objective cannot be differentiated directly. By the implicit-function theorem, $\nabla_{\mathcal{A}_S} \mathcal{R}_{\text{val}} = (\partial \mathcal{R}/\partial \theta_S^\star)(\partial \theta_S^\star/\partial \mathcal{A}_S)$, where the second factor requires back-propagating through the inner optimum — a full inner re-solve per outer gradient step. At LLM scale this is intractable by cost; at graph-IDS scale, re-running the inner loop to convergence for every architecture candidate is equally prohibitive under the ARM Cortex-A7 FLOPs budget. Production KD treats the student architecture as a fixed choice and skips the outer solve.
+$\mathcal{A}_S^\star$
+: The outer decision variable — the architecture returned by solving the outer problem — upper-bounded by the hardware budget $C_{\text{hw}}, L_{\text{hw}}$ and lower-bounded by task complexity $\mathcal{T}$.
 
-The three parameters fill in for the missing gradient. Together $|f_T|$, $|f_S|$, and $\mathcal{T}$ describe the shape of $\mathcal{R}_{\text{val}}(|f_S|)$ through the inner optimum $\theta_S^\star(|f_S|)$. Four structural properties give a working map of the surface without solving the bilevel:
+$\theta_S^\star(\mathcal{A}_S)$
+: The inner solution: optimal weights for a given architecture, treated as an implicit function of $\mathcal{A}_S$.
 
-- **Task complexity sets inner-basin curvature.** Easy tasks admit wide basins where a range of student sizes reach near-optimal solutions; hard tasks have narrow basins that punish under-capacity sharply.
-- **The outer surface inherits the inner basin.** Because validation risk depends on $\theta_S^\star(|f_S|)$, the outer surface is the inner basin projected along the student-architecture axis. The empirical inverted-U over student size is the structural fingerprint of that projection.
-- **Teacher capacity sets the projection's amplitude.** Larger $|f_T|$ produces higher-entropy soft targets and steepens the inner KL gradient. Past a critical ratio the student can no longer represent the teacher's softmax — the "larger teachers hurt smaller students" pathology [@distillation-scaling-laws; @Mirzadeh-TAKD2020].
-- **Task complexity moves the outer peak.** Higher $\mathcal{T}$ tightens the basin, so a student on the plateau at low complexity falls off the cliff at high complexity. The viable capacity gap $\Delta^\star_{\text{cap}}(\mathcal{T}) = |f_T|/|f_S|$ at the optimum shrinks monotonically in $\mathcal{T}$.
+$\lambda \in [0,1]$
+: Interpolation coefficient trading off hard-label cross-entropy against the KD objective.
 
-The field reconstructs this surface empirically through three approaches, each a partial read-off of the geometry above:
+$T > 0$
+: Softmax temperature controlling the entropy of the teacher's output distribution; higher $T$ surfaces dark knowledge in near-zero logit differences.
 
-- The **capacity-gap inverted-U** [@Towards-Law-of-Capacity-Gap2025] — the outer surface projected onto the student-size axis, discovered by sweeping because nobody can differentiate it.
-- **Teacher-assistant chains** [@Mirzadeh-TAKD2020; @DenselyGuided-KD2019; @Gap-KD2025] — local patches around poor outer minima; each TA is approximately one Newton step a bilevel solve would have produced automatically.
-- **Distillation scaling laws** [@distillation-scaling-laws] — the outer surface characterised by grid search, viable only because the outer feasible set is searchable at LLM scale.
+$\mathcal{L}_{\text{KD}}(\theta_S;\,f_T,\,T) = \mathrm{KL}\!\bigl(\sigma(z_T/T)\;\|\;\sigma(z_S/T)\bigr)$
+: The KD loss, where $z_T, z_S$ are teacher and student pre-softmax logits and $\sigma$ is the softmax operator.
 
-That last point is why the $68\times$ compression ratio in this framework ([](#subsec:IntelKD)) is defensible: binary CAN attack/benign sits at the easy end of the $\mathcal{T}$ axis, where the inner basin is wide and large compression ratios are tolerable. The same student would fail at $68\times$ on 9-class fine-grained typing (the nine attack scenarios in can-train-and-test [@Lampe2024cantrainandtest]: DoS, fuzzing, systematic, spoofing variants, standstill, interval) or multi-vehicle training ([](#subsec:CrossD)), where the basin narrows. Graph KD also tolerates larger compression than vision/NLP KD at matched complexity [@kdgraph_survey2023] — attention-graph computation has more redundant capacity than dense feature stacks, which further widens the viable gap here.
+**Task complexity** $\mathcal{T}$
+: The intrinsic difficulty of the learning problem, independent of any particular model. Formally indexed by the Bayes-optimal error $\epsilon^* = \inf_{f} \mathbb{E}[\ell(f(x), y)]$, or equivalently by the capacity of the smallest model class that attains the teacher's validation accuracy when trained from ground-truth labels alone. High $\mathcal{T}$ means the decision boundary is complex and requires substantial representational power regardless of training regime.
 
-### Where this framework sits and where it's going
+**Teacher capacity** $|f_T|$
+: The representational power of the teacher, measured by parameter count, VC dimension, or effective parameter count (e.g., Fisher–Rao norm). The teacher must satisfy $|f_T| \gtrsim \mathcal{T}$ for its soft targets to carry useful dark knowledge; an underfit teacher produces noisy soft labels that degrade student training.
 
-The current framework occupies a single point on the outer surface — the outer search was replaced by a hardware-budget constraint. Table 1 maps each component onto the bilevel abstraction, making explicit what was solved (inner KD objective) versus fixed by fiat (student architecture):
+**Student capacity** $|f_S|$
+: The representational power of the student, and the outer decision variable of the bilevel problem. Bounded below by task complexity — $|f_S| \gtrsim \mathcal{T}$, otherwise no training regime can close the gap — and above by the hardware budget encoded in $C_{\text{hw}}, L_{\text{hw}}$.
 
-| Bilevel role                        | This framework                                                                                                             |
-| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Outer space $\Omega$                | 33K-parameter GAT; $68\times$ compression                                                                                  |
-| Hardware constraint $C_{\text{hw}}$ | $\mathrm{FLOPs}_{\max} = 2.5\times 10^6$ on ARM Cortex-A7                                                                  |
-| Teacher $f_T$                       | Pretrained GAT teacher (frozen)                                                                                            |
-| Inner objective                     | $\mathcal{L}_{\text{total}} = (1-\lambda)\mathcal{L}_{\text{hard}} + \lambda\mathcal{L}_{\text{KD}}$, $T=4$, $\lambda=0.7$ |
-| Inner solution evidence             | F1 in §KD Effects ablation; CKA shows student tracks teacher despite 20× parameter reduction                               |
+**Validation risk** $\mathcal{R}_{\text{val}}$
+: Empirical cross-entropy loss on a held-out validation set $\mathcal{D}_{\text{val}}$, evaluated with hard labels only:
 
-The proposed binary → 9-class fine-grained typing → multi-vehicle progression traverses the $\mathcal{T}$ axis: at each step the outer choice is re-optimised against the new task's inner basin. Sampling the surface — rather than differentiating it — is tractable here for three reasons: the ARM Cortex-A7 FLOPs budget closes the outer feasible set to an exhaustible range of student sizes; task complexity is varied by design, so each level is a controlled data point; and federation couples the two levels — SCAFFOLD control variates and FedProx proximal terms live in the student parameter space, so re-sizing the student changes the inner federated objective, not just its scale. The $(|f_S|, \mathcal{T})$ grid _is_ the bilevel solve, sampled rather than differentiated.
+$$
+\mathcal{R}_{\text{val}}(\theta_S, \mathcal{A}_S)
+= \frac{1}{|\mathcal{D}_{\text{val}}|}
+  \sum_{(x,y)\,\in\,\mathcal{D}_{\text{val}}}
+  \mathcal{L}_{\text{hard}}\bigl(f_S(x;\,\theta_S,\,\mathcal{A}_S),\,y\bigr)
+$$
+
+The split between $\mathcal{D}_{\text{train}}$ (used in the inner objective with soft targets) and $\mathcal{D}_{\text{val}}$ (used in the outer objective with hard labels) is what makes this a proper bilevel problem rather than a single jointly-optimized loss — the outer problem measures generalization, not fit to the teacher.
+
+### Why the Outer Objective Cannot Be Differentiated
+
+The goal of the outer problem is to find $\mathcal{A}_S^\star$ by gradient descent on $\mathcal{R}_{\text{val}}$. This requires:
+
+$$
+\frac{d\,\mathcal{R}_{\text{val}}}{d\,\mathcal{A}_S}
+$$
+
+Applying the chain rule, since $\mathcal{R}_{\text{val}}$ depends on $\mathcal{A}_S$ only through the trained weights $\theta_S^\star(\mathcal{A}_S)$:
+
+$$
+\frac{d\,\mathcal{R}_{\text{val}}}{d\,\mathcal{A}_S}
+= \underbrace{\frac{\partial \mathcal{R}_{\text{val}}}{\partial \theta_S^\star}}_{\text{(i) easy: backprop on val set}}
+  \cdot
+  \underbrace{\frac{d\,\theta_S^\star}{d\,\mathcal{A}_S}}_{\text{(ii) hard: gradient \emph{through} training}}
+$$
+
+Term (i) is a standard gradient — backpropagate the validation loss through the student. Term (ii) is the problem. It asks: _if the architecture were perturbed slightly, how would the fully-converged weights change?_ Since $\theta_S^\star$ is defined as the minimizer of the inner objective, at convergence the inner gradient is zero by definition:
+
+$$
+\nabla_{\theta_S} \mathcal{L}_{\text{inner}}\bigl(\theta_S^\star(\mathcal{A}_S),\, \mathcal{A}_S\bigr) = 0
+$$
+
+Differentiating this identity with respect to $\mathcal{A}_S$ via the implicit-function theorem (IFT) gives:
+
+$$
+\frac{d\,\theta_S^\star}{d\,\mathcal{A}_S}
+= -\Bigl[\nabla^2_{\theta_S\theta_S}\,\mathcal{L}_{\text{inner}}\Bigr]^{-1}
+   \nabla^2_{\theta_S \mathcal{A}_S}\,\mathcal{L}_{\text{inner}}
+$$
+
+The first factor is the inverse Hessian of the inner loss with respect to the weights — a matrix of size $|\theta_S| \times |\theta_S|$. For any non-trivial student this is millions-by-millions and cannot be stored or inverted. The second factor is a mixed partial requiring gradients of the inner loss with respect to both weights and architecture simultaneously. Together, evaluating this expression costs approximately as much as re-training the student from scratch for each candidate architecture — which defeats the purpose. DARTS [@DARTS2019] approximates both factors with a single unrolled gradient step and a first-order Hessian approximation; this makes it tractable but introduces instability. In the KD setting, no such approximation is standard: the outer solve is simply skipped and the student architecture is fixed by engineering judgment.
+
+### Why the outer curve is an inverted-U in student capacity
+
+Since the outer gradient is intractable, the approach is to reason about the _shape_ of the curve $\mathcal{R}_{\text{val}}(|f_S|)$ — what validation risk looks like as a function of student size, holding the teacher and task fixed. This curve emerges from sweeping student architectures, training each to convergence, and recording their validation error. Its shape locates $|f_S|$ without computing a gradient.
+
+The shape is an inverted-U (or equivalently, a U-shape in error): performance improves as student capacity increases from zero, peaks at some optimal size, then degrades. This is empirically documented in [@Towards-Law-of-Capacity-Gap2025] and underlies the teacher-assistant motivation in [@Mirzadeh-TAKD2020]. The three quantities $|f_T|$, $|f_S|$, $\mathcal{T}$ jointly control this curve's shape through two mechanisms.
+
+**Mechanism 1 — Task complexity controls basin width ([@keskar2017largebatch]).**
+For a fixed student architecture, the inner training converges to a minimum of $\mathcal{L}_{\text{inner}}$ in weight space. The neighborhood around that minimum is a _basin_ — a region where loss is near-optimal. Easy tasks (low $\mathcal{T}$, e.g., binary classification) produce _wide_ basins: many different student sizes and weight configurations all achieve near-optimal validation loss, because the decision boundary is simple enough that even a slightly undersized student can approximate it. Hard tasks (high $\mathcal{T}$, e.g., fine-grained multi-class) produce _narrow_ basins: only students with sufficient capacity land in the good region, and an undersized student falls off sharply. This is a consequence of the relationship between model capacity, generalization, and loss landscape curvature established in [@keskar2017largebatch] — sharper minima correlate with higher generalization error, and insufficient capacity forces convergence to sharp minima. Applied to the bilevel setting: high $\mathcal{T}$ makes the inner basin narrow, which means the outer curve $\mathcal{R}_{\text{val}}(|f_S|)$ has a sharp peak — the viable range of student sizes is small.
+
+**Mechanism 2 — Teacher capacity controls the peak height and can invert it ([@Mirzadeh-TAKD2020], [@distillation-scaling-laws]).**
+A larger teacher produces a higher-entropy softmax distribution over classes. This distribution carries _dark knowledge_ — non-trivial probability mass on incorrect classes that encodes inter-class similarity (e.g., the teacher assigns non-negligible probability to "truck" when classifying "bus"). This richens the KD training signal: the student receives gradient information about class relationships, not just the single correct label. However, past a critical teacher-to-student capacity ratio, the student's output layer lacks the expressiveness to approximate the teacher's distribution — the teacher's softmax is too spread, or encodes correlations the student's architecture cannot represent. The KD loss then provides gradients that push the student toward an unachievable target, degrading rather than improving generalization. This is the **"larger teachers hurt smaller students"** pathology, quantitatively established in [@Mirzadeh-TAKD2020] and characterized as a function of the teacher/student parameter ratio in [@distillation-scaling-laws]. Its effect on the outer curve: $|f_T|$ controls the peak _height_ of $\mathcal{R}_{\text{val}}(|f_S|)$ non-monotonically — increasing $|f_T|$ raises the peak up to a point, then lowers it by making the KD target unachievable for small students.
+
+**Consequence — viable compression ratio shrinks with task complexity.**
+Define the viable capacity gap as $\Delta^\star_{\text{cap}}(\mathcal{T}) = |f_T|/|f_S|^\star$ where $|f_S|^\star$ is the student size at the outer optimum. As $\mathcal{T}$ increases, the inner basin narrows, the outer peak shifts rightward (requiring a larger student), and $\Delta^\star_{\text{cap}}$ shrinks. This is not stated as a theorem in a single source — it is the structural consequence of mechanisms 1 and 2 combined, consistent with the empirical sweeps in [@Towards-Law-of-Capacity-Gap2025] — but has not been formally proved.
+
+### Reconstructing the outer surface without gradients
+
+Since $\mathcal{R}_{\text{val}}(|f_S|)$ cannot be differentiated, the field reconstructs it by sampling:
+
+- The **capacity-gap inverted-U** [@Towards-Law-of-Capacity-Gap2025] — a sweep of the student sizes and plot the curve directly, sampling the outer surface with high granularity. Expensive but straightforward.
+- **Teacher-assistant chains** [@Mirzadeh-TAKD2020; @DenselyGuided-KD2019; @Gap-KD2025] — when the student-to-teacher gap is too large, inserting intermediate models (teacher → TA → student) bridges the capacity gap, making each distillation step easier. Each TA can be framed as doing an approximate step of what a bilevel gradient solver would do, moving toward the outer minimum incrementally rather than in one large jump.
+- **Distillation scaling laws** [@distillation-scaling-laws] — at LLM scale, training many (teacher, student) pairs and fitting a power-law curve to the results characterizes the outer surface analytically, though it only works at LLM scale because fitting the law requires many expensive runs.
+
+In the CAN bus context, binary attack/benign sits at the easy end of the $\mathcal{T}$ axis, where the inner basin is wide and large compression ratios are tolerable, allowing more aggressive compression. However, introducing additional variables like multi-class attacks or multi-vehicle training narrows the basin.
 
 ---
 
@@ -144,7 +213,7 @@ Curriculum learning by design diverges from training on the full dataset, though
 
 ### Does it converge to the same solution?
 
-No, not in general. Curriculum learning modifies the effective training distribution $p_t(x, y)$ at each step, changing the expected gradient and SGD's trajectory. Deep networks are non-convex and SGD's weights depend on both initialisation and path — two trajectories over different distributions converge to different stationary points even when both minimise the same terminal empirical risk. @bengio2009curriculum frames the mechanism as a continuation method guiding SGD toward better local optima. Therefore, the convergence to a different solution from vanilla training is an intentional decision.
+No, not in general. Curriculum learning modifies the effective training distribution $p_t(x, y)$ at each step, changing the expected gradient and SGD's trajectory. @bengio2009curriculum frames the mechanism as a continuation method guiding SGD toward better local optima. Therefore, the convergence to a different solution from vanilla training is an intentional decision.
 
 More precisely: curriculum changes the implicit bias of SGD. @hacohen2019power show curriculum-trained networks converge faster and to lower final loss than shuffled-baseline training, with the gap largest on harder tasks. The @soviany2022curriculum survey finds the same pattern across vision, NLP, and RL. The answer is asymmetric: for convergence _rate_, curriculum can strictly improve it; for convergence to a _specific_ minimum, it generally does not.
 
