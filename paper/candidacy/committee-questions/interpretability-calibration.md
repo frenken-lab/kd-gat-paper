@@ -2,8 +2,6 @@
 title: "2. Model Interpretability and Calibration"
 ---
 
-## Scope of the chapter
-
 While working through this section, three axes emerged as a means to evaluate a model: correctness, justification, and explanation. The table below defines each; though related, they are independent. An ideal model satisfies all three.
 
 | Axis              | What it is                                                                                        | The question it answers                        |
