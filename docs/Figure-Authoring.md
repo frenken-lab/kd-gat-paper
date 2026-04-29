@@ -47,7 +47,7 @@ interactive/src/figures/data/umap/
 4. Test it:
    ```bash
    cd interactive
-   FIGURE=my-figure npx vite dev
+   npm run dev    # shell at localhost:5173; pick my-figure from the dropdown
    ```
 
 5. Build all figures:

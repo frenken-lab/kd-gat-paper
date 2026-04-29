@@ -1,6 +1,6 @@
 # Hugging Face Data Inventory
 
-Inventory of all KD-GAT data currently on Hugging Face under `buckeyeguy`. Audited 2026-04-02.
+Inventory of KD-GAT data on Hugging Face under `buckeyeguy`. Audited 2026-04-02.
 
 ## Datasets
 
@@ -8,96 +8,44 @@ Inventory of all KD-GAT data currently on Hugging Face under `buckeyeguy`. Audit
 
 Primary data source for the paper. `make data` pulls from this dataset via `tools/pull_data.py`. Contains 30+ files validated against `data/schemas.yaml`.
 
----
-
 ### `buckeyeguy/kd-gat-experiments`
 
-MLflow experiment run tracking data. Last modified: 2026-03-10.
-
-- **File:** `experiments.parquet` (65KB)
-- **Shape:** 181 rows x 65 columns
-- **Key columns:**
-  - `run_id`, `experiment_id`, `status` — run identity
-  - `metrics.val_loss`, `metrics.train_loss`, `metrics.val_acc`, `metrics.train_acc` — training metrics
-  - `metrics.peak_gpu_mb`, `metrics.duration_seconds` — resource usage
-  - `params.model_type` (gat/vgae), `params.stage` (curriculum/autoencoder), `params.dataset`, `params.scale` (large/small)
-  - `params.lr`, `params.batch_size`, `params.seed`, `params.has_kd`
-  - `tags.run_group`, `tags.config_hash`, `tags.gpu_name`, `tags.slurm_job_id`
-- **Sparsity:** High null rate (~50-90%) on many columns due to heterogeneous run types (training, sweeps, test runs). 90/181 runs missing `duration_seconds`, 120/181 missing `val_acc`/`train_acc`.
-- **Notes:** Artifact URIs point to OSC filesystem (`/users/PAS2022/rf15/KD-GAT/mlruns/`). Contains test/debug runs mixed with production runs.
+MLflow experiment run tracking. 181 rows × 65 columns (`experiments.parquet`, 65KB). Covers training/sweep/test runs with metrics, hyperparameters, and SLURM provenance. High null rate (~50–90%) due to heterogeneous run types.
 
 ### `buckeyeguy/kd-gat-sweeps`
 
-Hyperparameter sweep results. Last modified: 2026-03-06.
-
-- **File:** `sweeps.parquet` (8KB)
-- **Shape:** 37 rows x 30 columns
-- **Key columns:**
-  - `sweep_id`, `trial_id`, `stage`, `dataset`, `scale`, `status`
-  - `val_loss`, `duration_s`, `timestamp`
-  - `hp_training.*` (lr, weight_decay)
-  - `hp_vgae.*` (dropout, embedding_dim, heads, latent_dim, proj_dim)
-  - `hp_gat.*` (dropout, embedding_dim, fc_layers, heads, hidden, layers, proj_dim)
-  - `hp_dqn.*` (epsilon, epsilon_decay, gamma, hidden, layers)
-  - `hp_fusion.*` (episodes, lr)
-- **Notes:** Clean, structured sweep data. All 37 trials have complete hyperparameter records.
+Hyperparameter sweep results. 37 rows × 30 columns (`sweeps.parquet`, 8KB). Complete hyperparameter records for all trials across VGAE/GAT/DQN/fusion search spaces.
 
 ## Spaces
 
-### `buckeyeguy/kd-gat-paper` (static Space)
+### `buckeyeguy/kd-gat-paper` (static Space — deprecated)
 
-Old Quarto-based dashboard. Created 2026-03-03, last modified 2026-03-06. SDK: static.
+Old Quarto-based dashboard (SDK: static). Predates the current MyST paper pipeline; not actively maintained. Data files in this Space map to current paper figures:
 
-**This is the old fragile Space** that had OJS/D3 issues. Contains a rich data directory that predates the current MyST paper pipeline.
-
-#### Data files in the Space:
-
-| File | Size | Format | Description |
-|---|---|---|---|
-| `data/metrics.parquet` | 6KB | parquet | Summary metrics |
-| `data/metrics/*.json` (18 files) | ~6-7KB each | JSON | Per-config evaluation metrics (6 datasets x 3 scales: large, small, small_kd) |
-| `data/metrics/metric_catalog.json` | 391B | JSON | Metric definitions |
-| `data/recon_errors.parquet` | 3.1MB | parquet | VGAE reconstruction error data (largest file) |
-| `data/embeddings.parquet` | 1.1MB | parquet | Graph embeddings (likely UMAP source) |
-| `data/dqn_policy.parquet` | 1.1MB | parquet | DQN fusion policy data |
-| `data/graph_statistics.parquet` | 182KB | parquet | Per-graph statistics |
-| `data/training_curves.parquet` | 137KB | parquet | Aggregated training curves |
-| `data/training_curves/*.json` (~30 files) | 200B-90KB | JSON | Per-run training curves by config |
-| `data/graph_samples.json` | 1.7MB | JSON | Raw graph instances (attention visualization source) |
-| `data/attention_weights.parquet` | 7KB | parquet | GAT attention weight data |
-| `data/cka_similarity.parquet` | 2KB | parquet | CKA similarity matrix data |
-| `data/runs.parquet` / `data/runs.json` | 8KB / 26KB | parquet+JSON | Run metadata |
-| `data/leaderboard.json` | 63KB | JSON | Model comparison leaderboard |
-| `data/datasets.parquet` / `data/datasets.json` | 3KB / 2KB | parquet+JSON | Dataset metadata |
-| `data/model_sizes.json` | 831B | JSON | Model parameter counts |
-| `data/kd_transfer.json` | 16KB | JSON | Knowledge distillation transfer metrics |
-
-#### OJS/JS files in the Space:
-
-| File | Description |
-|---|---|
-| `_ojs/aggregations.js` | Data aggregation helpers |
-| `_ojs/chart-helpers.js` | Chart utility functions |
-| `_ojs/force-graph.js` (21KB) | Force-directed graph layout (D3) |
-| `_ojs/graph-analysis.js` (11KB) | Graph analysis computations |
-| `_ojs/mosaic-renderer.js` | Mosaic plot renderer |
-| `_ojs/mosaic-setup.js` | Mosaic initialization |
-| `_ojs/theme.js` | Visual theme config |
-| `dashboard.html` (388KB) | Monolithic Quarto-rendered dashboard |
+| File | Size | Description |
+|---|---|---|
+| `data/metrics.parquet` | 6KB | Summary metrics |
+| `data/metrics/*.json` (18 files) | ~6–7KB each | Per-config eval metrics (6 datasets × 3 scales) |
+| `data/recon_errors.parquet` | 3.1MB | VGAE reconstruction error data |
+| `data/embeddings.parquet` | 1.1MB | Graph embeddings (UMAP source) |
+| `data/dqn_policy.parquet` | 1.1MB | DQN fusion policy data |
+| `data/graph_samples.json` | 1.7MB | Raw graph instances (attention vis source) |
+| `data/attention_weights.parquet` | 7KB | GAT attention weight data |
+| `data/cka_similarity.parquet` | 2KB | CKA similarity matrix |
+| `data/leaderboard.json` | 63KB | Model comparison leaderboard |
+| `data/training_curves.parquet` | 137KB | Aggregated training curves |
 
 ### `buckeyeguy/osc-usage-dashboard` (Docker Space)
 
-Separate project — OSC resource usage dashboard. Not related to KD-GAT paper.
+Separate project — OSC resource usage dashboard. Not related to this paper.
 
 ## Relevance to Paper Figures
 
-Several Space data files map directly to current paper figures:
-
-| Paper Figure | Potential HF Source | Notes |
+| Paper Figure | HF Source | Notes |
 |---|---|---|
-| `umap` (scatter) | `data/embeddings.parquet` | 1.1MB — likely full embeddings, paper has 187-point sample |
-| `reconstruction` (histogram+heatmap+ROC) | `data/recon_errors.parquet` | 3.1MB — paper has placeholder data |
-| `attention` (network graph) | `data/graph_samples.json` + `data/attention_weights.parquet` | Paper has 10-graph sample |
-| `cka` (heatmap) | `data/cka_similarity.parquet` | Paper has placeholder 3x2 matrix |
-| `fusion` (histogram) | `data/dqn_policy.parquet` | 1.1MB — paper has 1,873 records |
-| Tables (main results) | `data/metrics/*.json` + `data/leaderboard.json` | 18 eval configs |
+| `umap` | `data/embeddings.parquet` | Full embeddings; paper uses 187-point sample |
+| `reconstruction` | `data/recon_errors.parquet` | Paper currently has placeholder data |
+| `attention` | `data/graph_samples.json` + `data/attention_weights.parquet` | Paper uses 10-graph sample |
+| `cka` | `data/cka_similarity.parquet` | Paper currently has placeholder 3×2 matrix |
+| `fusion` | `data/dqn_policy.parquet` | Paper has 1,873 records |
+| Tables | `data/metrics/*.json` + `data/leaderboard.json` | 18 eval configs |

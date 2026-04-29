@@ -41,14 +41,14 @@ make candidacy-dev    # MyST dev server using myst.candidacy.yml
 
 Serves the candidacy superset (paper content + candidacy extensions). The candidacy TOC uses combined pages via `{include}` directives — edits to any included source file trigger a reload.
 
-### Single Figure
+### Figures
 
 ```bash
 cd interactive
-FIGURE=umap npx vite dev    # Live-reload one figure at localhost:5173
+npm run dev    # shell at localhost:5173 — pick figure from dropdown
 ```
 
-Replace `umap` with any figure directory name under `interactive/src/figures/{data,diagrams}/`.
+The shell page uses an iframe so switching figures never tears down the HMR connection. Works in StackBlitz.
 
 ### PDF Export
 
