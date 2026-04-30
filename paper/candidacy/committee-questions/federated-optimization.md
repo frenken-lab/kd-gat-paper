@@ -73,7 +73,13 @@ The axes matter separately because the fixes differ. Label shift amplifies per-c
 
 ### Convergence under FedAvg and what breaks
 
-FedAvg averages $\theta^{(t+1)} = \sum_i \frac{n_i}{n} \theta_i^{(t)}$ over $E$ local steps. Under non-IID data, per-client drift accumulates and FedAvg converges to a stationary point of $\sum_i \frac{n_i}{n} F_i$ rather than $F$ [@kairouz2021advances]. The interactive figure in the submission illustrates this: client iterates are pulled toward local minima, the FedAvg aggregate drifts from $\theta^*$, and SCAFFOLD's control variates correct toward the true gradient direction.
+FedAvg averages $\theta^{(t+1)} = \sum_i \frac{n_i}{n} \theta_i^{(t)}$ over $E$ local steps. Under non-IID data, per-client drift accumulates and FedAvg converges to a stationary point of $\sum_i \frac{n_i}{n} F_i$ rather than $F$ [@kairouz2021advances]. The interactive figure below illustrates this: client iterates are pulled toward local minima, the FedAvg aggregate drifts from $\theta^*$, FedProx's proximal pull partially corrects toward the true gradient direction, and SCAFFOLD's control variates eliminate drift entirely. Drag the **E** slider to vary the number of local steps.
+
+:::{iframe} https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/fedavg-drift.html
+:label: fig-fedavg-drift
+:width: 100%
+FedAvg gradient drift under non-IID client data. Three clients optimise toward structurally incompatible local minima (label shift, feature shift, concept shift). The FedAvg aggregate (thick grey) drifts from $\theta^*$; FedProx (dashed purple, $\mu=1$) reduces but does not eliminate the drift; SCAFFOLD (dashed teal) eliminates drift by correcting each client's gradient toward the global gradient. Slider controls local-step count $E \in [1, 15]$.
+:::
 
 Two remedies handle two axes: **FedProx** [@li2020fedprox] adds a proximal penalty $\frac{\mu}{2}\|\theta - \theta^{(t)}\|^2$, targeting feature-shift drift (axis 2); **SCAFFOLD** [@karimireddy2020scaffold] subtracts per-client control variates, recovering IID-like rates and targeting label-shift variance (axis 1). Concept shift (axis 3) is structurally irreducible — the answer is personalisation: a shared backbone with per-client heads.
 
