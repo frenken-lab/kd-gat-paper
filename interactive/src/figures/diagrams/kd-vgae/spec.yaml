@@ -1,11 +1,22 @@
 figure: kd-vgae
 
 components:
-  input:   { type: graph, n: 5, topology: sparse, color: data, labels: auto, scale: 50, container: { color: data } }
-  vgae_t:  { type: box, label: "VGAE Teacher", color: vgae, width: 130, height: 40 }
-  recon_t: { type: box, label: "Reconstruction", color: vgae, width: 120 }
-  vgae_s:  { type: box, label: "VGAE Student", color: vgae, width: 130, height: 40 }
-  recon_s: { type: box, label: "Reconstruction", color: vgae, width: 120 }
+  input:
+    {
+      type: graph,
+      n: 5,
+      topology: sparse,
+      color: data,
+      labels: auto,
+      scale: 50,
+      container: { color: data },
+    }
+  vgae_t:
+    { type: box, label: 'VGAE Teacher', color: vgae, width: 130, height: 40 }
+  recon_t: { type: box, label: 'Reconstruction', color: vgae, width: 120 }
+  vgae_s:
+    { type: box, label: 'VGAE Student', color: vgae, width: 130, height: 40 }
+  recon_s: { type: box, label: 'Reconstruction', color: vgae, width: 120 }
 
 layout:
   type: hstack
@@ -31,5 +42,5 @@ bridges:
 
 assertions:
   checks:
-    - "vgae_t: above vgae_s"
-    - "vgae_t: left-of recon_t"
+    - 'vgae_t: above vgae_s'
+    - 'vgae_t: left-of recon_t'

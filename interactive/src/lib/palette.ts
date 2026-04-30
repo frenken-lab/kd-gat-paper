@@ -1,4 +1,4 @@
-import styles from "virtual:styles"; // virtual module derived from data/styles.yml
+import styles from 'virtual:styles'; // virtual module derived from data/styles.yml
 
 export interface ColorPair {
   stroke: string;
@@ -11,14 +11,14 @@ const _warnedNames = new Set<string>();
 
 /** Resolve a role name, palette color, or hex string to {stroke, fill}. */
 export function getPaletteColor(name: string | undefined): ColorPair {
-  if (!name) return { stroke: palette.grey, fill: palette.grey + "40" };
+  if (!name) return { stroke: palette.grey, fill: palette.grey + '40' };
   const base = roles[name] || name;
   const s = palette[base];
-  if (s) return { stroke: s, fill: fills[base] || s + "40" };
+  if (s) return { stroke: s, fill: fills[base] || s + '40' };
   // Raw hex or CSS color — pass through, but warn if it doesn't look like one
   if (
-    !name.startsWith("#") &&
-    !name.startsWith("rgb") &&
+    !name.startsWith('#') &&
+    !name.startsWith('rgb') &&
     !_warnedNames.has(name)
   ) {
     console.warn(
@@ -26,5 +26,5 @@ export function getPaletteColor(name: string | undefined): ColorPair {
     );
     _warnedNames.add(name);
   }
-  return { stroke: name, fill: name + "40" };
+  return { stroke: name, fill: name + '40' };
 }

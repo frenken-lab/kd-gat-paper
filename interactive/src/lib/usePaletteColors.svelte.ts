@@ -1,4 +1,4 @@
-import { getPaletteColor } from "./palette.ts";
+import { getPaletteColor } from './palette.ts';
 
 /**
  * Default palette key order used across figures.
@@ -6,14 +6,14 @@ import { getPaletteColor } from "./palette.ts";
  * unmatched categories fall back to positional assignment.
  */
 const DEFAULT_PALETTE_KEYS = [
-  "normal",
-  "attack",
-  "vgae",
-  "gat",
-  "dqn",
-  "kd",
-  "data",
-  "attention",
+  'normal',
+  'attack',
+  'vgae',
+  'gat',
+  'dqn',
+  'kd',
+  'data',
+  'attention',
 ];
 
 /**
@@ -30,7 +30,7 @@ export function buildColorMap(
 ) {
   return Object.fromEntries(
     categories.map((cat, i) => {
-      const match = paletteKeys.find((k) => k === cat.toLowerCase());
+      const match = paletteKeys.find(k => k === cat.toLowerCase());
       const key = match ?? paletteKeys[i % paletteKeys.length];
       return [cat, getPaletteColor(key).stroke];
     }),

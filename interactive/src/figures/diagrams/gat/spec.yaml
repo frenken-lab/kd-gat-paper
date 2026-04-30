@@ -1,17 +1,44 @@
 figure: gat
 
 components:
-  L0: { type: graph, n: 5, topology: sparse, color: gat, labels: auto, scale: 80, container: { label: "GATv2Conv L0", color: gat } }
-  L1: { type: graph, n: 5, topology: sparse, color: gat, labels: auto, scale: 80, container: { label: "GATv2Conv L1", color: gat } }
-  L2: { type: graph, n: 5, topology: sparse, color: gat, labels: auto, scale: 80, container: { label: "GATv2Conv L2", color: gat } }
-  jk: { type: box, label: "JK Concat", color: gat }
-  fc: { type: box, label: "FC → class", color: gat }
+  L0:
+    {
+      type: graph,
+      n: 5,
+      topology: sparse,
+      color: gat,
+      labels: auto,
+      scale: 80,
+      container: { label: 'GATv2Conv L0', color: gat },
+    }
+  L1:
+    {
+      type: graph,
+      n: 5,
+      topology: sparse,
+      color: gat,
+      labels: auto,
+      scale: 80,
+      container: { label: 'GATv2Conv L1', color: gat },
+    }
+  L2:
+    {
+      type: graph,
+      n: 5,
+      topology: sparse,
+      color: gat,
+      labels: auto,
+      scale: 80,
+      container: { label: 'GATv2Conv L2', color: gat },
+    }
+  jk: { type: box, label: 'JK Concat', color: gat }
+  fc: { type: box, label: 'FC → class', color: gat }
 
 layout:
   type: vstack
   gap: 60
   align: center
-  container: { label: "GAT Classifier", color: gat }
+  container: { label: 'GAT Classifier', color: gat }
   children:
     - type: vstack
       gap: 100

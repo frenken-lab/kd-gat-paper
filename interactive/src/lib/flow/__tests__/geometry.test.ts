@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 // Stub @xyflow/svelte — vitest can't resolve its directory exports in pure node,
 // and convert/layout only need the Position enum.
@@ -11,12 +11,15 @@ type DiagramNode = import('../types.ts').DiagramNode;
 
 // Compute absolute (x, y) center of a node, walking up parentId chain so
 // SvelteFlow's parent-relative coordinates resolve to canvas coordinates.
-function absoluteCenter(node: DiagramNode, all: DiagramNode[]): { x: number; y: number } {
+function absoluteCenter(
+  node: DiagramNode,
+  all: DiagramNode[],
+): { x: number; y: number } {
   let x = node.position.x;
   let y = node.position.y;
   let cursor: DiagramNode | undefined = node;
   while (cursor?.parentId) {
-    const parent = all.find((n) => n.id === cursor!.parentId);
+    const parent = all.find(n => n.id === cursor!.parentId);
     if (!parent) break;
     x += parent.position.x;
     y += parent.position.y;
@@ -28,12 +31,14 @@ function absoluteCenter(node: DiagramNode, all: DiagramNode[]): { x: number; y: 
 }
 
 function nodeWidth(node: DiagramNode): number {
-  if (node.type === 'circle') return ((node.data as { r?: number }).r ?? 14) * 2;
+  if (node.type === 'circle')
+    return ((node.data as { r?: number }).r ?? 14) * 2;
   return node.width ?? (node.type === 'container' ? 200 : 90);
 }
 
 function nodeHeight(node: DiagramNode): number {
-  if (node.type === 'circle') return ((node.data as { r?: number }).r ?? 14) * 2;
+  if (node.type === 'circle')
+    return ((node.data as { r?: number }).r ?? 14) * 2;
   return node.height ?? (node.type === 'container' ? 150 : 32);
 }
 
@@ -44,7 +49,10 @@ function aabb(node: DiagramNode, all: DiagramNode[]) {
   return { x0: c.x - w / 2, y0: c.y - h / 2, x1: c.x + w / 2, y1: c.y + h / 2 };
 }
 
-function overlaps(a: ReturnType<typeof aabb>, b: ReturnType<typeof aabb>): boolean {
+function overlaps(
+  a: ReturnType<typeof aabb>,
+  b: ReturnType<typeof aabb>,
+): boolean {
   return a.x0 < b.x1 && a.x1 > b.x0 && a.y0 < b.y1 && a.y1 > b.y0;
 }
 
@@ -52,24 +60,31 @@ describe('cluster geometry — single sparse 5-cycle', () => {
   const spec = {
     figure: 'graph-base',
     components: {
-      input: { type: 'graph' as const, n: 5, topology: 'sparse' as const, color: 'vgae', labels: 'auto' as const, scale: 80 },
+      input: {
+        type: 'graph' as const,
+        n: 5,
+        topology: 'sparse' as const,
+        color: 'vgae',
+        labels: 'auto' as const,
+        scale: 80,
+      },
     },
     layout: { type: 'hstack' as const, children: ['input'] },
   };
 
   it('produces 5 circle nodes', async () => {
     const { nodes } = await specToFlow(spec);
-    const circles = nodes.filter((n) => n.type === 'circle');
+    const circles = nodes.filter(n => n.type === 'circle');
     expect(circles).toHaveLength(5);
   });
 
   it('places circles equidistant from cluster centroid (ring shape preserved)', async () => {
     const { nodes } = await specToFlow(spec);
-    const circles = nodes.filter((n) => n.type === 'circle');
-    const centers = circles.map((n) => absoluteCenter(n, nodes));
+    const circles = nodes.filter(n => n.type === 'circle');
+    const centers = circles.map(n => absoluteCenter(n, nodes));
     const cx = centers.reduce((s, p) => s + p.x, 0) / centers.length;
     const cy = centers.reduce((s, p) => s + p.y, 0) / centers.length;
-    const radii = centers.map((p) => Math.hypot(p.x - cx, p.y - cy));
+    const radii = centers.map(p => Math.hypot(p.x - cx, p.y - cy));
     const meanR = radii.reduce((s, r) => s + r, 0) / radii.length;
 
     // Every node within ±15% of mean radius — cluster is on a circle
@@ -82,8 +97,8 @@ describe('cluster geometry — single sparse 5-cycle', () => {
 
   it('has no overlapping circle nodes', async () => {
     const { nodes } = await specToFlow(spec);
-    const circles = nodes.filter((n) => n.type === 'circle');
-    const boxes = circles.map((n) => aabb(n, nodes));
+    const circles = nodes.filter(n => n.type === 'circle');
+    const boxes = circles.map(n => aabb(n, nodes));
     for (let i = 0; i < boxes.length; i++) {
       for (let j = i + 1; j < boxes.length; j++) {
         expect(overlaps(boxes[i], boxes[j])).toBe(false);
@@ -111,15 +126,15 @@ describe('container geometry — graph cluster with container', () => {
 
   it('emits a container node', async () => {
     const { nodes } = await specToFlow(spec);
-    expect(nodes.filter((n) => n.type === 'container')).toHaveLength(1);
+    expect(nodes.filter(n => n.type === 'container')).toHaveLength(1);
   });
 
   it('container bbox encloses all child circles with padding', async () => {
     const { nodes } = await specToFlow(spec);
-    const container = nodes.find((n) => n.type === 'container')!;
+    const container = nodes.find(n => n.type === 'container')!;
     const cBox = aabb(container, nodes);
 
-    const children = nodes.filter((n) => n.parentId === container.id);
+    const children = nodes.filter(n => n.parentId === container.id);
     expect(children.length).toBeGreaterThan(0);
 
     const PAD = 8;
@@ -137,9 +152,21 @@ describe('pipeline monotonicity — multi-stage layout', () => {
   const spec = {
     figure: 'pipeline-test',
     components: {
-      a: { type: 'graph' as const, n: 5, topology: 'sparse' as const, color: 'vgae', scale: 60 },
+      a: {
+        type: 'graph' as const,
+        n: 5,
+        topology: 'sparse' as const,
+        color: 'vgae',
+        scale: 60,
+      },
       b: { type: 'box' as const, label: 'mid', color: 'gat' },
-      c: { type: 'graph' as const, n: 5, topology: 'sparse' as const, color: 'kd', scale: 60 },
+      c: {
+        type: 'graph' as const,
+        n: 5,
+        topology: 'sparse' as const,
+        color: 'kd',
+        scale: 60,
+      },
     },
     layout: { type: 'pipeline' as const, children: ['a', 'b', 'c'] },
   };
@@ -148,8 +175,10 @@ describe('pipeline monotonicity — multi-stage layout', () => {
     const { nodes } = await specToFlow(spec, { direction: 'LR' });
     const stageX: number[] = [];
     for (const stage of ['a', 'b', 'c']) {
-      const stageNodes = nodes.filter((n) => n.id === stage || n.id.startsWith(`${stage}_`));
-      const xs = stageNodes.map((n) => absoluteCenter(n, nodes).x);
+      const stageNodes = nodes.filter(
+        n => n.id === stage || n.id.startsWith(`${stage}_`),
+      );
+      const xs = stageNodes.map(n => absoluteCenter(n, nodes).x);
       stageX.push(xs.reduce((s, x) => s + x, 0) / xs.length);
     }
     expect(stageX[1]).toBeGreaterThan(stageX[0]);

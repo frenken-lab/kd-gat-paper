@@ -6,14 +6,14 @@ components:
     n: 5
     topology: sparse
     color: data
-    labels: ["0x1A0", "0x2B3", "0x3C1", "0x4D5", "0x5E2"]
+    labels: ['0x1A0', '0x2B3', '0x3C1', '0x4D5', '0x5E2']
     scale: 50
   vgae_t: { type: spec, ref: vgae, scale: 0.4 }
-  gat_t:  { type: spec, ref: gat,  scale: 0.35 }
-  dqn:    { type: box, label: "DQN Fusion",   color: dqn,  width: 100 }
-  output: { type: box, label: "Anomaly Score", color: data, width: 120 }
-  vgae_s: { type: box, label: "VGAE Student", color: vgae, width: 120 }
-  gat_s:  { type: box, label: "GAT Student",  color: gat,  width: 110 }
+  gat_t: { type: spec, ref: gat, scale: 0.35 }
+  dqn: { type: box, label: 'DQN Fusion', color: dqn, width: 100 }
+  output: { type: box, label: 'Anomaly Score', color: data, width: 120 }
+  vgae_s: { type: box, label: 'VGAE Student', color: vgae, width: 120 }
+  gat_s: { type: box, label: 'GAT Student', color: gat, width: 110 }
 
 layout:
   type: hstack
@@ -34,14 +34,26 @@ bridges:
   # Input → VGAE encoder (input graph has no container, use node directly)
   - { from: input_0, to: vgae_t.input_0, type: flow, color: grey }
   # VGAE output → GAT input
-  - { from: vgae_t.output_0, to: gat_t.L0__left, type: flow, color: grey, label: "hard samples" }
+  - {
+      from: vgae_t.output_0,
+      to: gat_t.L0__left,
+      type: flow,
+      color: grey,
+      label: 'hard samples',
+    }
   # GAT output → DQN
-  - { from: gat_t.fc, to: dqn, type: flow, color: grey, label: "classification" }
+  - {
+      from: gat_t.fc,
+      to: dqn,
+      type: flow,
+      color: grey,
+      label: 'classification',
+    }
   # VGAE recon error → DQN
-  - { from: vgae_t.z, to: dqn, type: flow, color: grey, label: "recon error" }
+  - { from: vgae_t.z, to: dqn, type: flow, color: grey, label: 'recon error' }
   # Student → DQN (dashed = deployment path)
   - { from: vgae_s, to: dqn, type: flow, color: grey, style: dashed }
-  - { from: gat_s,  to: dqn, type: flow, color: grey, style: dashed }
+  - { from: gat_s, to: dqn, type: flow, color: grey, style: dashed }
   # Knowledge distillation edges
   - { from: vgae_t.enc1__bottom, to: vgae_s, type: kd, color: kd, label: KD }
   - { from: gat_t.jk, to: gat_s, type: kd, color: kd, label: KD }
@@ -49,6 +61,6 @@ bridges:
 assertions:
   prefixMap: { input: in }
   checks:
-    - "input_0: left-of vgae_t.input_0"
-    - "vgae_t.output_0: left-of gat_t.L0__left"
-    - "vgae_t.enc1__bottom: above vgae_s"
+    - 'input_0: left-of vgae_t.input_0'
+    - 'vgae_t.output_0: left-of gat_t.L0__left'
+    - 'vgae_t.enc1__bottom: above vgae_s'

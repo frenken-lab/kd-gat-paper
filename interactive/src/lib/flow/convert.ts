@@ -2,7 +2,12 @@ import { Position } from '@xyflow/svelte';
 
 import { getPaletteColor } from '../palette.ts';
 import { circularPositions } from './layout.ts';
-import type { DiagramEdge, DiagramNode, FigureSpec, LayoutNode } from './types.ts';
+import type {
+  DiagramEdge,
+  DiagramNode,
+  FigureSpec,
+  LayoutNode,
+} from './types.ts';
 
 export function loadSpec(raw: unknown): FigureSpec {
   if (
@@ -12,7 +17,9 @@ export function loadSpec(raw: unknown): FigureSpec {
     !('components' in raw) ||
     !('layout' in raw)
   ) {
-    throw new Error(`loadSpec: invalid FigureSpec — missing required fields (figure, components, layout)`);
+    throw new Error(
+      `loadSpec: invalid FigureSpec — missing required fields (figure, components, layout)`,
+    );
   }
   return raw as FigureSpec;
 }
@@ -173,7 +180,9 @@ export async function specToFlow(
       // Container node for graph clusters
       if (comp.container) {
         const containerId = `${id}__container`;
-        const { stroke: cs, fill: cf } = getPaletteColor(comp.container.color ?? comp.color ?? 'grey');
+        const { stroke: cs, fill: cf } = getPaletteColor(
+          comp.container.color ?? comp.color ?? 'grey',
+        );
         nodes.push({
           id: containerId,
           type: 'container',
@@ -194,16 +203,20 @@ export async function specToFlow(
         containerToKey.set(containerId, id);
         // Set children's parentId to the container
         for (const nodeId of nodeIds) {
-          const node = nodes.find((n) => n.id === nodeId);
+          const node = nodes.find(n => n.id === nodeId);
           if (node) node.parentId = containerId;
         }
       }
     } else if (comp.type === 'spec') {
       // Recursively build sub-spec, prefix all IDs with component id
       const subSpec = specsMap?.[comp.ref];
-      if (!subSpec) throw new Error(`specToFlow: referenced spec '${comp.ref}' not found`);
+      if (!subSpec)
+        throw new Error(`specToFlow: referenced spec '${comp.ref}' not found`);
 
-      const { nodes: subNodes, edges: subEdges } = await specToFlow(subSpec, { direction, specs: specsMap });
+      const { nodes: subNodes, edges: subEdges } = await specToFlow(subSpec, {
+        direction,
+        specs: specsMap,
+      });
 
       const subNodeIds: string[] = [];
       const scaleFactor = comp.scale ?? 1;
@@ -226,7 +239,10 @@ export async function specToFlow(
           scaled.parentId = `${id}.${scaled.parentId}`;
         }
         // Track component containers from the sub-spec so __side anchors resolve
-        if (subNode.type === 'container' && subNode.id.endsWith('__container')) {
+        if (
+          subNode.type === 'container' &&
+          subNode.id.endsWith('__container')
+        ) {
           const innerCompId = subNode.id.slice(0, -'__container'.length);
           componentContainers.set(`${id}.${innerCompId}`, prefixedId);
         }
@@ -254,11 +270,14 @@ export async function specToFlow(
   const compBoxes = new Map<string, CompBox>();
   for (const [compId, nodeIds] of componentNodes.entries()) {
     const compNodes = nodeIds
-      .map((id) => nodes.find((n) => n.id === id))
+      .map(id => nodes.find(n => n.id === id))
       .filter((n): n is DiagramNode => !!n && n.type !== 'container');
     if (compNodes.length === 0) continue;
 
-    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    let x0 = Infinity,
+      y0 = Infinity,
+      x1 = -Infinity,
+      y1 = -Infinity;
     for (const n of compNodes) {
       const w = nodeBoxW(n);
       const h = nodeBoxH(n);
@@ -286,8 +305,14 @@ export async function specToFlow(
     const boxH = box?.h ?? 40;
     if (componentContainers.has(compId)) {
       const comp = spec.components[compId];
-      const pad = parsePad(comp?.type === 'graph' ? comp.container?.padding : undefined, CONTAINER_PAD);
-      const labelPad = (comp?.type === 'graph' && comp.container?.label) ? CONTAINER_LABEL_PAD : 0;
+      const pad = parsePad(
+        comp?.type === 'graph' ? comp.container?.padding : undefined,
+        CONTAINER_PAD,
+      );
+      const labelPad =
+        comp?.type === 'graph' && comp.container?.label
+          ? CONTAINER_LABEL_PAD
+          : 0;
       return { w: boxW + 2 * pad, h: boxH + 2 * pad + labelPad };
     }
     return { w: boxW, h: boxH };
@@ -298,29 +323,37 @@ export async function specToFlow(
     if (typeof node === 'string') return compLayoutSize(node);
     const children = node.children ?? node.elements ?? [];
     if (children.length === 0) return { w: 80, h: 40 };
-    const childSizes = children.map((c) => layoutSizeOf(c));
+    const childSizes = children.map(c => layoutSizeOf(c));
     const gap = node.gap ?? 40;
-    const cPad = node.container ? parsePad(node.container.padding, CONTAINER_PAD) : 0;
+    const cPad = node.container
+      ? parsePad(node.container.padding, CONTAINER_PAD)
+      : 0;
     const cPadX = node.container ? 2 * cPad : 0;
     const cLabelPad = node.container?.label ? CONTAINER_LABEL_PAD : 0;
     const cPadY = node.container ? 2 * cPad + cLabelPad : 0;
     if (node.type === 'vstack') {
       return {
-        w: Math.max(...childSizes.map((s) => s.w)) + cPadX,
-        h: childSizes.reduce((acc, s) => acc + s.h, 0) + gap * (children.length - 1) + cPadY,
+        w: Math.max(...childSizes.map(s => s.w)) + cPadX,
+        h:
+          childSizes.reduce((acc, s) => acc + s.h, 0) +
+          gap * (children.length - 1) +
+          cPadY,
       };
     }
     // hstack or pipeline
     return {
-      w: childSizes.reduce((acc, s) => acc + s.w, 0) + gap * (children.length - 1) + cPadX,
-      h: Math.max(...childSizes.map((s) => s.h)) + cPadY,
+      w:
+        childSizes.reduce((acc, s) => acc + s.w, 0) +
+        gap * (children.length - 1) +
+        cPadX,
+      h: Math.max(...childSizes.map(s => s.h)) + cPadY,
     };
   }
 
   // --- Step 3: Resolve anchor references ---
   // Handles: direct IDs, "compId__side" anchors (prefers container boundary),
   // component names, and dotted sub-spec refs.
-  const nodeIdSet = new Set(nodes.map((n) => n.id));
+  const nodeIdSet = new Set(nodes.map(n => n.id));
 
   function resolveRef(ref: string): string | null {
     // Direct node reference
@@ -344,7 +377,9 @@ export async function specToFlow(
       if (ctrId) return ctrId;
       const compNodeIds = componentNodes.get(compId);
       if (compNodeIds?.length) {
-        const real = compNodeIds.find((id) => nodeIdSet.has(id) && !id.endsWith('__container'));
+        const real = compNodeIds.find(
+          id => nodeIdSet.has(id) && !id.endsWith('__container'),
+        );
         if (real) return real;
         return compNodeIds[0];
       }
@@ -353,7 +388,9 @@ export async function specToFlow(
     // Bare component reference
     const compNodeIds = componentNodes.get(ref);
     if (compNodeIds?.length) {
-      const real = compNodeIds.find((id) => nodeIdSet.has(id) && !id.endsWith('__container'));
+      const real = compNodeIds.find(
+        id => nodeIdSet.has(id) && !id.endsWith('__container'),
+      );
       if (real) return real;
       return compNodeIds[0];
     }
@@ -404,7 +441,7 @@ export async function specToFlow(
 
       const nodeIds = componentNodes.get(node) ?? [];
       for (const nid of nodeIds) {
-        const n = nodes.find((nd) => nd.id === nid);
+        const n = nodes.find(nd => nd.id === nid);
         if (n && n.type !== 'container') {
           n.position = { x: n.position.x + dx, y: n.position.y + dy };
         }
@@ -413,18 +450,21 @@ export async function specToFlow(
     }
 
     const children = node.children ?? node.elements ?? [];
-    const childSizes = children.map((c) => layoutSizeOf(c));
+    const childSizes = children.map(c => layoutSizeOf(c));
     const gap = node.gap ?? 40;
     const allLeafIds: string[] = [];
     const childTopIds: string[] = [];
     // Container padding shifts the content area inward
-    const nodePad = node.container ? parsePad(node.container.padding, CONTAINER_PAD) : 0;
+    const nodePad = node.container
+      ? parsePad(node.container.padding, CONTAINER_PAD)
+      : 0;
     const padX = nodePad;
     const layoutLabelPad = node.container?.label ? CONTAINER_LABEL_PAD : 0;
     const padY = node.container ? nodePad + layoutLabelPad : 0;
 
     if (node.type === 'vstack') {
-      const contentW = childSizes.length > 0 ? Math.max(...childSizes.map((s) => s.w)) : 0;
+      const contentW =
+        childSizes.length > 0 ? Math.max(...childSizes.map(s => s.w)) : 0;
       let curY = originY + padY;
       for (let i = 0; i < children.length; i++) {
         const cs = childSizes[i];
@@ -437,7 +477,8 @@ export async function specToFlow(
       }
     } else {
       // hstack or pipeline — lay out left to right, centered vertically
-      const contentH = childSizes.length > 0 ? Math.max(...childSizes.map((s) => s.h)) : 0;
+      const contentH =
+        childSizes.length > 0 ? Math.max(...childSizes.map(s => s.h)) : 0;
       let curX = originX + padX;
       const childAnchors: string[] = [];
       for (let i = 0; i < children.length; i++) {
@@ -467,7 +508,9 @@ export async function specToFlow(
     if (node.container) {
       const { w, h } = layoutSizeOf(node);
       const containerId = `__layout_container_${edgeIdx++}`;
-      const { stroke: cs, fill: cf } = getPaletteColor(node.container.color ?? 'grey');
+      const { stroke: cs, fill: cf } = getPaletteColor(
+        node.container.color ?? 'grey',
+      );
       nodes.push({
         id: containerId,
         type: 'container',
@@ -487,7 +530,7 @@ export async function specToFlow(
         style: 'z-index: -1;',
       });
       for (const topId of childTopIds) {
-        const child = nodes.find((n) => n.id === topId);
+        const child = nodes.find(n => n.id === topId);
         if (child) child.parentId = containerId;
       }
       // Register the container under the layout node's id so bridges can
@@ -515,7 +558,7 @@ export async function specToFlow(
   const CONTAINER_PAD_STEP6 = CONTAINER_PAD;
   const LABEL_PAD_STEP6 = CONTAINER_LABEL_PAD;
 
-  const byId = new Map(nodes.map((n) => [n.id, n] as const));
+  const byId = new Map(nodes.map(n => [n.id, n] as const));
   function depthOf(n: DiagramNode): number {
     let d = 0;
     let cursor: DiagramNode | undefined = n;
@@ -527,11 +570,11 @@ export async function specToFlow(
     return d;
   }
 
-  const containerNodes = nodes.filter((n) => n.type === 'container');
+  const containerNodes = nodes.filter(n => n.type === 'container');
   containerNodes.sort((a, b) => depthOf(b) - depthOf(a));
 
   for (const container of containerNodes) {
-    const children = nodes.filter((n) => n.parentId === container.id);
+    const children = nodes.filter(n => n.parentId === container.id);
     if (children.length === 0) continue;
 
     let x0 = Infinity;
@@ -547,7 +590,10 @@ export async function specToFlow(
       y1 = Math.max(y1, c.position.y + h);
     }
 
-    const cPad = parsePad(container.data?.padding as string | undefined, CONTAINER_PAD_STEP6);
+    const cPad = parsePad(
+      container.data?.padding as string | undefined,
+      CONTAINER_PAD_STEP6,
+    );
     const labelPad = container.data?.label ? LABEL_PAD_STEP6 : 0;
     container.position = {
       x: x0 - cPad,
@@ -589,7 +635,9 @@ export async function specToFlow(
       const source = resolveRef(b.from);
       const target = resolveRef(b.to);
       if (!source || !target) {
-        console.warn(`[specToFlow] bridge: cannot resolve ${b.from} -> ${b.to}`);
+        console.warn(
+          `[specToFlow] bridge: cannot resolve ${b.from} -> ${b.to}`,
+        );
         continue;
       }
 
@@ -620,7 +668,10 @@ export async function specToFlow(
         id: `e${edgeIdx++}`,
         source,
         target,
-        type: (b.type === 'flow' || b.type === undefined || isKd || isLine) ? 'flow' : b.type,
+        type:
+          b.type === 'flow' || b.type === undefined || isKd || isLine
+            ? 'flow'
+            : b.type,
         data: data as DiagramEdge['data'],
       });
     }

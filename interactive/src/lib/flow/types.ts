@@ -1,4 +1,4 @@
-import type { Edge,Node } from '@xyflow/svelte';
+import type { Edge, Node } from '@xyflow/svelte';
 
 // --- Node data payloads ---
 
@@ -11,7 +11,7 @@ export interface CircleNodeData {
 
 export interface ContainerNodeData {
   label?: string;
-  style: string;      // pre-computed inline style (border-color, background)
+  style: string; // pre-computed inline style (border-color, background)
   labelStyle: string; // pre-computed inline style for the label span (color)
   borderColor?: string;
   bgColor?: string;
@@ -66,15 +66,19 @@ export interface StructuralEdgeData {
 }
 
 export interface EncodedEdgeData {
-  color?: string;      // defaults to 'attention'
-  weight: number;      // 0-1, drives stroke width + opacity
+  color?: string; // defaults to 'attention'
+  weight: number; // 0-1, drives stroke width + opacity
   [key: string]: unknown;
 }
 
 // --- Diagram types ---
 
-export type DiagramNode = Node<CircleNodeData | ContainerNodeData | Record<string, unknown>>;
-export type DiagramEdge = Edge<FlowEdgeData | StructuralEdgeData | EncodedEdgeData>;
+export type DiagramNode = Node<
+  CircleNodeData | ContainerNodeData | Record<string, unknown>
+>;
+export type DiagramEdge = Edge<
+  FlowEdgeData | StructuralEdgeData | EncodedEdgeData
+>;
 
 export interface FlowDiagram {
   nodes: DiagramNode[];
@@ -96,7 +100,13 @@ export interface GraphComponentSpec {
   // Highlight all edges incident to this node (1-based: variant 1 = v₁, 2 = v₂, …).
   // Other edges are dimmed. Valid values: 1–n.
   variant?: number;
-  container?: { label?: string; color?: string; shape?: string; line?: 'solid' | 'dashed'; padding?: string };
+  container?: {
+    label?: string;
+    color?: string;
+    shape?: string;
+    line?: 'solid' | 'dashed';
+    padding?: string;
+  };
 }
 
 export interface BoxComponentSpec {
@@ -113,7 +123,10 @@ export interface SpecComponentSpec {
   scale?: number;
 }
 
-export type ComponentSpec = GraphComponentSpec | BoxComponentSpec | SpecComponentSpec;
+export type ComponentSpec =
+  | GraphComponentSpec
+  | BoxComponentSpec
+  | SpecComponentSpec;
 
 export interface LayoutNode {
   type: 'hstack' | 'vstack' | 'pipeline';
@@ -126,7 +139,13 @@ export interface LayoutNode {
   align?: 'left' | 'center' | 'right';
   direction?: 'horizontal' | 'vertical';
   flowColor?: string;
-  container?: { label?: string; color?: string; shape?: string; line?: 'solid' | 'dashed'; padding?: string };
+  container?: {
+    label?: string;
+    color?: string;
+    shape?: string;
+    line?: 'solid' | 'dashed';
+    padding?: string;
+  };
 }
 
 export interface BridgeSpec {

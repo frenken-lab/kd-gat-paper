@@ -1,7 +1,8 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
+
   import Figure from '../../../lib/Figure.svelte';
   import data from './data.json';
-  import { onMount } from 'svelte';
 
   interface Algorithm {
     id: string;

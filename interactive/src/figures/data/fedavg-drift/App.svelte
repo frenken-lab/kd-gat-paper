@@ -1,11 +1,12 @@
 <script>
-  import Figure from "../../../lib/Figure.svelte";
-  import { Plot, Contour, Arrow, Dot, Text } from "svelteplot";
+  import { Arrow, Contour, Dot, Plot, Text } from "svelteplot";
   import styles from "virtual:styles";
+
+  import Figure from "../../../lib/Figure.svelte";
   import {
-    DOMAIN, GLOBAL_MIN, ITERATE, CLIENT_DEFS,
-    buildContourData, clientEndpointsAt,
-    fedavgAt, fedproxAt, scaffoldAt, trueGradientArrow,
+    buildContourData, CLIENT_DEFS,
+clientEndpointsAt,
+    DOMAIN,     fedavgAt, fedproxAt, GLOBAL_MIN, ITERATE, scaffoldAt, trueGradientArrow,
   } from "./geometry";
 
   const { blue, orange, green, grey, teal, purple } = styles.palette;

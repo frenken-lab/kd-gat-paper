@@ -1,10 +1,11 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@xyflow/svelte', () => ({
   Position: { Top: 'top', Right: 'right', Bottom: 'bottom', Left: 'left' },
 }));
 
-const { getEdgeParams, boundaryToward, roundedPolylinePath } = await import('../floating.ts');
+const { getEdgeParams, boundaryToward, roundedPolylinePath } =
+  await import('../floating.ts');
 
 // Build a fake InternalNode shape that matches what xyflow exposes:
 // `internals.positionAbsolute` (top-left in canvas coords) and
@@ -93,13 +94,20 @@ describe('boundaryToward — node-to-bend-point cap', () => {
 
 describe('roundedPolylinePath — SVG path generator', () => {
   it('two points → simple straight L command', () => {
-    const d = roundedPolylinePath([{ x: 0, y: 0 }, { x: 100, y: 0 }]);
+    const d = roundedPolylinePath([
+      { x: 0, y: 0 },
+      { x: 100, y: 0 },
+    ]);
     expect(d).toBe('M 0 0 L 100 0');
   });
 
   it('three points with a 90° bend → contains a Q (quadratic) corner', () => {
     const d = roundedPolylinePath(
-      [{ x: 0, y: 0 }, { x: 100, y: 0 }, { x: 100, y: 100 }],
+      [
+        { x: 0, y: 0 },
+        { x: 100, y: 0 },
+        { x: 100, y: 100 },
+      ],
       8,
     );
     expect(d).toMatch(/^M 0 0/);
@@ -110,7 +118,11 @@ describe('roundedPolylinePath — SVG path generator', () => {
   it('truncates corner radius to half the shorter segment', () => {
     // Both segments are 4 units long; radius=8 should clamp to 2.
     const d = roundedPolylinePath(
-      [{ x: 0, y: 0 }, { x: 4, y: 0 }, { x: 4, y: 4 }],
+      [
+        { x: 0, y: 0 },
+        { x: 4, y: 0 },
+        { x: 4, y: 4 },
+      ],
       8,
     );
     // Should still produce a valid path, no NaN
