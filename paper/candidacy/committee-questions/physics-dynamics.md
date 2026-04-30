@@ -60,40 +60,26 @@ The five thresholds $\{\tau_{\text{model}}, \tau_{\text{signal}}, \tau_{\text{oo
 
 > How does reliance on estimated rather than directly measured states affect the reliability of a detection pipeline, and how might an adversary exploit this dependency?
 
-Q1.1 established that the physics and data-driven priors are orthogonal — they encode different things about the same underlying process. The follow-on question is whether the _channels_ those priors read through are equally orthogonal. The answer matters because channel orthogonality is what makes the system defensible under adversarial pressure.
+### Estimation chains introduce structured error, not noise
 
-### Estimation chains introduce structured error, not just noise
-
-The naive answer to the question is that estimated states introduce noise, degrading reliability. The more interesting answer is that estimation chains introduce _structured_ error — and the structure is diagnostic. Each stage of the chain contributes a different statistical shape of error, and that shape determines what form of defense is valid. A defense correct for one shape is wrong by construction for another.
-
-The variance of the physics branch's residual $r_t$ decomposes as:
+The key insight is not that estimated states add noise, but that they introduce _structured_ error — and that structure determines what defenses are valid. The residual variance decomposes as:
 
 $$
-\mathrm{Var}[r_t] \;\approx\; \mathrm{Var}\!\left[\eta^{\text{sensor}}\right] \;+\; B^2_{\text{slice}} \;+\; \mathrm{tr}(Q_{\text{EKF}}) \;+\; \mathrm{Var}\!\left[\epsilon_{\text{model}}\right]
+\mathrm{Var}[r_t] \;\approx\; \mathrm{Var}\!\left[\eta^{\text{sensor}}\right] + B^2_{\text{slice}} + \mathrm{tr}(Q_{\text{EKF}}) + \mathrm{Var}\!\left[\epsilon_{\text{model}}\right]
 $$
 
-Three of the four terms are introduced by processing, not by the underlying signal. Each has a distinct shape:
+Three of four terms are processing artifacts, each with a distinct exploitable shape:
 
-- **Bias** ($B^2_{\text{slice}}$): systematic offset, not symmetric noise. A symmetric outlier test misses it — the corrupted value stays inside the noise band, just shifted. The structurally correct defense is one-sided, not two-sided.
-- **Temporal integration** ($\mathrm{tr}(Q_{\text{EKF}})$): each corrupted step is sub-threshold, but the effect accumulates over the filter window. A per-step threshold never fires. The structurally correct defense is temporal — evidence must accumulate across steps, not reset each time.
-- **Regime-conditioned variance** ($\mathrm{Var}[\epsilon_{\text{model}}]$): model error is high outside the valid operating envelope. An attacker who pushes the system there makes the residual model-error-dominated. An absolute threshold sized to the in-regime case misses this. The structurally correct defense is regime-conditioned bounds, not global ones.
+- **Bias** ($B^2_{\text{slice}}$): systematic offset that stays inside symmetric bounds. Correct defense: one-sided, not two-sided thresholds.
+- **Temporal integration** ($\mathrm{tr}(Q_{\text{EKF}})$): sub-threshold drift accumulates silently across the filter window. Correct defense: temporally accumulating evidence, not per-step thresholds.
+- **Regime-conditioned variance** ($\mathrm{Var}[\epsilon_{\text{model}}]$): model error dominates outside the valid operating envelope. An attacker inducing out-of-envelope behavior renders an absolute threshold uninformative. Correct defense: regime-conditioned bounds.
 
-In the CAN bus system specifically, these terms map to ByCAN's slicing bias, EKF drift over the filter window, and the bicycle model's linear-tire envelope respectively — but the principle is general to any detection system reading through a multi-stage estimation chain.
+In CAN-IDS specifically, these map to slicing bias, EKF drift, and the bicycle model's linear-tire envelope — but the principle applies to any multi-stage estimation pipeline.
 
 ### Channel orthogonality as the structural defense
 
-The data-driven branch bypasses the estimation chain entirely — it reads raw bytes directly. This means chain corruption doesn't move it. An adversary who compromises the estimation chain has to simultaneously mount a structurally different attack on the byte-level branch to shift the fusion decision, and those two attacks have different signatures.
+The data-driven branch reads raw bytes directly, bypassing the estimation chain entirely. This means chain corruption doesn't move it. An adversary must simultaneously mount a structurally _different_ attack on the byte-level branch, and those two attacks carry different signatures. **Channel orthogonality converts a single attack surface into two independent ones** — simultaneous compromise is detectable as inter-channel disagreement rather than a clean fusion outcome. This is the prerequisite for disagreement-as-information (Q2.2): without orthogonal channels, expert disagreement is correlated noise; with it, disagreement is diagnostic.
 
-This is the load-bearing claim: **channel orthogonality converts a single attack surface into two independent ones**. It isn't "bytes are safe" — the data-driven branch has its own vulnerabilities, including graph-aware perturbations that exploit attention structure. The point is that the attack signatures don't overlap, so simultaneous compromise is detectable as disagreement between channels rather than a clean fusion outcome.
+### Implications for adversarial evaluation
 
-That independence condition is exactly what Q2.2 requires for disagreement-as-information. Without orthogonal channels, expert disagreement reduces to correlated noise. With it, disagreement is diagnostic.
-
-### What this implies for adversarial evaluation
-
-Nearly all existing CAN-IDS evaluation uses naively injected attacks — random payloads, replay — almost none are estimation-chain-aware [@rajapaksha2022aiidssurvey]. An attacker who understands the variance decomposition above can craft attacks shaped to each term: bias-shaped injections that stay inside symmetric bounds, sub-threshold drift that integrates silently, or regime-pushing maneuvers that make the physics residual uninterpretable. The current evaluation regime doesn't test any of these.
-
-The contribution here is not just the defense architecture — it's the _attack model_. The variance equation is a recipe for constructing evaluation attacks that are structurally valid rather than naively injected. Until the evaluation catches up to the threat model, the system's robustness claims are undersupported.
-
----
-
-Q1 as a unified argument: Q1.1 says the priors are orthogonal — physics encodes structure, data-driven encodes frequency — and the bottom-right cell of the phase diagram is where the joint apparatus has to deliver. Q1.2 says the channels are orthogonal too, and the variance decomposition is what makes that claim defensible rather than assumed. Both axes serve the same load-bearing case: when no single expert is qualified, neither axis has collapsed simultaneously.
+Existing CAN-IDS evaluations almost exclusively use naively injected attacks — random payloads, replay — none shaped to the variance decomposition above [@rajapaksha2022aiidssurvey]. The decomposition is itself a recipe for constructing structurally valid attacks: bias-shaped injections that evade symmetric bounds, sub-threshold drift that integrates silently, or regime-pushing maneuvers that make the physics residual uninterpretable. The contribution is thus both the defense architecture and the attack model — robustness claims remain undersupported until evaluation catches up to the threat model.
