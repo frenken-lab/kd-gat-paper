@@ -23,6 +23,9 @@
   }: EdgeProps<Edge<StructuralEdgeData>> = $props();
 
   let stroke = $derived(getPaletteColor(data?.color).stroke);
+  let highlighted = $derived(data?.highlighted ?? false);
+  let strokeOpacity = $derived(highlighted ? 0.85 : 0.4);
+  let strokeWidth = $derived(highlighted ? 2 : 1);
 
   const { getInternalNode } = useSvelteFlow();
 
@@ -45,4 +48,4 @@
 <BaseEdge
   {id}
   path={edgePath}
-  style="stroke: {stroke}; stroke-opacity: 0.4; stroke-width: 1px;" />
+  style="stroke: {stroke}; stroke-opacity: {strokeOpacity}; stroke-width: {strokeWidth}px;" />

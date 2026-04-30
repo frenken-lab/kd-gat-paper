@@ -29,16 +29,12 @@ function absoluteCenter(node: DiagramNode, all: DiagramNode[]): { x: number; y: 
 
 function nodeWidth(node: DiagramNode): number {
   if (node.type === 'circle') return ((node.data as { r?: number }).r ?? 14) * 2;
-  if (node.type === 'box') return (node.data as { width?: number }).width ?? 90;
-  if (node.type === 'container') return node.width ?? 200;
-  return 50;
+  return node.width ?? (node.type === 'container' ? 200 : 90);
 }
 
 function nodeHeight(node: DiagramNode): number {
   if (node.type === 'circle') return ((node.data as { r?: number }).r ?? 14) * 2;
-  if (node.type === 'box') return (node.data as { height?: number }).height ?? 32;
-  if (node.type === 'container') return node.height ?? 150;
-  return 50;
+  return node.height ?? (node.type === 'container' ? 150 : 32);
 }
 
 function aabb(node: DiagramNode, all: DiagramNode[]) {

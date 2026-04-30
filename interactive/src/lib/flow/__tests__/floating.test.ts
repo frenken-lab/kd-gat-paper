@@ -10,10 +10,10 @@ const { getEdgeParams, boundaryToward, roundedPolylinePath } = await import('../
 // `internals.positionAbsolute` (top-left in canvas coords) and
 // `measured: { width, height }`.
 function fakeNode(opts: {
-  type: 'circle' | 'box';
+  type: 'circle' | 'default';
   cx: number;
   cy: number;
-  size: number; // diameter for circle, width=height for box
+  size: number; // diameter for circle, width=height for default rect
 }): any {
   const { type, cx, cy, size } = opts;
   return {
@@ -57,8 +57,8 @@ describe('getEdgeParams — circle source/target', () => {
 
 describe('getEdgeParams — rectangular source/target', () => {
   it('right-of-source target → boundary exit on the rect right edge', () => {
-    const s = fakeNode({ type: 'box', cx: 0, cy: 0, size: 40 });
-    const t = fakeNode({ type: 'box', cx: 200, cy: 0, size: 40 });
+    const s = fakeNode({ type: 'default', cx: 0, cy: 0, size: 40 });
+    const t = fakeNode({ type: 'default', cx: 200, cy: 0, size: 40 });
     const p = getEdgeParams(s, t);
     expect(p.sourcePos).toBe('right');
     expect(p.targetPos).toBe('left');
@@ -67,8 +67,8 @@ describe('getEdgeParams — rectangular source/target', () => {
   });
 
   it('above-source target → exits top, enters bottom', () => {
-    const s = fakeNode({ type: 'box', cx: 0, cy: 0, size: 40 });
-    const t = fakeNode({ type: 'box', cx: 0, cy: -200, size: 40 });
+    const s = fakeNode({ type: 'default', cx: 0, cy: 0, size: 40 });
+    const t = fakeNode({ type: 'default', cx: 0, cy: -200, size: 40 });
     const p = getEdgeParams(s, t);
     expect(p.sourcePos).toBe('top');
     expect(p.targetPos).toBe('bottom');
@@ -84,7 +84,7 @@ describe('boundaryToward — node-to-bend-point cap', () => {
   });
 
   it('rectangle node toward an above-left point → caps on the top edge', () => {
-    const s = fakeNode({ type: 'box', cx: 0, cy: 0, size: 40 });
+    const s = fakeNode({ type: 'default', cx: 0, cy: 0, size: 40 });
     const p = boundaryToward(s, { x: -5, y: -100 });
     // mostly above, so the binding axis is y → caps at top edge (y = -20)
     expect(p.y).toBeCloseTo(-20, 5);
