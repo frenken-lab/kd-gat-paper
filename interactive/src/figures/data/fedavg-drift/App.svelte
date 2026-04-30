@@ -105,7 +105,7 @@
     font-size: 12px;
     color: #333;
     padding: 0 8px 2px;    /* was 2px 14px 6px */
-    margin-top: 0px; 
+    margin-top: 0px;
   }
   .swatch { width: 22px; height: 3px; border-radius: 1px; flex-shrink: 0; }
   .swatch.thick { height: 5px; }
@@ -115,7 +115,7 @@
 <Figure title="FedAvg Gradient Drift Under Non-IID Client Data">
   <!-- wrapper collapses all inter-child gaps -->
   <div style="display:flex; flex-direction:column; gap:0;">
-    
+
     <div class="controls sliders" style="margin:0; padding:2px 0;">
       <label style="margin:0; line-height:1.3;">
         Local steps <strong>E = {E}</strong>
