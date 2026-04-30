@@ -1,11 +1,20 @@
 figure: kd-gat
 
 components:
-  input:   { type: graph, n: 5, topology: sparse, color: data, labels: auto, scale: 50, container: { color: data } }
-  gat_t:   { type: box, label: "GAT Teacher", color: gat, width: 120, height: 40 }
-  class_t: { type: box, label: "Classifier", color: gat, width: 100 }
-  gat_s:   { type: box, label: "GAT Student", color: gat, width: 120, height: 40 }
-  class_s: { type: box, label: "Classifier", color: gat, width: 100 }
+  input:
+    {
+      type: graph,
+      n: 5,
+      topology: sparse,
+      color: data,
+      labels: auto,
+      scale: 50,
+      container: { color: data },
+    }
+  gat_t: { type: box, label: 'GAT Teacher', color: gat, width: 120, height: 40 }
+  class_t: { type: box, label: 'Classifier', color: gat, width: 100 }
+  gat_s: { type: box, label: 'GAT Student', color: gat, width: 120, height: 40 }
+  class_s: { type: box, label: 'Classifier', color: gat, width: 100 }
 
 layout:
   type: hstack
@@ -31,5 +40,5 @@ bridges:
 
 assertions:
   checks:
-    - "gat_t: above gat_s"
-    - "gat_t: left-of class_t"
+    - 'gat_t: above gat_s'
+    - 'gat_t: left-of class_t'

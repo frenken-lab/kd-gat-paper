@@ -1,9 +1,10 @@
 <script>
-  import Figure from "../../../lib/Figure.svelte";
-  import { Plot, Contour, Arrow, Dot, Text } from "svelteplot";
+  import { Arrow, Contour, Dot, Plot, Text } from "svelteplot";
   import styles from "virtual:styles";
 
-  const { blue, orange, green, grey, teal, purple } = styles.palette;
+  import Figure from "../../../lib/Figure.svelte";
+
+  const { blue, orange, green, grey, purple } = styles.palette;
   const DARK = styles.utility["on-light"];
 
   // ─── Geometry ─────────────────────────────────────────────────────────────
@@ -246,5 +247,6 @@
         {item.label}
       </span>
     {/each}
+  </div>
   </div>
 </Figure>

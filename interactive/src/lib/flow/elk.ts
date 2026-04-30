@@ -34,7 +34,11 @@ const elk = new ELK();
 export async function layoutWithELK(
   inNodes: ELKNodeIn[],
   inEdges: ELKEdgeIn[],
-  opts: { direction?: 'LR' | 'TB'; nodeSpacing?: number; rankSpacing?: number } = {},
+  opts: {
+    direction?: 'LR' | 'TB';
+    nodeSpacing?: number;
+    rankSpacing?: number;
+  } = {},
 ): Promise<ELKLayoutResult> {
   const { direction = 'LR', nodeSpacing = 60, rankSpacing = 90 } = opts;
 
@@ -49,13 +53,24 @@ export async function layoutWithELK(
       'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
       'elk.padding': '[top=20,left=20,bottom=20,right=20]',
     },
-    children: inNodes.map((n) => ({ id: n.id, width: n.width, height: n.height })),
-    edges: inEdges.map((e) => ({ id: e.id, sources: [e.source], targets: [e.target] })),
+    children: inNodes.map(n => ({
+      id: n.id,
+      width: n.width,
+      height: n.height,
+    })),
+    edges: inEdges.map(e => ({
+      id: e.id,
+      sources: [e.source],
+      targets: [e.target],
+    })),
   };
 
   const result = await elk.layout(graph);
 
-  const nodes = new Map<string, { x: number; y: number; width: number; height: number }>();
+  const nodes = new Map<
+    string,
+    { x: number; y: number; width: number; height: number }
+  >();
   for (const c of result.children ?? []) {
     nodes.set(c.id, {
       x: c.x ?? 0,
@@ -77,7 +92,10 @@ export async function layoutWithELK(
     const section = e.sections?.[0];
     if (!section) continue;
     const bps = section.bendPoints ?? [];
-    bendPoints.set(e.id, bps.map((p) => ({ x: p.x, y: p.y })));
+    bendPoints.set(
+      e.id,
+      bps.map(p => ({ x: p.x, y: p.y })),
+    );
   }
 
   return { nodes, bendPoints };

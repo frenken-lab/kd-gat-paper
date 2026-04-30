@@ -1,9 +1,9 @@
-declare module "*.yaml" {
+declare module '*.yaml' {
   const value: unknown;
   export default value;
 }
 
-declare module "virtual:styles" {
+declare module 'virtual:styles' {
   interface Styles {
     palette: Record<string, string>;
     fills: Record<string, string>;
@@ -13,7 +13,7 @@ declare module "virtual:styles" {
   export default styles;
 }
 
-declare module "virtual:theme-vars.css" {
+declare module 'virtual:theme-vars.css' {
   const css: string;
   export default css;
 }

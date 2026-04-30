@@ -2,63 +2,190 @@ figure: vgae
 
 components:
   # Input graph
-  input: { type: graph, n: 5, topology: sparse, color: data, labels: auto, scale: 80, container: { label: "Original Graph", color: data } }
+  input:
+    {
+      type: graph,
+      n: 5,
+      topology: sparse,
+      color: data,
+      labels: auto,
+      scale: 80,
+      container: { label: 'Original Graph', color: data },
+    }
 
   # Encoder: 2 GATv2Conv layers; each layer is a vertical stack of 3 graphs
-  enc0a: { type: graph, n: 5, topology: sparse, color: vgae, labels: auto, scale: 50, variant: 1 }
-  enc0b: { type: graph, n: 5, topology: sparse, color: vgae, labels: auto, scale: 50, variant: 2 }
-  enc0c: { type: graph, n: 5, topology: sparse, color: vgae, labels: auto, scale: 50, variant: 3 }
-  enc1a: { type: graph, n: 5, topology: sparse, color: vgae, labels: auto, scale: 50, variant: 1 }
-  enc1b: { type: graph, n: 5, topology: sparse, color: vgae, labels: auto, scale: 50, variant: 2 }
-  enc1c: { type: graph, n: 5, topology: sparse, color: vgae, labels: auto, scale: 50, variant: 3 }
+  enc0a:
+    {
+      type: graph,
+      n: 5,
+      topology: sparse,
+      color: vgae,
+      labels: auto,
+      scale: 50,
+      variant: 1,
+    }
+  enc0b:
+    {
+      type: graph,
+      n: 5,
+      topology: sparse,
+      color: vgae,
+      labels: auto,
+      scale: 50,
+      variant: 2,
+    }
+  enc0c:
+    {
+      type: graph,
+      n: 5,
+      topology: sparse,
+      color: vgae,
+      labels: auto,
+      scale: 50,
+      variant: 3,
+    }
+  enc1a:
+    {
+      type: graph,
+      n: 5,
+      topology: sparse,
+      color: vgae,
+      labels: auto,
+      scale: 50,
+      variant: 1,
+    }
+  enc1b:
+    {
+      type: graph,
+      n: 5,
+      topology: sparse,
+      color: vgae,
+      labels: auto,
+      scale: 50,
+      variant: 2,
+    }
+  enc1c:
+    {
+      type: graph,
+      n: 5,
+      topology: sparse,
+      color: vgae,
+      labels: auto,
+      scale: 50,
+      variant: 3,
+    }
 
   # Latent: mu + logvar heads → reparameterize → auxiliary heads
-  mu:    { type: box, label: "μ",       color: vgae, width: 50, height: 30 }
-  sigma: { type: box, label: "log σ",   color: vgae, width: 50, height: 30 }
-  z:     { type: box, label: "z",       color: vgae, width: 50, height: 30 }
-  canid: { type: box, label: "CAN-ID",  color: data, width: 70, height: 30 }
-  nbr:   { type: box, label: "Nbr MLP", color: data, width: 70, height: 30 }
+  mu: { type: box, label: 'μ', color: vgae, width: 50, height: 30 }
+  sigma: { type: box, label: 'log σ', color: vgae, width: 50, height: 30 }
+  z: { type: box, label: 'z', color: vgae, width: 50, height: 30 }
+  canid: { type: box, label: 'CAN-ID', color: data, width: 70, height: 30 }
+  nbr: { type: box, label: 'Nbr MLP', color: data, width: 70, height: 30 }
 
   # Decoder: 2 GATv2Conv layers; each layer is a vertical stack of 3 graphs (mirrors encoder)
-  dec0a: { type: graph, n: 5, topology: sparse, color: vgae, labels: auto, scale: 50, variant: 1 }
-  dec0b: { type: graph, n: 5, topology: sparse, color: vgae, labels: auto, scale: 50, variant: 2 }
-  dec0c: { type: graph, n: 5, topology: sparse, color: vgae, labels: auto, scale: 50, variant: 3 }
-  dec1a: { type: graph, n: 5, topology: sparse, color: vgae, labels: auto, scale: 50, variant: 1 }
-  dec1b: { type: graph, n: 5, topology: sparse, color: vgae, labels: auto, scale: 50, variant: 2 }
-  dec1c: { type: graph, n: 5, topology: sparse, color: vgae, labels: auto, scale: 50, variant: 3 }
+  dec0a:
+    {
+      type: graph,
+      n: 5,
+      topology: sparse,
+      color: vgae,
+      labels: auto,
+      scale: 50,
+      variant: 1,
+    }
+  dec0b:
+    {
+      type: graph,
+      n: 5,
+      topology: sparse,
+      color: vgae,
+      labels: auto,
+      scale: 50,
+      variant: 2,
+    }
+  dec0c:
+    {
+      type: graph,
+      n: 5,
+      topology: sparse,
+      color: vgae,
+      labels: auto,
+      scale: 50,
+      variant: 3,
+    }
+  dec1a:
+    {
+      type: graph,
+      n: 5,
+      topology: sparse,
+      color: vgae,
+      labels: auto,
+      scale: 50,
+      variant: 1,
+    }
+  dec1b:
+    {
+      type: graph,
+      n: 5,
+      topology: sparse,
+      color: vgae,
+      labels: auto,
+      scale: 50,
+      variant: 2,
+    }
+  dec1c:
+    {
+      type: graph,
+      n: 5,
+      topology: sparse,
+      color: vgae,
+      labels: auto,
+      scale: 50,
+      variant: 3,
+    }
 
   # Reconstructed output
-  output: { type: graph, n: 5, topology: sparse, color: vgae, labels: auto, scale: 80, container: { label: "Reconstructed Graph", color: vgae } }
+  output:
+    {
+      type: graph,
+      n: 5,
+      topology: sparse,
+      color: vgae,
+      labels: auto,
+      scale: 80,
+      container: { label: 'Reconstructed Graph', color: vgae },
+    }
 
 layout:
   type: hstack
   gap: 40
-  container: { label: "VGAE Autoencoder", color: vgae, padding: "32px" }
+  container: { label: 'VGAE Autoencoder', color: vgae, padding: '32px' }
   children:
     - input
     - type: hstack
       id: encoder
       align: center
-      container: { label: "Encoder", color: vgae, shape: trapezoid-r, line: solid }
+      container:
+        { label: 'Encoder', color: vgae, shape: trapezoid-r, line: solid }
       children:
         - type: vstack
           id: enc__layer1
           gap: 10
           align: center
-          container: { label: "Layer 1 (GATv2Conv Enc0)", color: vgae }
+          container: { label: 'Layer 1 (GATv2Conv Enc0)', color: vgae }
           children: [enc0a, enc0b, enc0c]
         - type: vstack
           id: enc__layer2
           gap: 10
           align: center
-          container: { label: "Layer 2 (GATv2Conv Enc0)", color: vgae }
+          container: { label: 'Layer 2 (GATv2Conv Enc0)', color: vgae }
           children: [enc1a, enc1b, enc1c]
     # Latent block: mu/sigma side by side, z below, auxiliary heads below z
     - type: vstack
       gap: 40
       id: latent
       align: center
-      container: { label: "Latent", color: vgae, shape: rectangle, line: solid }
+      container: { label: 'Latent', color: vgae, shape: rectangle, line: solid }
       children:
         - type: hstack
           gap: 40
@@ -70,19 +197,20 @@ layout:
     - type: hstack
       id: decoder
       align: center
-      container: { label: "Decoder", color: vgae, shape: trapezoid-l, line: solid }
+      container:
+        { label: 'Decoder', color: vgae, shape: trapezoid-l, line: solid }
       children:
         - type: vstack
           id: dec__layer1
           gap: 10
           align: center
-          container: { label: "Layer 1 (GATv2Conv Dec0)", color: vgae }
+          container: { label: 'Layer 1 (GATv2Conv Dec0)', color: vgae }
           children: [dec0a, dec0b, dec0c]
         - type: vstack
           id: dec__layer2
           gap: 10
           align: center
-          container: { label: "Layer 2 (GATv2Conv Dec1)", color: vgae }
+          container: { label: 'Layer 2 (GATv2Conv Dec1)', color: vgae }
           children: [dec1a, dec1b, dec1c]
     - output
 
@@ -92,30 +220,54 @@ bridges:
   # Encoder layer-to-layer (container boundary → container boundary)
   - { from: enc__layer1, to: enc__layer2, type: flow, color: vgae }
   # Encoder → latent space
-  - { from: encoder__corner-ne, to: latent__corner-nw, type: line, color: gray, style: dashed }
-  - { from: encoder__corner-se, to: latent__corner-sw, type: line, color: gray, style: dashed }
+  - {
+      from: encoder__corner-ne,
+      to: latent__corner-nw,
+      type: line,
+      color: gray,
+      style: dashed,
+    }
+  - {
+      from: encoder__corner-se,
+      to: latent__corner-sw,
+      type: line,
+      color: gray,
+      style: dashed,
+    }
   # Heads → z (reparameterize)
-  - { from: mu,    to: z, type: flow, color: vgae }
+  - { from: mu, to: z, type: flow, color: vgae }
   - { from: sigma, to: z, type: flow, color: vgae }
   # latent space → decoder
-  - { from: latent__corner-ne, to: decoder__corner-nw, type: line, color: gray, style: dashed }
-  - { from: latent__corner-se, to: decoder__corner-sw, type: line, color: gray, style: dashed }
+  - {
+      from: latent__corner-ne,
+      to: decoder__corner-nw,
+      type: line,
+      color: gray,
+      style: dashed,
+    }
+  - {
+      from: latent__corner-se,
+      to: decoder__corner-sw,
+      type: line,
+      color: gray,
+      style: dashed,
+    }
   # Decoder layer-to-layer (container boundary → container boundary)
   - { from: dec__layer1, to: dec__layer2, type: flow, color: vgae }
   # Decoder → output: one arrow between container boundaries (stays horizontal)
   - { from: decoder__right, to: output__left, type: flow, color: gray }
   # z → auxiliary heads (short arrows within Latent block)
   - { from: z, to: canid, type: flow, color: grey, style: dashed }
-  - { from: z, to: nbr,   type: flow, color: grey, style: dashed }
+  - { from: z, to: nbr, type: flow, color: grey, style: dashed }
 
 assertions:
   checks:
-    - "enc0a_0: above enc0b_0"
-    - "enc0b_0: above enc0c_0"
-    - "enc1a_0: above enc1b_0"
-    - "enc1b_0: above enc1c_0"
-    - "mu: above z"
-    - "dec0a_0: above dec0b_0"
-    - "dec0b_0: above dec0c_0"
-    - "dec1a_0: above dec1b_0"
-    - "dec1b_0: above dec1c_0"
+    - 'enc0a_0: above enc0b_0'
+    - 'enc0b_0: above enc0c_0'
+    - 'enc1a_0: above enc1b_0'
+    - 'enc1b_0: above enc1c_0'
+    - 'mu: above z'
+    - 'dec0a_0: above dec0b_0'
+    - 'dec0b_0: above dec0c_0'
+    - 'dec1a_0: above dec1b_0'
+    - 'dec1b_0: above dec1c_0'

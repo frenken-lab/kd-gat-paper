@@ -16,7 +16,8 @@ const yamlPlugin = {
 const virtualStubPlugin = {
   name: 'virtual-stubs',
   resolveId(id: string) {
-    if (id === 'virtual:styles' || id === 'virtual:theme-vars.css') return `\0${id}`;
+    if (id === 'virtual:styles' || id === 'virtual:theme-vars.css')
+      return `\0${id}`;
   },
   load(id: string) {
     if (id === '\0virtual:styles')

@@ -14,7 +14,7 @@ export function useToggleFilter<T>(
   const initKeys = Array.isArray(initData)
     ? [...new Set(initData.map(getKey))]
     : [];
-  let visible = $state(Object.fromEntries(initKeys.map((k) => [k, true])));
+  let visible = $state(Object.fromEntries(initKeys.map(k => [k, true])));
 
   $effect(() => {
     const data = getData();
@@ -35,9 +35,7 @@ export function useToggleFilter<T>(
   );
 
   const filtered = $derived(
-    Array.isArray(getData())
-      ? getData().filter((d) => visible[getKey(d)])
-      : [],
+    Array.isArray(getData()) ? getData().filter(d => visible[getKey(d)]) : [],
   );
 
   return {

@@ -5,7 +5,7 @@
 // ─── Type spine ──────────────────────────────────────────────────────────────
 
 export type GatKnobs = {
-  model: "gat";
+  model: 'gat';
   layers: number;
   heads: number;
   hidden: number;
@@ -15,7 +15,7 @@ export type GatKnobs = {
 };
 
 export type VgaeKnobs = {
-  model: "vgae";
+  model: 'vgae';
   schedule: number[];
   heads: number;
   embed_dim: number;
@@ -23,14 +23,14 @@ export type VgaeKnobs = {
 };
 
 export type FusionKnobs = {
-  model: "fusion";
+  model: 'fusion';
   layers: number;
   hidden: number;
   action_dim: number;
 };
 
 export type EnsembleKnobs = {
-  model: "ensemble";
+  model: 'ensemble';
   gat: GatKnobs;
   vgae: VgaeKnobs;
   fusion: FusionKnobs;
@@ -59,9 +59,12 @@ type NumericFields<K> = {
   string;
 
 // Per-leaf-model metadata. Ensemble has no per-knob metadata (it composes leaves).
-type LeafModel = Exclude<Knobs["model"], "ensemble">;
+type LeafModel = Exclude<Knobs['model'], 'ensemble'>;
 type KnobMetaShape = {
-  [M in LeafModel]: Record<NumericFields<Extract<Knobs, { model: M }>>, RangeSpec>;
+  [M in LeafModel]: Record<
+    NumericFields<Extract<Knobs, { model: M }>>,
+    RangeSpec
+  >;
 };
 
 // Adding a numeric field to a Knobs variant without a matching KNOB_META row
@@ -70,22 +73,22 @@ type KnobMetaShape = {
 // see spec.md §"What's not sliderable".
 export const KNOB_META = {
   gat: {
-    layers:    { min: 1, max: 6,   step: 1, label: "GATv2Conv layers" },
-    heads:     { min: 1, max: 8,   step: 1, label: "Attention heads" },
-    hidden:    { min: 8, max: 128, step: 8, label: "Hidden channels / head" },
-    embed_dim: { min: 4, max: 32,  step: 4, label: "CAN ID embed dim" },
-    proj_dim:  { min: 8, max: 128, step: 8, label: "Feature projection" },
-    fc_layers: { min: 1, max: 6,   step: 1, label: "FC head layers" },
+    layers: { min: 1, max: 6, step: 1, label: 'GATv2Conv layers' },
+    heads: { min: 1, max: 8, step: 1, label: 'Attention heads' },
+    hidden: { min: 8, max: 128, step: 8, label: 'Hidden channels / head' },
+    embed_dim: { min: 4, max: 32, step: 4, label: 'CAN ID embed dim' },
+    proj_dim: { min: 8, max: 128, step: 8, label: 'Feature projection' },
+    fc_layers: { min: 1, max: 6, step: 1, label: 'FC head layers' },
   },
   vgae: {
-    heads:     { min: 1, max: 8,   step: 1, label: "Attention heads" },
-    embed_dim: { min: 4, max: 32,  step: 4, label: "CAN ID embed dim" },
-    proj_dim:  { min: 8, max: 128, step: 8, label: "Feature projection" },
+    heads: { min: 1, max: 8, step: 1, label: 'Attention heads' },
+    embed_dim: { min: 4, max: 32, step: 4, label: 'CAN ID embed dim' },
+    proj_dim: { min: 8, max: 128, step: 8, label: 'Feature projection' },
   },
   fusion: {
-    layers:     { min: 1,  max: 6,   step: 1,  label: "MLP layers" },
-    hidden:     { min: 32, max: 512, step: 32, label: "MLP width" },
-    action_dim: { min: 5,  max: 41,  step: 2,  label: "Actions |A|" },
+    layers: { min: 1, max: 6, step: 1, label: 'MLP layers' },
+    hidden: { min: 32, max: 512, step: 32, label: 'MLP width' },
+    action_dim: { min: 5, max: 41, step: 2, label: 'Actions |A|' },
   },
 } as const satisfies KnobMetaShape;
 
@@ -95,7 +98,7 @@ export const KNOB_META = {
 // across deployed presets, rounded up to the next 5 % step. Update in the same
 // PR that retunes any load-bearing formula term. Calibration record lives in
 // spec.md §Status.
-export const TOLERANCE: Record<Knobs["model"], number> = {
+export const TOLERANCE: Record<Knobs['model'], number> = {
   gat: 0.2,
   vgae: 0.2,
   fusion: 0.1,
@@ -115,13 +118,13 @@ export const FLOPS_PER_PARAM = 2;
 
 export function compute(knobs: Knobs): Result {
   switch (knobs.model) {
-    case "gat":
+    case 'gat':
       return computeGat(knobs);
-    case "vgae":
+    case 'vgae':
       return computeVgae(knobs);
-    case "fusion":
+    case 'fusion':
       return computeFusion(knobs);
-    case "ensemble":
+    case 'ensemble':
       return computeEnsemble(knobs);
   }
 }
@@ -129,18 +132,18 @@ export function compute(knobs: Knobs): Result {
 export function computeGat(_k: GatKnobs): Result {
   // TODO(calibration): heads × hidden × (2·in + edge_dim + 2) per GATv2Conv layer
   // + LSTM JK + FC head + embeds. See spec.md §"Logic and knob metadata".
-  return stubLeafResult("gat");
+  return stubLeafResult('gat');
 }
 
 export function computeVgae(_k: VgaeKnobs): Result {
   // TODO(calibration): encoder over schedule + variational reparam + symmetric
   // decoder + neighborhood MLP.
-  return stubLeafResult("vgae");
+  return stubLeafResult('vgae');
 }
 
 export function computeFusion(_k: FusionKnobs): Result {
   // TODO(calibration): MLP body × layers + per-arm head sized by action_dim.
-  return stubLeafResult("fusion");
+  return stubLeafResult('fusion');
 }
 
 export function computeEnsemble(k: EnsembleKnobs): Result {
@@ -156,9 +159,9 @@ export function computeEnsemble(k: EnsembleKnobs): Result {
     latency_ms,
     uncertainty: TOLERANCE.ensemble,
     breakdown: [
-      { name: "GAT classifier", params: g.total },
-      { name: "VGAE autoencoder", params: v.total },
-      { name: "Fusion agent", params: f.total },
+      { name: 'GAT classifier', params: g.total },
+      { name: 'VGAE autoencoder', params: v.total },
+      { name: 'Fusion agent', params: f.total },
     ],
   };
 }
@@ -169,6 +172,6 @@ function stubLeafResult(model: LeafModel): Result {
     flops: 0,
     latency_ms: 0,
     uncertainty: TOLERANCE[model],
-    breakdown: [{ name: "(awaiting calibration)", params: 0 }],
+    breakdown: [{ name: '(awaiting calibration)', params: 0 }],
   };
 }

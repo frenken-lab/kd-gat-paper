@@ -20,7 +20,8 @@ const MESSAGE_TYPE = 'kd-gat-paper:resize';
 export function autoResizeIframe(): void {
   if (typeof window === 'undefined' || window.parent === window) return;
 
-  const measure = (): number => Math.ceil(document.documentElement.scrollHeight);
+  const measure = (): number =>
+    Math.ceil(document.documentElement.scrollHeight);
 
   let lastSent = 0;
   function post(): void {

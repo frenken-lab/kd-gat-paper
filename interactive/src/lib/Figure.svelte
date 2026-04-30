@@ -1,7 +1,8 @@
 <script lang="ts">
-  import { setPlotDefaults } from 'svelteplot/hooks/plotDefaults.js';
   import './theme.css';
   import 'virtual:theme-vars.css';
+
+  import { setPlotDefaults } from 'svelteplot/hooks/plotDefaults.js';
 
   setPlotDefaults({
     height: 350,

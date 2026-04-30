@@ -1,4 +1,4 @@
-import { type InternalNode,Position } from '@xyflow/svelte';
+import { type InternalNode, Position } from '@xyflow/svelte';
 
 // Floating-edge geometry: pick the boundary point on each node closest to
 // the line connecting the two centers, then snap to the nearest cardinal
@@ -24,11 +24,15 @@ function nodeRect(n: InternalNode): NodeRect {
   return { cx, cy, w, h, isCircle: n.type === 'circle' };
 }
 
-function intersection(node: NodeRect, target: NodeRect): { x: number; y: number } {
+function intersection(
+  node: NodeRect,
+  target: NodeRect,
+): { x: number; y: number } {
   const dx = target.cx - node.cx;
   const dy = target.cy - node.cy;
   const len = Math.hypot(dx, dy);
-  if (len === 0 || node.w === 0 || node.h === 0) return { x: node.cx, y: node.cy };
+  if (len === 0 || node.w === 0 || node.h === 0)
+    return { x: node.cx, y: node.cy };
 
   if (node.isCircle) {
     const r = Math.min(node.w, node.h) / 2;
@@ -47,7 +51,8 @@ function intersection(node: NodeRect, target: NodeRect): { x: number; y: number 
 
 function snap(node: NodeRect, point: { x: number; y: number }): Position {
   if (node.isCircle) {
-    const angle = Math.atan2(point.y - node.cy, point.x - node.cx) * (180 / Math.PI);
+    const angle =
+      Math.atan2(point.y - node.cy, point.x - node.cx) * (180 / Math.PI);
     if (angle >= -45 && angle < 45) return Position.Right;
     if (angle >= 45 && angle < 135) return Position.Bottom;
     if (angle >= -135 && angle < -45) return Position.Top;
@@ -101,7 +106,13 @@ export function boundaryToward(
   const r = nodeRect(node);
   // Synthesize a fake target rect at the toward point so `intersection` can
   // do its dx/dy calculation.
-  return intersection(r, { cx: toward.x, cy: toward.y, w: 0, h: 0, isCircle: false });
+  return intersection(r, {
+    cx: toward.x,
+    cy: toward.y,
+    w: 0,
+    h: 0,
+    isCircle: false,
+  });
 }
 
 // Render an SVG path through a sequence of points with rounded corners at

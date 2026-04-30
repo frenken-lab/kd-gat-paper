@@ -8,7 +8,7 @@ Replace the static `tbl-model-allocation` table in the appendix with an interact
 
 The figure has two-tier framing:
 
-- **Default view: ensemble.** The reader sees the *combined* GAT + VGAE + Fusion budget — matching what the deleted `tbl-model-allocation` table showed in its **Total (Onboard)** row. This is the load-bearing view for the appendix's "fits in 7 ms" argument.
+- **Default view: ensemble.** The reader sees the _combined_ GAT + VGAE + Fusion budget — matching what the deleted `tbl-model-allocation` table showed in its **Total (Onboard)** row. This is the load-bearing view for the appendix's "fits in 7 ms" argument.
 - **Drill-in: per-model.** The reader can pivot into any single model (GAT / VGAE / Fusion) to tweak its architectural knobs. The deployed student and teacher are anchored presets per family.
 
 Numbers are explicitly **estimates with quantified uncertainty**, not specifications. Each model family carries a tolerance band measured during calibration; `ResultPanel` renders that band so the reader can reason about whether the latency margin survives the worst case.
@@ -18,7 +18,7 @@ Numbers are explicitly **estimates with quantified uncertainty**, not specificat
 - Pinning the paper to exact parameter counts. The static table did that; we just deleted it for that reason.
 - Reproducing PyTorch's parameter accounting bit-for-bit. PyG's internal fusions, biases, and scale parameters are out of scope. The calibrated tolerance encodes how much we're willing to be off.
 - Tracking ablation-time hyperparameters that don't affect param/FLOP count (dropout rates, optimizer betas, exploration epsilon). These belong in graphids configs.
-- Letting the reader edit the VGAE encoder *schedule* (depth + taper) interactively. See §"What's not sliderable".
+- Letting the reader edit the VGAE encoder _schedule_ (depth + taper) interactively. See §"What's not sliderable".
 
 ## Logic and knob metadata
 
@@ -30,32 +30,32 @@ Three things live in `formulas.ts`: the type spine, the per-knob metadata that t
 // formulas.ts
 
 export type GatKnobs = {
-  model: "gat";
-  layers: number;       // GATv2Conv depth
+  model: 'gat';
+  layers: number; // GATv2Conv depth
   heads: number;
-  hidden: number;       // per-head channel width
-  embed_dim: number;    // CAN ID embedding
-  proj_dim: number;     // input feature projection
-  fc_layers: number;    // classification head depth
+  hidden: number; // per-head channel width
+  embed_dim: number; // CAN ID embedding
+  proj_dim: number; // input feature projection
+  fc_layers: number; // classification head depth
 };
 
 export type VgaeKnobs = {
-  model: "vgae";
-  schedule: number[];   // encoder hidden dims, e.g. [80, 40, 16]
+  model: 'vgae';
+  schedule: number[]; // encoder hidden dims, e.g. [80, 40, 16]
   heads: number;
   embed_dim: number;
   proj_dim: number;
 };
 
 export type FusionKnobs = {
-  model: "fusion";
+  model: 'fusion';
   layers: number;
-  hidden: number;       // MLP body width
-  action_dim: number;   // |A| — usually 21
+  hidden: number; // MLP body width
+  action_dim: number; // |A| — usually 21
 };
 
 export type EnsembleKnobs = {
-  model: "ensemble";
+  model: 'ensemble';
   gat: GatKnobs;
   vgae: VgaeKnobs;
   fusion: FusionKnobs;
@@ -67,7 +67,7 @@ export type Result = {
   total: number;
   flops: number;
   latency_ms: number;
-  uncertainty: number;          // fractional, applied to all three numbers above
+  uncertainty: number; // fractional, applied to all three numbers above
   breakdown: { name: string; params: number }[];
 };
 
@@ -75,10 +75,14 @@ export type Preset = { name: string; knobs: Knobs };
 
 export function compute(knobs: Knobs): Result {
   switch (knobs.model) {
-    case "gat":      return computeGat(knobs);
-    case "vgae":     return computeVgae(knobs);
-    case "fusion":   return computeFusion(knobs);
-    case "ensemble": return computeEnsemble(knobs);
+    case 'gat':
+      return computeGat(knobs);
+    case 'vgae':
+      return computeVgae(knobs);
+    case 'fusion':
+      return computeFusion(knobs);
+    case 'ensemble':
+      return computeEnsemble(knobs);
   }
 }
 
@@ -86,22 +90,25 @@ function computeEnsemble(k: EnsembleKnobs): Result {
   const g = computeGat(k.gat);
   const v = computeVgae(k.vgae);
   const f = computeFusion(k.fusion);
-  const total       = g.total + v.total + f.total;
-  const flops       = g.flops + v.flops + f.flops;
-  const latency_ms  = (flops / HARDWARE_FLOPS_PER_S) * SPARSITY * 1000;
-  const uncertainty = TOLERANCE.ensemble;   // see §"Tolerance and uncertainty"
+  const total = g.total + v.total + f.total;
+  const flops = g.flops + v.flops + f.flops;
+  const latency_ms = (flops / HARDWARE_FLOPS_PER_S) * SPARSITY * 1000;
+  const uncertainty = TOLERANCE.ensemble; // see §"Tolerance and uncertainty"
   return {
-    total, flops, latency_ms, uncertainty,
+    total,
+    flops,
+    latency_ms,
+    uncertainty,
     breakdown: [
-      { name: "GAT classifier",   params: g.total },
-      { name: "VGAE autoencoder", params: v.total },
-      { name: "Fusion agent",     params: f.total },
+      { name: 'GAT classifier', params: g.total },
+      { name: 'VGAE autoencoder', params: v.total },
+      { name: 'Fusion agent', params: f.total },
     ],
   };
 }
 ```
 
-The `switch` in `compute` is the *only* place model dispatch happens in the math layer. TypeScript's exhaustiveness check turns "I forgot to update one site after adding a fifth model" into a compile error.
+The `switch` in `compute` is the _only_ place model dispatch happens in the math layer. TypeScript's exhaustiveness check turns "I forgot to update one site after adding a fifth model" into a compile error.
 
 ### Knob metadata
 
@@ -113,33 +120,38 @@ Every numeric knob has a range, a step, and a display label. The metadata table 
 type RangeSpec = { min: number; max: number; step: number; label: string };
 
 // Helper: extract the keys of K whose values are `number` (not number[]).
-type NumericFields<K> =
-  { [P in keyof K]: K[P] extends number ? P : never }[keyof K] & string;
+type NumericFields<K> = {
+  [P in keyof K]: K[P] extends number ? P : never;
+}[keyof K] &
+  string;
 
 // Per-leaf-model metadata. Ensemble is composite; it has no per-knob metadata.
-type LeafModel = Exclude<Knobs["model"], "ensemble">;
+type LeafModel = Exclude<Knobs['model'], 'ensemble'>;
 type KnobMetaShape = {
-  [M in LeafModel]: Record<NumericFields<Extract<Knobs, { model: M }>>, RangeSpec>;
+  [M in LeafModel]: Record<
+    NumericFields<Extract<Knobs, { model: M }>>,
+    RangeSpec
+  >;
 };
 
 export const KNOB_META = {
   gat: {
-    layers:    { min: 1, max: 6,   step: 1, label: "GATv2Conv layers" },
-    heads:     { min: 1, max: 8,   step: 1, label: "Attention heads" },
-    hidden:    { min: 8, max: 128, step: 8, label: "Hidden channels / head" },
-    embed_dim: { min: 4, max: 32,  step: 4, label: "CAN ID embed dim" },
-    proj_dim:  { min: 8, max: 128, step: 8, label: "Feature projection" },
-    fc_layers: { min: 1, max: 6,   step: 1, label: "FC head layers" },
+    layers: { min: 1, max: 6, step: 1, label: 'GATv2Conv layers' },
+    heads: { min: 1, max: 8, step: 1, label: 'Attention heads' },
+    hidden: { min: 8, max: 128, step: 8, label: 'Hidden channels / head' },
+    embed_dim: { min: 4, max: 32, step: 4, label: 'CAN ID embed dim' },
+    proj_dim: { min: 8, max: 128, step: 8, label: 'Feature projection' },
+    fc_layers: { min: 1, max: 6, step: 1, label: 'FC head layers' },
   },
   vgae: {
-    heads:     { min: 1, max: 8,   step: 1, label: "Attention heads" },
-    embed_dim: { min: 4, max: 32,  step: 4, label: "CAN ID embed dim" },
-    proj_dim:  { min: 8, max: 128, step: 8, label: "Feature projection" },
+    heads: { min: 1, max: 8, step: 1, label: 'Attention heads' },
+    embed_dim: { min: 4, max: 32, step: 4, label: 'CAN ID embed dim' },
+    proj_dim: { min: 8, max: 128, step: 8, label: 'Feature projection' },
   },
   fusion: {
-    layers:     { min: 1,  max: 6,   step: 1,  label: "MLP layers" },
-    hidden:     { min: 32, max: 512, step: 32, label: "MLP width" },
-    action_dim: { min: 5,  max: 41,  step: 2,  label: "Actions |A|" },
+    layers: { min: 1, max: 6, step: 1, label: 'MLP layers' },
+    hidden: { min: 32, max: 512, step: 32, label: 'MLP width' },
+    action_dim: { min: 5, max: 41, step: 2, label: 'Actions |A|' },
   },
 } as const satisfies KnobMetaShape;
 ```
@@ -159,16 +171,16 @@ If the calculator gets used heavily and the encoder-depth restriction becomes th
 
 Four components, each with a single responsibility. They communicate only through `Knobs` and `Result` — no shared store, no event bus.
 
-| Component             | Owns          | Prop in              | Prop out (`bind:`)   | How it dispatches on `.model`            |
-|-----------------------|---------------|----------------------|----------------------|------------------------------------------|
-| `App.svelte`          | `knobs` state | —                    | —                    | No dispatch                              |
-| `KnobsPanel.svelte`   | nothing       | —                    | `knobs: Knobs`       | Lookup `KNOB_META[knobs.model]`; ensemble case renders three sub-`PresetPicker`s + drill-in |
-| `ResultPanel.svelte`  | nothing       | `result: Result`     | —                    | No dispatch — uniform render             |
-| `PresetPicker.svelte` | nothing       | `presets: Preset[]`  | `knobs: Knobs`       | Filters by current `knobs.model`         |
+| Component             | Owns          | Prop in             | Prop out (`bind:`) | How it dispatches on `.model`                                                               |
+| --------------------- | ------------- | ------------------- | ------------------ | ------------------------------------------------------------------------------------------- |
+| `App.svelte`          | `knobs` state | —                   | —                  | No dispatch                                                                                 |
+| `KnobsPanel.svelte`   | nothing       | —                   | `knobs: Knobs`     | Lookup `KNOB_META[knobs.model]`; ensemble case renders three sub-`PresetPicker`s + drill-in |
+| `ResultPanel.svelte`  | nothing       | `result: Result`    | —                  | No dispatch — uniform render                                                                |
+| `PresetPicker.svelte` | nothing       | `presets: Preset[]` | `knobs: Knobs`     | Filters by current `knobs.model`                                                            |
 
 `KnobsPanel` has two modes selected by the discriminated tag. **Leaf mode** (`knobs.model in {"gat", "vgae", "fusion"}`) iterates `KNOB_META[knobs.model]` and renders one slider per entry. **Ensemble mode** (`knobs.model === "ensemble"`) renders three sub-`PresetPicker`s — one per component model — plus a "drill into this model" button that swaps `knobs` to the corresponding sub-Knobs. Drill-out (returning to ensemble view) is a separate button on the leaf-mode panel.
 
-`ResultPanel` takes a `Result` and renders the same layout regardless of which model produced it: a total-params readout shown as `≈ N (± uncertainty·N)`, a FLOPs readout, and a latency bar. **In ensemble mode only**, the latency bar shows the 7 ms hard limit as a wall and renders the latency value as a *band* of width `latency_ms × uncertainty` rather than a single line. If the upper edge of the band crosses the wall, the band turns red; if only the center crosses, amber. In per-model mode, the bar shows that model's contribution to the total without a margin claim — the margin is an ensemble-level statement.
+`ResultPanel` takes a `Result` and renders the same layout regardless of which model produced it: a total-params readout shown as `≈ N (± uncertainty·N)`, a FLOPs readout, and a latency bar. **In ensemble mode only**, the latency bar shows the 7 ms hard limit as a wall and renders the latency value as a _band_ of width `latency_ms × uncertainty` rather than a single line. If the upper edge of the band crosses the wall, the band turns red; if only the center crosses, amber. In per-model mode, the bar shows that model's contribution to the total without a margin claim — the margin is an ensemble-level statement.
 
 The breakdown is a horizontal stacked bar (SveltePlot `<Cell>` over `result.breakdown`). In ensemble mode it shows three segments (one per sub-model); in leaf mode it shows the per-component breakdown specific to that family.
 
@@ -176,7 +188,7 @@ The breakdown is a horizontal stacked bar (SveltePlot `<Cell>` over `result.brea
 
 ## Ensemble view as the headline
 
-The calculator's primary job is to support the appendix's "fits in 7 ms" argument. That argument is about the *combined* student ensemble (173 K params, 4.8 ms latency, 2.2 ms margin), not about any one model. So the ensemble view is the default the reader lands on, and the latency-margin claim renders only there.
+The calculator's primary job is to support the appendix's "fits in 7 ms" argument. That argument is about the _combined_ student ensemble (173 K params, 4.8 ms latency, 2.2 ms margin), not about any one model. So the ensemble view is the default the reader lands on, and the latency-margin claim renders only there.
 
 `data.json` has two top-level lists: component presets (one row per deployed student/teacher per family) and ensemble presets (a small list that joins component-preset names into ensembles). App.svelte resolves an ensemble preset at init by looking up its component refs:
 
@@ -258,11 +270,11 @@ The calculator quantifies its own error and surfaces it to the reader. Two concr
 //
 // Updated in the same PR that retunes any of the formula's load-bearing terms.
 // Calibration record (date, graphids commit, measured drift) lives in spec.md §Status.
-export const TOLERANCE: Record<Knobs["model"], number> = {
-  gat:      0.20,   // placeholder — replace at calibration
-  vgae:     0.20,   // placeholder
-  fusion:   0.10,   // plain MLP, expect tighter
-  ensemble: 0.20,   // worst-case sum-correlated propagation; see below
+export const TOLERANCE: Record<Knobs['model'], number> = {
+  gat: 0.2, // placeholder — replace at calibration
+  vgae: 0.2, // placeholder
+  fusion: 0.1, // plain MLP, expect tighter
+  ensemble: 0.2, // worst-case sum-correlated propagation; see below
 };
 ```
 
@@ -323,6 +335,6 @@ Failure mode is loud (CI red), not silent. The maintenance surface is one file i
 
 Populate this section once calibration runs. One row per measurement.
 
-| Date | graphids commit | Family | Measured drift | TOLERANCE set to | Notes |
-|------|-----------------|--------|----------------|------------------|-------|
+| Date | graphids commit | Family | Measured drift | TOLERANCE set to | Notes   |
+| ---- | --------------- | ------ | -------------- | ---------------- | ------- |
 | —    | —               | —      | —              | —                | pending |

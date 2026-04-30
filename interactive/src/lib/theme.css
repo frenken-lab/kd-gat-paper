@@ -63,7 +63,7 @@
 }
 
 .figure .toggle.active::before {
-  content: "✓ ";
+  content: '✓ ';
 }
 
 .figure .toggle.inactive {
@@ -95,7 +95,7 @@
   display: inline-block;
 }
 
-.figure .controls.sliders input[type="range"] {
+.figure .controls.sliders input[type='range'] {
   width: 110px;
   accent-color: var(--utility-on-blue);
 }
@@ -133,7 +133,7 @@
 .figure .plot-with-marginal {
   display: inline-grid;
   grid-template-columns: auto auto; /* col 1 = main plot width, col 2 = right marginal width */
-  grid-template-rows: auto auto;    /* row 1 = top marginal height, row 2 = main plot height */
+  grid-template-rows: auto auto; /* row 1 = top marginal height, row 2 = main plot height */
   align-items: start;
 }
 
@@ -167,4 +167,3 @@
     rgba(50, 50, 93, 0.25) 0px 2px 5px -1px,
     rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
 }
-
