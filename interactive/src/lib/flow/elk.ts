@@ -65,12 +65,19 @@ export async function layoutWithELK(
     });
   }
 
+  // elkjs types don't expose `sections` on result edges even though ELK
+  // always populates it when edgeRouting is ORTHOGONAL.
+  type RoutedEdge = {
+    id: string;
+    sections?: Array<{ bendPoints?: Array<{ x: number; y: number }> }>;
+  };
+
   const bendPoints = new Map<string, Array<{ x: number; y: number }>>();
-  for (const e of result.edges ?? []) {
+  for (const e of (result.edges ?? []) as RoutedEdge[]) {
     const section = e.sections?.[0];
     if (!section) continue;
     const bps = section.bendPoints ?? [];
-    bendPoints.set(e.id, bps.map((p: { x: number; y: number }) => ({ x: p.x, y: p.y })));
+    bendPoints.set(e.id, bps.map((p) => ({ x: p.x, y: p.y })));
   }
 
   return { nodes, bendPoints };

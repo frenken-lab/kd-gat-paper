@@ -13,7 +13,6 @@
   import EncodedEdge from './edges/EncodedEdge.svelte';
   import FlowEdge from './edges/FlowEdge.svelte';
   import StructuralEdge from './edges/StructuralEdge.svelte';
-  import BoxNode from './nodes/BoxNode.svelte';
   import CircleNode from './nodes/CircleNode.svelte';
   import ContainerNode from './nodes/ContainerNode.svelte';
   import type { DiagramEdge, DiagramNode } from './types.ts';
@@ -36,7 +35,6 @@
 
   const nodeTypes: NodeTypes = {
     circle: CircleNode,
-    box: BoxNode,
     container: ContainerNode,
   };
 
@@ -88,5 +86,28 @@
     background: transparent;
     border: none;
     box-shadow: none;
+  }
+
+  /* Style xyflow's built-in default node to match our box spec.
+     --ns (node stroke) and --nf (node fill) are set as CSS vars on the
+     outer .svelte-flow__node wrapper via the node's `style` prop and
+     cascade into this inner element. */
+  .diagram-canvas :global(.svelte-flow__node-default) {
+    width: 100%;
+    height: 100%;
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1.5px solid var(--ns, #ccc);
+    background: var(--nf, #fff);
+    font-size: 9px;
+    font-family: system-ui, -apple-system, sans-serif;
+    color: #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    box-sizing: border-box;
   }
 </style>

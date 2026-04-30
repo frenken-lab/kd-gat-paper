@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { Handle, Position, type Node, type NodeProps } from '@xyflow/svelte';
+  import { Handle, type Node, type NodeProps,Position } from '@xyflow/svelte';
+
   import { getPaletteColor } from '../../palette.ts';
   import type { CircleNodeData } from '../types.ts';
 

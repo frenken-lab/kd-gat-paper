@@ -5,6 +5,7 @@
     EdgeLabel,
     type EdgeProps,
     getSmoothStepPath,
+    Position,
     useSvelteFlow,
   } from '@xyflow/svelte';
 
@@ -41,13 +42,50 @@
 
   const { getInternalNode } = useSvelteFlow();
 
-  // Path construction has two regimes:
+  // Path construction has four regimes:
+  //   - straight: direct M…L line between floating endpoints, no arrowhead.
+  //   - sourceAnchor/targetAnchor present (corner bridge refs): draw directly
+  //     between the specified canvas coordinates, no node measurement needed.
   //   - bendPoints present (ELK routed this edge around obstacles): cap each
   //     end with a floating-edge intersection toward the first/last bend
   //     point, then render a rounded polyline through all of them.
-  //   - no bendPoints (straight inter- or intra-component): fall back to the
-  //     floating + getSmoothStepPath path.
+  //   - default: floating + getSmoothStepPath.
   let routed = $derived.by(() => {
+    const sa = data?.sourceAnchor as { x: number; y: number } | undefined;
+    const ta = data?.targetAnchor as { x: number; y: number } | undefined;
+
+    // Straight line: resolve endpoints then draw M…L, no smoothstep.
+    if (data?.straight) {
+      const s = getInternalNode(source);
+      const t = getInternalNode(target);
+      const sp = sa ?? (s?.measured?.width ? boundaryToward(s, ta ?? (t ? { x: t.internals.positionAbsolute.x, y: t.internals.positionAbsolute.y } : { x: targetX, y: targetY })) : { x: sourceX, y: sourceY });
+      const tp = ta ?? (t?.measured?.width ? boundaryToward(t, sa ?? sp) : { x: targetX, y: targetY });
+      const mx = (sp.x + tp.x) / 2;
+      const my = (sp.y + tp.y) / 2;
+      return { path: `M ${sp.x} ${sp.y} L ${tp.x} ${tp.y}`, labelX: mx, labelY: my };
+    }
+
+    if (sa || ta) {
+      const s = getInternalNode(source);
+      const t = getInternalNode(target);
+      // Resolve non-anchor endpoint via floating geometry if node is available.
+      const sp = sa ?? (s?.measured?.width ? boundaryToward(s, ta!) : { x: sourceX, y: sourceY });
+      const tp = ta ?? (t?.measured?.width ? boundaryToward(t, sa!) : { x: targetX, y: targetY });
+      const dx = tp.x - sp.x;
+      const dy = tp.y - sp.y;
+      const srcPos = Math.abs(dx) >= Math.abs(dy)
+        ? (dx >= 0 ? Position.Right : Position.Left)
+        : (dy >= 0 ? Position.Bottom : Position.Top);
+      const tgtPos = srcPos === Position.Right ? Position.Left
+        : srcPos === Position.Left ? Position.Right
+        : srcPos === Position.Bottom ? Position.Top : Position.Bottom;
+      const [path, lx, ly] = getSmoothStepPath({
+        sourceX: sp.x, sourceY: sp.y, sourcePosition: srcPos,
+        targetX: tp.x, targetY: tp.y, targetPosition: tgtPos,
+      });
+      return { path, labelX: lx, labelY: ly };
+    }
+
     const s = getInternalNode(source);
     const t = getInternalNode(target);
     if (!s?.measured?.width || !t?.measured?.width) return null;
@@ -97,7 +135,7 @@
 <BaseEdge
   {id}
   path={edgePath}
-  {markerEnd}
+  markerEnd={data?.straight ? undefined : markerEnd}
   style="stroke: {stroke}; stroke-width: {strokeWidth}px; stroke-dasharray: {dashArr};" />
 
 {#if data?.label}

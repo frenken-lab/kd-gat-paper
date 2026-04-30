@@ -1,7 +1,7 @@
 figure: kd-gat
 
 components:
-  input:   { type: graph, n: 5, topology: sparse, color: data, labels: auto, scale: 50 }
+  input:   { type: graph, n: 5, topology: sparse, color: data, labels: auto, scale: 50, container: { color: data } }
   gat_t:   { type: box, label: "GAT Teacher", color: gat, width: 120, height: 40 }
   class_t: { type: box, label: "Classifier", color: gat, width: 100 }
   gat_s:   { type: box, label: "GAT Student", color: gat, width: 120, height: 40 }
@@ -25,8 +25,8 @@ layout:
           flowColor: gat
 
 bridges:
-  - { from: input_0, to: gat_t, type: flow, color: grey }
-  - { from: input_0, to: gat_s, type: flow, color: grey }
+  - { from: input__right, to: gat_t__left, type: flow, color: grey }
+  - { from: input__right, to: gat_s__left, type: flow, color: grey }
   - { from: gat_t, to: gat_s, type: kd, color: kd, label: KD }
 
 assertions:

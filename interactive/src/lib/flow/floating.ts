@@ -1,4 +1,4 @@
-import { Position, type InternalNode } from '@xyflow/svelte';
+import { type InternalNode,Position } from '@xyflow/svelte';
 
 // Floating-edge geometry: pick the boundary point on each node closest to
 // the line connecting the two centers, then snap to the nearest cardinal
