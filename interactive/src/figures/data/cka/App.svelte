@@ -1,25 +1,18 @@
 <script lang="ts">
   import { Cell, Plot, Text } from 'svelteplot';
-  import { type DataRecord } from 'svelteplot/types/data.js';
 
   import Figure from '../../../lib/Figure.svelte';
   import { getPaletteColor } from '../../../lib/palette.ts';
   import rawData from './data.json';
 
-  interface CKAData {
-    matrix: number[][];
-    teacher_layers: string[];
-    student_layers: string[];
-  }
-
-  interface CKARecord extends DataRecord {
+  type CKARecord = {
     teacher: string;
     student: string;
     value: number;
-  }
+  };
 
   // Guard against missing/malformed JSON
-  const data = rawData as CKAData;
+  const data = rawData;
   const isEmpty = !data?.matrix?.length;
 
   // Flatten the 2D matrix into a flat record array for svelteplot's Cell mark

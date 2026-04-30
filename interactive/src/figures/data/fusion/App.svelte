@@ -4,10 +4,13 @@
   import Figure from '../../../lib/Figure.svelte';
   import { buildColorMap } from '../../../lib/usePaletteColors.svelte.ts';
   import { useToggleFilter } from '../../../lib/useToggleFilter.svelte.ts';
-  import data from './data.json';
+  import rawData from './data.json';
 
-  const isEmpty = !Array.isArray(data) || data.length === 0;
+  // Guard against missing/malformed JSON
+  const data = Array.isArray(rawData) ? rawData : [];
+  const isEmpty = data.length === 0;
 
+  // Toggle filters control visibility of each attack type
   const { visible, toggle, types, filtered } = useToggleFilter(
     () => (isEmpty ? [] : data),
     d => d.attack_type,

@@ -1,7 +1,7 @@
 <script lang="ts">
   import Figure from '../../../lib/Figure.svelte';
-  import {specToFlow, DiagramCanvas} from '../../../lib/flow';
-  import type {DiagramNode, DiagramEdge, FigureSpec} from '../../../lib/flow';
+  import type { DiagramEdge, DiagramNode, FigureSpec } from '../../../lib/flow';
+  import { DiagramCanvas, specToFlow } from '../../../lib/flow';
 
   // Inline spec — no yaml file for this simple single-component diagram
   const spec: FigureSpec = {
@@ -16,7 +16,7 @@
         scale: 80,
       },
     },
-    layout: {type: 'hstack', children: ['input']},
+    layout: { type: 'hstack', children: ['input'] },
   };
 
   let nodes = $state.raw<DiagramNode[]>([]);

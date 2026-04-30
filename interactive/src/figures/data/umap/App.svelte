@@ -9,69 +9,18 @@
     Line,
     Plot,
   } from 'svelteplot';
-  import { type DataRecord } from 'svelteplot/types/data.js';
 
   import Figure from '../../../lib/Figure.svelte';
   import { buildColorMap } from '../../../lib/usePaletteColors.svelte.ts';
   import { useToggleFilter } from '../../../lib/useToggleFilter.svelte.ts';
   import rawData from './data.json';
 
-  interface UMAPPoint extends DataRecord {
-    attack_type: string;
-    x: number;
-    y: number;
-  }
-
-  interface UMAPBounds {
-    x1: number;
-    y1: number;
-    x2: number;
-    y2: number;
-  }
-
-  interface UMAPMetrics {
-    wasserstein_2d: number;
-    energy_distance: number;
-    overlap_integral: number;
-  }
-
-  interface UMAPData {
-    points: UMAPPoint[];
-    bounds: UMAPBounds;
-    metrics: UMAPMetrics;
-  }
-
-  // ============================================================================
-  // Reactivity map
-  // ----------------------------------------------------------------------------
-  //   visible : { Attack: bool, Normal: bool }              ← class on/off
-  //     mutated by  toggle(t) on button onclick
-  //     read by     {#if visible[t]} gates + visiblePoints derivation
-  //
-  //   density : { bandwidth, thresholds }                   ← KDE knobs
-  //     mutated by  range slider bind:value
-  //     read by     <Density bandwidth={...} thresholds={...} /> only
-  //
-  //   brush : { enabled, x1, x2 }                          ← UMAP-1 slice
-  //     mutated by  drag on main panel (BrushX) or "Reset brush" button
-  //     read by     pointsBrushed → <Density> + marginal KDEs
-  //                 Dot intentionally NOT brushed (highlight+link pattern)
-  //
-  // Static (computed once at module init):
-  //   pointsByType[t]  per-class arrays — fed to Dot (always full)
-  //   colorMap[t]      per-class hex from shared palette
-  //   {x1,y1,x2,y2}   pinned axis domains — toggling/brushing does NOT reflow
-  //
-  // Derived (recomputed on state change):
-  //   pointsBrushed[t] pointsByType[t] ∩ brush.x-range; drives Density + KDEs
-  //   visiblePoints    flat union across visible classes; feeds HTMLTooltip
-  // ============================================================================
-
-  // Guard against missing/malformed JSON — renders empty state instead of crashing
-  const data = rawData as UMAPData;
+  // Guard against missing/malformed JSON
+  const data = rawData;
   const isEmpty = !data?.points?.length;
 
-  const { visible, toggle, types } = useToggleFilter<UMAPPoint>(
+  // Toggle filters control visibility of each attack type
+  const { visible, toggle, types } = useToggleFilter(
     () => (isEmpty ? [] : data.points),
     d => d.attack_type,
   );
@@ -83,7 +32,7 @@
   const colorMap = buildColorMap(attackTypes);
 
   // Pre-split by type so Dot layers never re-filter on every render
-  const pointsByType: Record<string, UMAPPoint[]> = Object.fromEntries(
+  const pointsByType = Object.fromEntries(
     attackTypes.map(t => [
       t,
       isEmpty ? [] : data.points.filter(d => d.attack_type === t),
@@ -244,7 +193,7 @@
           <!-- HTMLTooltip: quadtree nearest-point lookup over visible classes only.
                {#if datum} guard prevents datum=false from throwing on initial mount. -->
           <HTMLTooltip data={visiblePoints} x="x" y="y">
-            {#snippet children({ datum }: { datum: UMAPPoint | null })}
+            {#snippet children({ datum })}
               {#if datum}
                 <div class="tooltip">
                   <strong style="color: {colorMap[datum.attack_type]}"

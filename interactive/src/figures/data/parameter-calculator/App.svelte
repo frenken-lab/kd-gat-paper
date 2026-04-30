@@ -7,9 +7,9 @@
   // Until KnobsPanel / ResultPanel / PresetPicker are written, this file
   // renders an "awaiting calibration" placeholder that satisfies build.js.
 
-  import Figure from "../../../lib/Figure.svelte";
-  import { compute, type Knobs } from "./formulas.ts";
-  import data from "./data.json";
+  import Figure from '../../../lib/Figure.svelte';
+  import data from './data.json';
+  import { compute, type Knobs } from './formulas.ts';
 
   let knobs: Knobs = $state(data.presets[0].knobs as Knobs);
   let result = $derived(compute(knobs));

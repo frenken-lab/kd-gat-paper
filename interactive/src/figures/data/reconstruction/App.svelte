@@ -11,7 +11,6 @@
     RuleX,
     RuleY,
   } from 'svelteplot';
-  import { type DataRecord } from 'svelteplot/types/data.js';
 
   import Figure from '../../../lib/Figure.svelte';
   import { getPaletteColor } from '../../../lib/palette.ts';
@@ -19,56 +18,30 @@
   import { useToggleFilter } from '../../../lib/useToggleFilter.svelte.ts';
   import rawData from './data.json';
 
-  interface KDEPoint extends DataRecord {
-    component: string;
-    value: number;
-    class: string;
-  }
+  // Guard against missing/malformed JSON
+  const data = rawData ?? {};
+  const isEmpty = !data?.kde && !data.roc && !data.heatmap;
 
-  interface ROCPoint extends DataRecord {
-    component: string;
-    fpr: number;
-    tpr: number;
-  }
-
-  interface HeatmapCell extends DataRecord {
-    component: string;
-    row: string;
-    value: number;
-  }
-
-  interface ReconstructionData {
-    kde: KDEPoint[];
-    roc: ROCPoint[];
-    heatmap: HeatmapCell[];
-  }
-
-  // Guard against missing/malformed JSON — renders empty state instead of crashing
-  const data = rawData as ReconstructionData;
-  const isEmpty = !data?.kde;
-
-  // Toggle filter drives the component on/off buttons and filters the KDE series
+  // Toggle filters control visibility of each component type
   const {
     visible,
     toggle,
     types,
     filtered: filteredKde,
-  } = useToggleFilter<KDEPoint>(
+  } = useToggleFilter(
     () => (isEmpty ? [] : data.kde),
     d => d.component,
   );
 
   // ROC filter mirrors the same KDE visible state — no separate toggle needed
-  const filteredRoc = $derived(
-    isEmpty ? [] : data.roc.filter(d => visible[d.component]),
-  );
+  const filteredRoc = $derived( isEmpty ? [] : data.roc.filter(d => visible[d.component]));
 
   // Stable insertion-order component list, used to key both color map and plot layers
   const components: string[] = isEmpty
     ? []
     : [...new Set(data.kde.map(d => d.component))];
 
-  // Palette colors for the four reconstruction components
+  // Define palette colors for the four reconstruction components
   const componentColorMap = buildColorMap(components, [
     'blue',
     'orange',
@@ -99,7 +72,7 @@
           <RectY
             {...binX(
               {
-                data: filteredKde.filter((d: KDEPoint) => d.component === c),
+                data: filteredKde.filter(d => d.component === c),
                 x: 'value',
                 fy: 'class',
               },
@@ -147,7 +120,7 @@
       {#each components as c (c)}
         {#if visible[c]}
           <Line
-            data={filteredRoc.filter((d: ROCPoint) => d.component === c)}
+            data={filteredRoc.filter(d => d.component === c)}
             x="fpr"
             y="tpr"
             stroke={componentColorMap[c]}
@@ -159,10 +132,10 @@
           <RuleX data={pts} x="fpr" opacity="0.3" />
           <RuleY data={pts} y="tpr" opacity="0.3" />
           <AxisX
-            data={pts.map((d: ROCPoint) => d.fpr)}
+            data={pts.map(d => d.fpr)}
             tickFormat={d => d?.toString() || ''} />
           <AxisY
-            data={pts.map((d: ROCPoint) => d.tpr)}
+            data={pts.map(d => d.tpr)}
             tickFormat={d => d?.toString() || ''} />
         {/snippet}
       </Pointer>

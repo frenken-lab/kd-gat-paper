@@ -84,7 +84,7 @@
     text: string;
   }
 
-  let tooltip = $state<TooltipState>({show: false, x: 0, y: 0, text: ''});
+  let tooltip = $state<TooltipState>({ show: false, x: 0, y: 0, text: '' });
 
   function showTooltip(e: MouseEvent, row: ResultRow, metric: MetricKey): void {
     const rect = (e.target as HTMLElement).getBoundingClientRect();
@@ -97,7 +97,7 @@
   }
 
   function hideTooltip(): void {
-    tooltip = {...tooltip, show: false};
+    tooltip = { ...tooltip, show: false };
   }
 </script>
 

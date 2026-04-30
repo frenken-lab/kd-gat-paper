@@ -1,31 +1,12 @@
 <script lang="ts">
+  import { Arrow, Dot, HTMLTooltip, Plot, Text } from 'svelteplot';
+
   import Figure from '../../../lib/Figure.svelte';
-  import { Plot, Arrow, Dot, Text, HTMLTooltip } from 'svelteplot';
   import { getPaletteColor } from '../../../lib/palette.ts';
   import rawData from './data.json';
 
-  interface Edge {
-    source: number;
-    target: number;
-    [key: string]: number;
-  }
-
-  interface Node {
-    x: number;
-    y: number;
-    can_id: string;
-  }
-
-  interface Graph {
-    graph_idx: number;
-    attack_type: string;
-    label: number;
-    nodes: Node[];
-    edges: Edge[];
-  }
-
   // Guard against missing/malformed JSON — renders empty state instead of crashing
-  const data: Graph[] = Array.isArray(rawData) ? (rawData as Graph[]) : [];
+  const data = Array.isArray(rawData) ? rawData : [];
   const isEmpty = !Array.isArray(data) || data.length === 0;
 
   // States
@@ -39,13 +20,18 @@
         .filter(k => k.match(/^layer_\d+_attention$/))
         .map(k => parseInt(k.split('_')[1]));
 
+  // Other derived values
   const graph = $derived(isEmpty ? null : data[selectedIdx]);
   const attnKey = $derived(`layer_${selectedLayer}_attention`);
-  const nodes = $derived<Node[]>(graph?.nodes || []);
-  const edges = $derived<Edge[]>(
-    (graph?.edges || []).map(e => ({ ...e, attention: e[attnKey] || 0 })),
+  const nodes = $derived(graph?.nodes || []);
+  const edges = $derived(
+    (graph?.edges || []).map(e => ({
+      ...e,
+      attention: e[attnKey as keyof typeof e] ?? 0,
+    })),
   );
 
+  // Palette colors
   const attackColor = getPaletteColor('attack').stroke;
   const normalColor = getPaletteColor('normal').stroke;
 </script>

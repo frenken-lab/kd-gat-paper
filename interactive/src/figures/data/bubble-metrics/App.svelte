@@ -6,16 +6,8 @@
   import { useToggleFilter } from '../../../lib/useToggleFilter.svelte.ts';
   import rawData from './data.json';
 
-  interface Model {
-    model: string;
-    model_type: string;
-    f1: number;
-    accuracy: number;
-    params: number;
-  }
-
   // Guard against missing/malformed JSON — renders empty state instead of crashing
-  const data: Model[] = Array.isArray(rawData) ? (rawData as Model[]) : [];
+  const data = Array.isArray(rawData) ? rawData : [];
   const isEmpty = data.length === 0;
 
   // Stable insertion-order list of unique model types, used to key both the
@@ -24,7 +16,7 @@
   const colorMap = buildColorMap(modelTypes);
 
   // Toggle filter tracks which model types are visible
-  const { visible, toggle, types, filtered } = useToggleFilter<Model>(
+  const { visible, toggle, types, filtered } = useToggleFilter(
     () => data,
     d => d.model_type,
   );
@@ -61,10 +53,10 @@
       {#each modelTypes as t (t)}
         {#if visible[t]}
           <Dot
-            data={filtered.filter((d: Model) => d.model_type === t)}
+            data={filtered.filter(d => d.model_type === t)}
             x="f1"
             y="accuracy"
-            r={(d: Model) => rScale(d.params)}
+            r={d => rScale(d.params)}
             fill={colorMap[t]}
             fillOpacity={0.65}
             stroke={colorMap[t]}
@@ -74,7 +66,7 @@
 
       {#snippet overlay()}
         <HTMLTooltip data={filtered} x="f1" y="accuracy">
-          {#snippet children({ datum }: { datum: Model | null })}
+          {#snippet children({ datum })}
             {#if datum}
               <div class="tooltip">
                 <strong style="color: {colorMap[datum.model_type]}"
