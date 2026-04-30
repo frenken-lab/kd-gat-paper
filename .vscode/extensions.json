@@ -5,6 +5,8 @@
     "goessner.mdmath",
     "ltex-plus.vscode-ltex-plus",
     "notZaki.pandocciter",
-    "yunierolivera.markdown-quarto-word-count"
+    "yunierolivera.markdown-quarto-word-count",
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint"
   ]
 }

@@ -39,3 +39,17 @@ repos:
         entry: uv run python tools/validate_data.py
         files: '^(data/csv/.*\.csv|data/schemas\.yaml)$'
         pass_filenames: false
+
+      - id: eslint
+        name: eslint (interactive)
+        language: system
+        entry: bash -c 'cd interactive && npx eslint --max-warnings=0 src/'
+        files: '^interactive/src/.*\.(ts|js|svelte)$'
+        pass_filenames: false
+
+      - id: prettier
+        name: prettier (interactive)
+        language: system
+        entry: bash -c 'cd interactive && npx prettier --check src/'
+        files: '^interactive/src/.*\.(ts|js|svelte|css)$'
+        pass_filenames: false

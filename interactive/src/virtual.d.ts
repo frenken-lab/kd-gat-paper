@@ -1,3 +1,8 @@
+declare module "*.yaml" {
+  const value: unknown;
+  export default value;
+}
+
 declare module "virtual:styles" {
   interface Styles {
     palette: Record<string, string>;

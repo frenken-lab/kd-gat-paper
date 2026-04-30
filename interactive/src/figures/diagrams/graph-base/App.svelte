@@ -1,29 +1,33 @@
-<script>
-  import { specToFlow, DiagramCanvas } from '../../../lib/flow';
+<script lang="ts">
+  import Figure from '../../../lib/Figure.svelte';
+  import type { DiagramEdge, DiagramNode, FigureSpec } from '../../../lib/flow';
+  import { DiagramCanvas, specToFlow } from '../../../lib/flow';
 
-  const spec = {
+  // Inline spec — no yaml file for this simple single-component diagram
+  const spec: FigureSpec = {
     figure: 'graph-base',
     components: {
-      input: { type: 'graph', n: 5, topology: 'sparse', color: 'vgae', labels: 'auto', scale: 80 },
+      input: {
+        type: 'graph',
+        n: 5,
+        topology: 'sparse',
+        color: 'vgae',
+        labels: 'auto',
+        scale: 80,
+      },
     },
     layout: { type: 'hstack', children: ['input'] },
   };
 
-  let nodes = $state.raw([]);
-  let edges = $state.raw([]);
+  let nodes = $state.raw<DiagramNode[]>([]);
+  let edges = $state.raw<DiagramEdge[]>([]);
 
-  specToFlow(spec).then((r) => {
+  specToFlow(spec).then(r => {
     nodes = r.nodes;
     edges = r.edges;
   });
 </script>
 
-<div class="figure">
-  <h3>CAN Bus Graph</h3>
+<Figure title="CAN Bus Graph">
   <DiagramCanvas bind:nodes bind:edges width="100%" height="350px" />
-</div>
-
-<style>
-  .figure { font-family: system-ui, -apple-system, sans-serif; }
-  h3 { font-size: 14px; margin: 0 0 8px; color: #333; }
-</style>
+</Figure>

@@ -3,6 +3,19 @@ import type { DiagramNode, DiagramEdge, FigureSpec, LayoutNode } from './types.t
 import { circularPositions } from './layout.ts';
 import { layoutWithELK } from './elk.ts';
 
+export function loadSpec(raw: unknown): FigureSpec {
+  if (
+    raw == null ||
+    typeof raw !== 'object' ||
+    !('figure' in raw) ||
+    !('components' in raw) ||
+    !('layout' in raw)
+  ) {
+    throw new Error(`loadSpec: invalid FigureSpec — missing required fields (figure, components, layout)`);
+  }
+  return raw as FigureSpec;
+}
+
 // Local node-size helpers — match the ones in layout.ts. Kept private here so
 // the component-level ELK layout below is self-contained.
 function nodeBoxW(n: DiagramNode): number {

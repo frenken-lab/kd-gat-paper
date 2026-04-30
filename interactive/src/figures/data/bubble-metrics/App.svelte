@@ -1,23 +1,34 @@
-<script>
-  import Figure from "../../../lib/Figure.svelte";
-  import { Plot, Dot, HTMLTooltip } from "svelteplot";
-  import { useToggleFilter } from "../../../lib/useToggleFilter.svelte.js";
-  import { buildColorMap } from "../../../lib/usePaletteColors.js";
-  import data from "./data.json";
+<script lang="ts">
+  import { Dot, HTMLTooltip, Plot } from 'svelteplot';
 
-  const isEmpty = !Array.isArray(data) || data.length === 0;
+  import Figure from '../../../lib/Figure.svelte';
+  import { buildColorMap } from '../../../lib/usePaletteColors.svelte.ts';
+  import { useToggleFilter } from '../../../lib/useToggleFilter.svelte.ts';
+  import rawData from './data.json';
 
-  const { visible, toggle, types, filtered } = useToggleFilter(
-    () => (isEmpty ? [] : data),
-    (d) => d.model_type,
-  );
+  // Guard against missing/malformed JSON — renders empty state instead of crashing
+  const data = Array.isArray(rawData) ? rawData : [];
+  const isEmpty = data.length === 0;
 
-  const modelTypes = isEmpty ? [] : [...new Set(data.map((d) => d.model_type))];
+  // Stable insertion-order list of unique model types, used to key both the
+  // color map and the per-type Dot layers so each type gets a consistent color
+  const modelTypes = [...new Set(data.map(d => d.model_type))];
   const colorMap = buildColorMap(modelTypes);
 
-  // Scale param count to a reasonable dot radius (px): sqrt scaling keeps area proportional
-  const maxParams = isEmpty ? 1 : Math.max(...data.map((d) => d.params));
-  const rScale = (params) => 4 + 18 * Math.sqrt(params / maxParams);
+  // Toggle filter tracks which model types are visible
+  const { visible, toggle, types, filtered } = useToggleFilter(
+    () => data,
+    d => d.model_type,
+  );
+
+  // Radius uses √(params) so bubble *area* (∝ r²) is proportional to param count.
+  const maxParams = isEmpty ? 1 : Math.max(...data.map(d => d.params));
+  const rScale = (params: number): number =>
+    4 + 18 * Math.sqrt(params / maxParams);
+
+  // Converts raw param count to a human-readable "XM" string for the tooltip
+  const formatParams = (params: number): string =>
+    `${(params / 1e6).toFixed(2)}M`;
 </script>
 
 <Figure title="Model Performance vs. Parameter Count">
@@ -25,52 +36,50 @@
     <p class="empty">No data available</p>
   {:else}
     <div class="controls">
-      {#each types as t}
+      {#each types as t (t)}
         <button
           class="toggle"
           style:--chip-color={colorMap[t]}
           class:active={visible[t]}
           class:inactive={!visible[t]}
-          onclick={() => toggle(t)}>{t}</button
-        >
+          onclick={() => toggle(t)}>{t}</button>
       {/each}
     </div>
 
     <Plot
-      x={{ label: "F1 Score", domain: [0.7, 1.0] }}
-      y={{ label: "Accuracy", domain: [0.75, 1.0] }}
-      grid={true}
-    >
-      {#each modelTypes as t}
+      x={{ label: 'F1 Score', domain: [0.7, 1.0] }}
+      y={{ label: 'Accuracy', domain: [0.75, 1.0] }}
+      grid={true}>
+      {#each modelTypes as t (t)}
         {#if visible[t]}
           <Dot
-            data={filtered.filter((d) => d.model_type === t)}
+            data={filtered.filter(d => d.model_type === t)}
             x="f1"
             y="accuracy"
-            r={(d) => rScale(d.params)}
+            r={d => rScale(d.params)}
             fill={colorMap[t]}
             fillOpacity={0.65}
             stroke={colorMap[t]}
-            strokeWidth={1.5}
-          />
+            strokeWidth={1.5} />
         {/if}
       {/each}
 
-      <HTMLTooltip data={filtered} x="f1" y="accuracy">
-        {#snippet children({ datum })}
-          {#if datum}
-            <div class="tooltip">
-              <strong style="color: {colorMap[datum.model_type]}"
-                >{datum.model}</strong
-              >
-              <div>Type: {datum.model_type}</div>
-              <div>F1: {datum.f1.toFixed(3)}</div>
-              <div>Accuracy: {datum.accuracy.toFixed(3)}</div>
-              <div>Params: {(datum.params / 1e6).toFixed(2)}M</div>
-            </div>
-          {/if}
-        {/snippet}
-      </HTMLTooltip>
+      {#snippet overlay()}
+        <HTMLTooltip data={filtered} x="f1" y="accuracy">
+          {#snippet children({ datum })}
+            {#if datum}
+              <div class="tooltip">
+                <strong style="color: {colorMap[datum.model_type]}"
+                  >{datum.model}</strong>
+                <div>Type: {datum.model_type}</div>
+                <div>F1: {datum.f1.toFixed(3)}</div>
+                <div>Accuracy: {datum.accuracy.toFixed(3)}</div>
+                <div>Params: {formatParams(datum.params)}</div>
+              </div>
+            {/if}
+          {/snippet}
+        </HTMLTooltip>
+      {/snippet}
     </Plot>
 
     <div class="meta" style="font-size:11px; margin-top:4px;">

@@ -1,14 +1,14 @@
 <script lang="ts">
-  import { Handle, Position, type NodeProps } from '@xyflow/svelte';
-  import { resolve } from '../palette.ts';
+  import { Handle, Position, type Node, type NodeProps } from '@xyflow/svelte';
+  import { getPaletteColor } from '../../palette.ts';
   import type { BoxNodeData } from '../types.ts';
 
-  let { data }: NodeProps<BoxNodeData> = $props();
+  let { data }: NodeProps<Node<BoxNodeData>> = $props();
 
   let w = $derived(data.width ?? 90);
   let h = $derived(data.height ?? 32);
-  let stroke = $derived(resolve(data.color).stroke);
-  let fill = $derived(resolve(data.color).fill);
+  let stroke = $derived(getPaletteColor(data.color).stroke);
+  let fill = $derived(getPaletteColor(data.color).fill);
 </script>
 
 <Handle type="target" position={Position.Left} />
@@ -19,8 +19,7 @@
   style:width="{w}px"
   style:height="{h}px"
   style:background={fill}
-  style:border-color={stroke}
->
+  style:border-color={stroke}>
   {#if data.label}
     <span class="label">{data.label}</span>
   {/if}
@@ -43,7 +42,10 @@
   .label {
     color: #333;
     font-size: 9px;
-    font-family: system-ui, -apple-system, sans-serif;
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
     line-height: 1.2;
     text-align: center;
     overflow: hidden;

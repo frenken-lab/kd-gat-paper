@@ -1,14 +1,14 @@
 <script lang="ts">
-  import { Handle, Position, type NodeProps } from '@xyflow/svelte';
-  import { resolve } from '../palette.ts';
+  import { Handle, Position, type Node, type NodeProps } from '@xyflow/svelte';
+  import { getPaletteColor } from '../../palette.ts';
   import type { CircleNodeData } from '../types.ts';
 
-  let { data }: NodeProps<CircleNodeData> = $props();
+  let { data }: NodeProps<Node<CircleNodeData>> = $props();
 
   let r = $derived(data.r ?? 14);
   let size = $derived(r * 2);
-  let stroke = $derived(resolve(data.color).stroke);
-  let fill = $derived(resolve(data.color).fill);
+  let stroke = $derived(getPaletteColor(data.color).stroke);
+  let fill = $derived(getPaletteColor(data.color).fill);
 </script>
 
 <Handle type="target" position={Position.Left} />
@@ -20,8 +20,7 @@
   style:height="{size}px"
   style:background={fill}
   style:border-color={stroke}
-  style:font-size="{r < 10 ? 4 : 6}px"
->
+  style:font-size="{r < 10 ? 4 : 6}px">
   {#if data.label}
     <span class="label">{data.label}</span>
   {/if}

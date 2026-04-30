@@ -1,16 +1,16 @@
-<script>
-  import { setPlotDefaults } from "svelteplot/hooks/plotDefaults.js";
-  import "./theme.css";
-  import "virtual:theme-vars.css";
+<script lang="ts">
+  import { setPlotDefaults } from 'svelteplot/hooks/plotDefaults.js';
+  import './theme.css';
+  import 'virtual:theme-vars.css';
 
   setPlotDefaults({
     height: 350,
-    categoricalColorScheme: "observable10",
+    categoricalColorScheme: 'observable10',
     grid: { implicit: true },
     axis: { tickSize: 0, tickPadding: 5 },
   });
 
-  let { title = "", children } = $props();
+  let { title = '', children } = $props();
 </script>
 
 <div class="figure">

@@ -1,4 +1,4 @@
-import { resolve } from "./flow/palette.ts";
+import { getPaletteColor } from "./palette.ts";
 
 /**
  * Default palette key order used across figures.
@@ -20,16 +20,19 @@ const DEFAULT_PALETTE_KEYS = [
  * Builds a stable { category -> stroke color } map from a list of category
  * names, using the shared palette so every figure uses consistent colors.
  *
- * @param {string[]} categories - ordered list of unique category names
- * @param {string[]} [paletteKeys] - override the default key order
- * @returns {Record<string, string>} colorMap
+ * @param categories - ordered list of unique category names
+ * @param paletteKeys - override the default key order
+ * @returns colorMap
  */
-export function buildColorMap(categories, paletteKeys = DEFAULT_PALETTE_KEYS) {
+export function buildColorMap(
+  categories: string[],
+  paletteKeys = DEFAULT_PALETTE_KEYS,
+) {
   return Object.fromEntries(
     categories.map((cat, i) => {
       const match = paletteKeys.find((k) => k === cat.toLowerCase());
       const key = match ?? paletteKeys[i % paletteKeys.length];
-      return [cat, resolve(key).stroke];
+      return [cat, getPaletteColor(key).stroke];
     }),
   );
 }

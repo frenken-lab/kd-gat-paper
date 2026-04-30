@@ -1,19 +1,15 @@
 <script lang="ts">
-  import { type NodeProps } from '@xyflow/svelte';
-  import { resolve } from '../palette.ts';
+  import { type Node, type NodeProps } from '@xyflow/svelte';
+  import { getPaletteColor } from '../../palette.ts';
   import type { ContainerNodeData } from '../types.ts';
 
-  let { data }: NodeProps<ContainerNodeData> = $props();
+  let { data }: NodeProps<Node<ContainerNodeData>> = $props();
 
-  let stroke = $derived(resolve(data.color).stroke);
-  let fill = $derived(resolve(data.color).fill);
+  let stroke = $derived(getPaletteColor(data.color).stroke);
+  let fill = $derived(getPaletteColor(data.color).fill);
 </script>
 
-<div
-  class="container-node"
-  style:border-color={stroke}
-  style:background={fill}
->
+<div class="container-node" style:border-color={stroke} style:background={fill}>
   {#if data.label}
     <span class="label" style:color={stroke}>{data.label}</span>
   {/if}
@@ -38,6 +34,9 @@
     left: 6px;
     font-size: 7px;
     font-weight: bold;
-    font-family: system-ui, -apple-system, sans-serif;
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
   }
 </style>
