@@ -1,74 +1,92 @@
-<script>
-  import Figure from "../../../lib/Figure.svelte";
+<script lang="ts">
   import {
-    Plot,
-    Dot,
-    Density,
-    Line,
     BrushX,
-    HTMLTooltip,
+    Density,
     densityX,
     densityY,
-  } from "svelteplot";
-  import { useToggleFilter } from "../../../lib/useToggleFilter.svelte.js";
-  import { buildColorMap } from "../../../lib/usePaletteColors.js";
-  import data from "./data.json";
+    Dot,
+    HTMLTooltip,
+    Line,
+    Plot,
+  } from 'svelteplot';
+  import { type DataRecord } from 'svelteplot/types/data.js';
+
+  import Figure from '../../../lib/Figure.svelte';
+  import { buildColorMap } from '../../../lib/usePaletteColors.svelte.ts';
+  import { useToggleFilter } from '../../../lib/useToggleFilter.svelte.ts';
+  import rawData from './data.json';
+
+  interface UMAPPoint extends DataRecord {
+    attack_type: string;
+    x: number;
+    y: number;
+  }
+
+  interface UMAPBounds {
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+  }
+
+  interface UMAPMetrics {
+    wasserstein_2d: number;
+    energy_distance: number;
+    overlap_integral: number;
+  }
+
+  interface UMAPData {
+    points: UMAPPoint[];
+    bounds: UMAPBounds;
+    metrics: UMAPMetrics;
+  }
 
   // ============================================================================
   // Reactivity map
   // ----------------------------------------------------------------------------
   //   visible : { Attack: bool, Normal: bool }              ← class on/off
-  //     mutated by  toggle(t) on button onclick (one occurrence below)
-  //     read by     {#if visible[t]} — 3 gates wrapping 4 layers, plus the
-  //                                    visiblePoints derivation feeding the
-  //                                    HTMLTooltip search tree.
+  //     mutated by  toggle(t) on button onclick
+  //     read by     {#if visible[t]} gates + visiblePoints derivation
   //
   //   density : { bandwidth, thresholds }                   ← KDE knobs
-  //     mutated by  range slider input events (bind:value below)
+  //     mutated by  range slider bind:value
   //     read by     <Density bandwidth={...} thresholds={...} /> only
-  //                 (densityX / densityY use Silverman's rule, not these)
   //
-  //   brush : { enabled, x1, x2, y1, y2 }                   ← UMAP-1 slice
-  //     mutated by  drag on main panel (bound to <BrushX bind:brush />)
-  //                 OR onclick of "Reset brush" → brush.enabled = false
-  //     read by     pointsBrushed (derived) → flows into <Density>,
-  //                 densityX, densityY in all 3 panels. Dot is intentionally
-  //                 NOT brushed (canonical "highlight + link" pattern: full
-  //                 scatter stays visible so the unselected context is legible).
+  //   brush : { enabled, x1, x2 }                          ← UMAP-1 slice
+  //     mutated by  drag on main panel (BrushX) or "Reset brush" button
+  //     read by     pointsBrushed → <Density> + marginal KDEs
+  //                 Dot intentionally NOT brushed (highlight+link pattern)
   //
   // Static (computed once at module init):
   //   pointsByType[t]  per-class arrays — fed to Dot (always full)
-  //   colorMap[t]      per-class hex (palette role lookup, see styles.yml)
-  //   {x1,y1,x2,y2}    pinned axis domains — toggling/brushing does NOT
-  //                    reflow the axes because every Plot's x/y domain is fixed.
+  //   colorMap[t]      per-class hex from shared palette
+  //   {x1,y1,x2,y2}   pinned axis domains — toggling/brushing does NOT reflow
   //
   // Derived (recomputed on state change):
-  //   pointsBrushed[t] pointsByType[t] ∩ brush.x-range when brush.enabled,
-  //                    else pointsByType[t]. Drives Density + densityX/Y.
-  //   visiblePoints    flat array across all visible classes; HTMLTooltip
-  //                    builds its quadtree from this so toggled-off classes
-  //                    don't show on hover.
+  //   pointsBrushed[t] pointsByType[t] ∩ brush.x-range; drives Density + KDEs
+  //   visiblePoints    flat union across visible classes; feeds HTMLTooltip
   // ============================================================================
 
-  // data.json shape: { points, bounds, metrics }
-  // svelteplot computes 2D KDE (Density), 1D marginal KDEs (densityX/Y), and
-  // marching-squares contours from `points` directly — no Python preprocessing.
-  const isEmpty = !data || !data.points || data.points.length === 0;
+  // Guard against missing/malformed JSON — renders empty state instead of crashing
+  const data = rawData as UMAPData;
+  const isEmpty = !data?.points?.length;
 
-  const { visible, toggle, types } = useToggleFilter(
+  const { visible, toggle, types } = useToggleFilter<UMAPPoint>(
     () => (isEmpty ? [] : data.points),
-    (d) => d.attack_type,
+    d => d.attack_type,
   );
 
-  const attackTypes = isEmpty
+  // Stable insertion-order list of unique attack types for consistent color assignment
+  const attackTypes: string[] = isEmpty
     ? []
-    : [...new Set(data.points.map((d) => d.attack_type))];
+    : [...new Set(data.points.map(d => d.attack_type))];
   const colorMap = buildColorMap(attackTypes);
 
-  const pointsByType = Object.fromEntries(
-    attackTypes.map((t) => [
+  // Pre-split by type so Dot layers never re-filter on every render
+  const pointsByType: Record<string, UMAPPoint[]> = Object.fromEntries(
+    attackTypes.map(t => [
       t,
-      isEmpty ? [] : data.points.filter((d) => d.attack_type === t),
+      isEmpty ? [] : data.points.filter(d => d.attack_type === t),
     ]),
   );
 
@@ -78,30 +96,30 @@
 
   // ─── Reactive controls ────────────────────────────────────────────────────
   let density = $state({ bandwidth: 20, thresholds: 12 });
-  let brush = $state({ enabled: false });
+  let brush = $state({
+    enabled: false,
+    x1: null as number | null,
+    x2: null as number | null,
+  });
 
-  // pointsBrushed[t]: per-class points filtered by brush x-range. When the
-  // brush is off (or the user dragged a zero-width brush), passes through to
-  // pointsByType[t] unchanged. Drag direction is normalized so dragging
-  // right-to-left works the same as left-to-right.
+  // pointsBrushed[t]: per-class points filtered by brush x-range. Drag direction
+  // is normalized so right-to-left works the same as left-to-right.
   const pointsBrushed = $derived.by(() => {
-    if (!brush.enabled || brush.x1 == null || brush.x2 == null) {
+    if (!brush.enabled || brush.x1 == null || brush.x2 == null)
       return pointsByType;
-    }
     const lo = Math.min(+brush.x1, +brush.x2);
     const hi = Math.max(+brush.x1, +brush.x2);
     return Object.fromEntries(
-      attackTypes.map((t) => [
+      attackTypes.map(t => [
         t,
-        pointsByType[t].filter((d) => d.x >= lo && d.x <= hi),
+        pointsByType[t].filter(d => d.x >= lo && d.x <= hi),
       ]),
     );
   });
 
-  // visiblePoints: flat union across visible classes — fed to HTMLTooltip so
-  // hovering a hidden class returns no match.
+  // visiblePoints: flat union across visible classes — HTMLTooltip quadtree source
   const visiblePoints = $derived(
-    isEmpty ? [] : data.points.filter((d) => visible[d.attack_type]),
+    isEmpty ? [] : data.points.filter(d => visible[d.attack_type]),
   );
 </script>
 
@@ -109,64 +127,48 @@
   {#if isEmpty}
     <p class="empty">Awaiting data export from KD-GAT</p>
   {:else}
-    <!-- Row 1 — class toggles + (only when brushing is active) a brush reset.
-         Toggle blast radius: onclick → toggle(t) flips visible[t] → 3
-         {#if visible[t]} gates re-render only the t-iteration that changed. -->
+    <!-- Class toggles + brush reset when active -->
     <div class="controls">
-      {#each types as t}
+      {#each types as t (t)}
         <button
           class="toggle"
           style:--chip-color={colorMap[t]}
           class:active={visible[t]}
           class:inactive={!visible[t]}
-          onclick={() => toggle(t)}>{t}</button
-        >
+          onclick={() => toggle(t)}>{t}</button>
       {/each}
       {#if brush.enabled}
         <button class="toggle" onclick={() => (brush.enabled = false)}
-          >Reset brush</button
-        >
+          >Reset brush</button>
       {/if}
     </div>
 
-    <!-- Row 2 — density-control sliders. Bound to `density` $state object.
-         Bandwidth: Gaussian σ in screen pixels (passed to <Density>).
-         Thresholds: number of stacked iso-density bands.
-         Marginal KDEs (densityX / densityY) deliberately use Silverman's
-         rule; their bandwidth is not slider-driven for now. -->
+    <!-- KDE control sliders — bandwidth (Gaussian σ) and iso-density band count -->
     <div class="controls sliders">
-      <label
-        >Bandwidth: <strong>{density.bandwidth}px</strong>
+      <label>
+        Bandwidth: <strong>{density.bandwidth}px</strong>
         <input
           type="range"
           min={5}
           max={60}
           step={1}
-          bind:value={density.bandwidth}
-        />
+          bind:value={density.bandwidth} />
       </label>
-      <label
-        >Thresholds: <strong>{density.thresholds}</strong>
+      <label>
+        Thresholds: <strong>{density.thresholds}</strong>
         <input
           type="range"
           min={4}
           max={30}
           step={1}
-          bind:value={density.thresholds}
-        />
+          bind:value={density.thresholds} />
       </label>
     </div>
 
-    <!-- 2×2 grid layout (CSS .plot-with-marginal):
-            ┌──────────────┬─────┐
-            │ top marginal │  ·  │   ← row 1: x-axis density
-            ├──────────────┼─────┤
-            │   main plot  │ rt  │   ← row 2: scatter + 2D density / y density
-            └──────────────┴─────┘
-         Each panel is its own <Plot>; their x/y domains are pinned to
-         [x1,x2]/[y1,y2] so the three coordinate spaces stay aligned. -->
+    <!-- 2×2 marginal layout: top KDE / main scatter / right KDE
+         All three panels share pinned [x1,x2]/[y1,y2] domains so axes stay aligned. -->
     <div class="plot-with-marginal">
-      <!-- ── Panel 1/3: top marginal (1D KDE along UMAP 1) ──────────────────── -->
+      <!-- Panel 1/3: top marginal — 1D KDE along UMAP 1 -->
       <div class="marginal-top">
         <Plot
           width={580}
@@ -179,52 +181,40 @@
           marginTop={0}
           marginBottom={5}
           marginLeft={40}
-          marginRight={0}
-        >
-          {#each attackTypes as t}
+          marginRight={0}>
+          {#each attackTypes as t (t)}
             {#if visible[t]}
-              <!-- densityX is a TRANSFORM, not a mark. Spread injects x/y
-                   bindings into <Line>. Uses pointsBrushed so the curve
-                   re-fits to the brushed slice when the user drags the brush. -->
+              <!-- densityX is a transform, not a mark — spread injects x/y into Line.
+                   Uses pointsBrushed so the curve re-fits to the brushed slice. -->
               <Line
                 {...densityX(
-                  { data: pointsBrushed[t], x: "x" },
-                  { kernel: "gaussian" },
+                  { data: pointsBrushed[t], x: 'x' },
+                  { kernel: 'gaussian' },
                 )}
                 stroke={colorMap[t]}
-                strokeWidth={1.5}
-              />
+                strokeWidth={1.5} />
             {/if}
           {/each}
         </Plot>
       </div>
 
-      <!-- ── Panel 2/3: main scatter + 2D KDE contours ──────────────────────── -->
+      <!-- Panel 2/3: main scatter + 2D KDE contours -->
       <div class="marginal-main">
         <Plot
           height={400}
           width={580}
-          x={{ domain: [x1, x2], label: "UMAP 1" }}
-          y={{ domain: [y1, y2], label: "UMAP 2" }}
+          x={{ domain: [x1, x2], label: 'UMAP 1' }}
+          y={{ domain: [y1, y2], label: 'UMAP 2' }}
           grid={false}
           frame={false}
           inset={0}
           marginTop={0}
           marginLeft={40}
-          marginRight={0}
-        >
-          {#each attackTypes as t}
+          marginRight={0}>
+          {#each attackTypes as t (t)}
             {#if visible[t]}
               <!-- 2D Gaussian KDE → marching-squares iso-density bands.
-                     data         pointsBrushed[t]: per-class ∩ brush x-range.
-                                  When brush off: full per-class set.
-                     bandwidth    bound to slider; Gaussian σ in SCREEN PIXELS.
-                     thresholds   bound to slider; number of stacked bands.
-                     fill/stroke  per-class constant. ("density" is a special
-                                  keyword that maps each band's value through
-                                  the plot's color scale — not used here.)
-                     fillOpacity  low so 12 stacked bands accumulate into a
-                                  soft gradient toward the mode. -->
+                   fillOpacity low so stacked bands accumulate into a soft gradient. -->
               <Density
                 data={pointsBrushed[t]}
                 x="x"
@@ -235,41 +225,30 @@
                 fillOpacity={0.08}
                 stroke={colorMap[t]}
                 strokeOpacity={0.35}
-                strokeWidth={0.6}
-              />
-              <!-- Scatter overlay — uses pointsByType (NOT pointsBrushed) so
-                   the unselected context stays visible while brushing. -->
+                strokeWidth={0.6} />
+              <!-- Scatter uses pointsByType (NOT pointsBrushed) so unselected
+                   context stays visible while brushing — highlight+link pattern. -->
               <Dot
                 data={pointsByType[t]}
                 x="x"
                 y="y"
                 fill={colorMap[t]}
                 r={1.8}
-                opacity={0.5}
-              />
+                opacity={0.5} />
             {/if}
           {/each}
 
-          <!-- BrushX: drag on the panel to define an x-range. Bindable state
-               (`bind:brush`) flows into pointsBrushed (above), which re-fits
-               <Density> + the marginal KDEs. limitDimension="x" disables
-               y-axis dragging — selection is on UMAP 1 only. -->
+          <!-- BrushX: drag to define an x-range; flows into pointsBrushed -->
           <BrushX bind:brush />
 
-          <!-- HTMLTooltip: quadtree-based nearest-point lookup. Uses
-               visiblePoints so toggled-off classes never show on hover.
-               IMPORTANT: HTMLTooltip renders the snippet unconditionally
-               from initial mount, passing `datum: false` until the user
-               hovers. The {#if datum} guard prevents `false.x.toFixed(...)`
-               from throwing and tearing down the whole panel.
-               The .tooltip class is themed in src/lib/theme.css. -->
+          <!-- HTMLTooltip: quadtree nearest-point lookup over visible classes only.
+               {#if datum} guard prevents datum=false from throwing on initial mount. -->
           <HTMLTooltip data={visiblePoints} x="x" y="y">
-            {#snippet children({ datum })}
+            {#snippet children({ datum }: { datum: UMAPPoint | null })}
               {#if datum}
                 <div class="tooltip">
                   <strong style="color: {colorMap[datum.attack_type]}"
-                    >{datum.attack_type}</strong
-                  >
+                    >{datum.attack_type}</strong>
                   <div>UMAP 1: {datum.x.toFixed(2)}</div>
                   <div>UMAP 2: {datum.y.toFixed(2)}</div>
                 </div>
@@ -279,7 +258,7 @@
         </Plot>
       </div>
 
-      <!-- ── Panel 3/3: right marginal (1D KDE along UMAP 2) ────────────────── -->
+      <!-- Panel 3/3: right marginal — 1D KDE along UMAP 2 -->
       <div class="marginal-right">
         <Plot
           width={80}
@@ -292,43 +271,32 @@
           marginTop={0}
           marginBottom={35}
           marginLeft={10}
-          marginRight={0}
-        >
-          {#each attackTypes as t}
+          marginRight={0}>
+          {#each attackTypes as t (t)}
             {#if visible[t]}
-              <!-- densityY: same transform as densityX but for the y axis.
-                   Returns {x: density, y}-pair records — density is now the
-                   horizontal channel, so the curve runs vertically. Uses
-                   pointsBrushed: the y-distribution IS the brushed slice. -->
+              <!-- densityY: same as densityX but vertical — density becomes the x channel -->
               <Line
                 {...densityY(
-                  { data: pointsBrushed[t], y: "y" },
-                  { kernel: "gaussian" },
+                  { data: pointsBrushed[t], y: 'y' },
+                  { kernel: 'gaussian' },
                 )}
                 stroke={colorMap[t]}
-                strokeWidth={1.5}
-              />
+                strokeWidth={1.5} />
             {/if}
           {/each}
         </Plot>
       </div>
     </div>
 
-    <!-- Separability metrics — precomputed in Python (tools/pull_data.py
-         build_umap) from the full point set. NOTE: these do NOT update with
-         the brush; they describe the global separability of the embedding,
-         not the current selection. Three independent measures:
-           wasserstein_2d   earth-mover distance, UMAP coordinate units
-           energy_distance  statistical divergence (0 = identical distributions)
-           overlap_integral ∫ kde_a · kde_b dx dy (≈ 0 ⇒ no spatial overlap) -->
+    <!-- Separability metrics — precomputed in Python, describe global embedding quality.
+         These do NOT update with the brush; they reflect the full point set. -->
     <div class="metrics">
       <span>Wasserstein: <strong>{data.metrics.wasserstein_2d}</strong></span>
       <span>Energy dist: <strong>{data.metrics.energy_distance}</strong></span>
       <span
         >KDE overlap: <strong
           >{data.metrics.overlap_integral.toExponential(1)}</strong
-        ></span
-      >
+        ></span>
     </div>
   {/if}
 </Figure>

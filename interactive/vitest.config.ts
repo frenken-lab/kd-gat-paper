@@ -1,6 +1,5 @@
-import { defineConfig } from 'vitest/config';
 import yaml from 'js-yaml';
-import { readFileSync } from 'fs';
+import { defineConfig } from 'vitest/config';
 
 const yamlPlugin = {
   name: 'yaml-import',

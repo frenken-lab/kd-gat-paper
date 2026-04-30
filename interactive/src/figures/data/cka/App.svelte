@@ -1,11 +1,29 @@
-<script>
-  import Figure from "../../../lib/Figure.svelte";
-  import { Plot, Cell, Text } from "svelteplot";
-  import { resolve } from "../../../lib/flow/palette.js";
-  import data from "./data.json";
+<script lang="ts">
+  import { Cell, Plot, Text } from 'svelteplot';
+  import { type DataRecord } from 'svelteplot/types/data.js';
 
+  import Figure from '../../../lib/Figure.svelte';
+  import { getPaletteColor } from '../../../lib/palette.ts';
+  import rawData from './data.json';
+
+  interface CKAData {
+    matrix: number[][];
+    teacher_layers: string[];
+    student_layers: string[];
+  }
+
+  interface CKARecord extends DataRecord {
+    teacher: string;
+    student: string;
+    value: number;
+  }
+
+  // Guard against missing/malformed JSON
+  const data = rawData as CKAData;
   const isEmpty = !data?.matrix?.length;
-  const records = [];
+
+  // Flatten the 2D matrix into a flat record array for svelteplot's Cell mark
+  const records: CKARecord[] = [];
   if (!isEmpty) {
     for (let r = 0; r < data.matrix.length; r++)
       for (let c = 0; c < data.matrix[r].length; c++)
@@ -16,7 +34,11 @@
         });
   }
 
-  const colorScheme = [resolve("blue").fill, resolve("blue").stroke];
+  // Two-stop color scheme from the shared palette — light fill to dark stroke
+  const colorScheme = [
+    getPaletteColor('blue').fill,
+    getPaletteColor('blue').stroke,
+  ];
 </script>
 
 <Figure title="CKA Teacher-Student Layer Similarity">
@@ -29,28 +51,22 @@
       marginBottom={60}
       marginLeft={90}
       x={{
-        type: "band",
-        label: "Student Layer",
-        axis: "bottom",
+        type: 'band',
+        label: 'Student Layer',
+        axis: 'bottom',
         tickRotate: -45,
       }}
-      y={{ type: "band", label: "Teacher Layer" }}
-      color={{
-        scheme: colorScheme,
-        label: "CKA",
-        legend: true,
-      }}
-    >
+      y={{ type: 'band', label: 'Teacher Layer' }}
+      color={{ scheme: colorScheme, label: 'CKA', legend: true }}>
       <Cell data={records} x="student" y="teacher" fill="value" inset={1} />
       <Text
         data={records}
         x="student"
         y="teacher"
-        text={(d) => d.value.toFixed(2)}
+        text={(d: CKARecord) => d.value.toFixed(2)}
         fontSize={11}
-        fill={(d) => (d.value > 0.7 ? "white" : "#333")}
-        textAnchor="middle"
-      />
+        fill={(d: CKARecord) => (d.value > 0.7 ? 'white' : '#333')}
+        textAnchor="middle" />
     </Plot>
   {/if}
 </Figure>

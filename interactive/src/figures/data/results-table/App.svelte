@@ -1,44 +1,62 @@
-<script>
-  import Figure from "../../../lib/Figure.svelte";
-  import data from "./data.json";
+<script lang="ts">
+  import Figure from '../../../lib/Figure.svelte';
+  import rawData from './data.json';
 
-  const isEmpty = !Array.isArray(data) || data.length === 0;
+  interface ResultRow {
+    model: string;
+    group?: string;
+    citation_key?: string;
+    accuracy: number;
+    precision: number;
+    recall: number;
+    f1: number;
+    auc: number;
+    [key: string]: string | number | undefined;
+  }
 
-  const metrics = ["accuracy", "precision", "recall", "f1", "auc"];
-  const metricLabels = {
-    accuracy: "Accuracy",
-    precision: "Precision",
-    recall: "Recall",
-    f1: "F1",
-    auc: "AUC",
+  type MetricKey = 'accuracy' | 'precision' | 'recall' | 'f1' | 'auc';
+
+  // Guard against missing/malformed JSON — renders empty state instead of crashing
+  const data: ResultRow[] = Array.isArray(rawData)
+    ? (rawData as ResultRow[])
+    : [];
+  const isEmpty = data.length === 0;
+
+  const metrics: MetricKey[] = ['accuracy', 'precision', 'recall', 'f1', 'auc'];
+  const metricLabels: Record<MetricKey, string> = {
+    accuracy: 'Accuracy',
+    precision: 'Precision',
+    recall: 'Recall',
+    f1: 'F1',
+    auc: 'AUC',
   };
 
-  // Column-wise best values (pre-computed, not reactive)
-  const colBest = {};
+  // Column-wise best values — pre-computed once, not reactive (data is static)
+  const colBest: Record<string, number> = {};
   if (!isEmpty) {
     for (const m of metrics) {
-      colBest[m] = Math.max(...data.map((d) => d[m]));
+      colBest[m] = Math.max(...data.map(d => d[m] as number));
     }
   }
 
-  let sortKey = $state("f1");
+  let sortKey = $state<string>('f1');
   let sortAsc = $state(false);
-  let filterText = $state("");
+  let filterText = $state('');
 
   const rows = $derived.by(() => {
     if (isEmpty) return [];
-    let filtered = data.filter((d) =>
+    const filtered = data.filter(d =>
       d.model.toLowerCase().includes(filterText.toLowerCase()),
     );
     return filtered.toSorted((a, b) => {
-      const va = a[sortKey];
-      const vb = b[sortKey];
+      const va = a[sortKey] as number;
+      const vb = b[sortKey] as number;
       const cmp = va < vb ? -1 : va > vb ? 1 : 0;
       return sortAsc ? cmp : -cmp;
     });
   });
 
-  function toggleSort(key) {
+  function toggleSort(key: string): void {
     if (sortKey === key) {
       sortAsc = !sortAsc;
     } else {
@@ -47,21 +65,29 @@
     }
   }
 
-  function cellBg(value, metric) {
-    if (value === colBest[metric]) return "#D7E8D3";
-    if (value >= colBest[metric] * 0.99) return "#DAE3EF";
-    return "transparent";
+  // Green highlight for best, blue for within 1% of best, transparent otherwise
+  function cellBg(value: number, metric: string): string {
+    if (value === colBest[metric]) return '#D7E8D3';
+    if (value >= colBest[metric] * 0.99) return '#DAE3EF';
+    return 'transparent';
   }
 
-  function sortIndicator(key) {
-    if (sortKey !== key) return "";
-    return sortAsc ? " ▲" : " ▼";
+  function sortIndicator(key: string): string {
+    if (sortKey !== key) return '';
+    return sortAsc ? ' ▲' : ' ▼';
   }
 
-  let tooltip = $state({ show: false, x: 0, y: 0, text: "" });
+  interface TooltipState {
+    show: boolean;
+    x: number;
+    y: number;
+    text: string;
+  }
 
-  function showTooltip(e, row, metric) {
-    const rect = e.target.getBoundingClientRect();
+  let tooltip = $state<TooltipState>({show: false, x: 0, y: 0, text: ''});
+
+  function showTooltip(e: MouseEvent, row: ResultRow, metric: MetricKey): void {
+    const rect = (e.target as HTMLElement).getBoundingClientRect();
     tooltip = {
       show: true,
       x: rect.left + rect.width / 2,
@@ -70,8 +96,8 @@
     };
   }
 
-  function hideTooltip() {
-    tooltip = { ...tooltip, show: false };
+  function hideTooltip(): void {
+    tooltip = {...tooltip, show: false};
   }
 </script>
 
@@ -84,16 +110,15 @@
         type="text"
         placeholder="Filter models…"
         bind:value={filterText}
-        class="filter-input"
-      />
+        class="filter-input" />
       <span class="hint">Click headers to sort</span>
     </div>
 
     <table class="results-table">
       <thead>
         <tr>
-          <th class="model-col" onclick={() => toggleSort("model")}>
-            Model{sortIndicator("model")}
+          <th class="model-col" onclick={() => toggleSort('model')}>
+            Model{sortIndicator('model')}
           </th>
           {#each metrics as m}
             <th onclick={() => toggleSort(m)}>
@@ -104,7 +129,7 @@
       </thead>
       <tbody>
         {#each rows as row (row.model)}
-          <tr class:ours={row.group === "ours"}>
+          <tr class:ours={row.group === 'ours'}>
             <td class="model-col">
               {row.model}
               {#if row.citation_key}
@@ -113,11 +138,10 @@
             </td>
             {#each metrics as m}
               <td
-                style:background={cellBg(row[m], m)}
-                onmouseenter={(e) => showTooltip(e, row, m)}
-                onmouseleave={hideTooltip}
-              >
-                {row[m].toFixed(4)}
+                style:background={cellBg(row[m] as number, m)}
+                onmouseenter={e => showTooltip(e, row, m)}
+                onmouseleave={hideTooltip}>
+                {(row[m] as number).toFixed(4)}
               </td>
             {/each}
           </tr>
@@ -126,11 +150,7 @@
     </table>
 
     {#if tooltip.show}
-      <div
-        class="tooltip"
-        style:left="{tooltip.x}px"
-        style:top="{tooltip.y}px"
-      >
+      <div class="tooltip" style:left="{tooltip.x}px" style:top="{tooltip.y}px">
         {tooltip.text}
       </div>
     {/if}
@@ -208,9 +228,5 @@
     white-space: nowrap;
     pointer-events: none;
     z-index: 100;
-  }
-  .empty {
-    color: #999;
-    font-style: italic;
   }
 </style>

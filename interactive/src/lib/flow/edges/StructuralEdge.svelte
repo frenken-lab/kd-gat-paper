@@ -1,14 +1,15 @@
 <script lang="ts">
   import {
     BaseEdge,
-    getStraightPath,
-    useSvelteFlow,
     type Edge,
     type EdgeProps,
-  } from "@xyflow/svelte";
-  import { resolve } from "../palette.ts";
-  import { getEdgeParams } from "../floating.ts";
-  import type { StructuralEdgeData } from "../types.ts";
+    getStraightPath,
+    useSvelteFlow,
+  } from '@xyflow/svelte';
+
+  import { getPaletteColor } from '../../palette.ts';
+  import { getEdgeParams } from '../floating.ts';
+  import type { StructuralEdgeData } from '../types.ts';
 
   let {
     id,
@@ -21,7 +22,7 @@
     data,
   }: EdgeProps<Edge<StructuralEdgeData>> = $props();
 
-  let stroke = $derived(resolve(data?.color).stroke);
+  let stroke = $derived(getPaletteColor(data?.color).stroke);
 
   const { getInternalNode } = useSvelteFlow();
 
@@ -44,5 +45,4 @@
 <BaseEdge
   {id}
   path={edgePath}
-  style="stroke: {stroke}; stroke-opacity: 0.4; stroke-width: 1px;"
-/>
+  style="stroke: {stroke}; stroke-opacity: 0.4; stroke-width: 1px;" />

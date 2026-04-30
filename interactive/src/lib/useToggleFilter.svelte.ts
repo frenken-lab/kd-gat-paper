@@ -5,10 +5,15 @@
  * @param {() => any[]} getData - reactive getter for the raw data array
  * @param {(d: any) => string} getKey - function to extract the category key from a datum
  */
-export function useToggleFilter(getData, getKey) {
+export function useToggleFilter<T>(
+  getData: () => T[],
+  getKey: (data: T) => string,
+) {
   // Eagerly initialize visible from the initial data so $derived works on first render
   const initData = getData();
-  const initKeys = Array.isArray(initData) ? [...new Set(initData.map(getKey))] : [];
+  const initKeys = Array.isArray(initData)
+    ? [...new Set(initData.map(getKey))]
+    : [];
   let visible = $state(Object.fromEntries(initKeys.map((k) => [k, true])));
 
   $effect(() => {
@@ -21,7 +26,7 @@ export function useToggleFilter(getData, getKey) {
     }
   });
 
-  function toggle(key) {
+  function toggle(key: string) {
     visible[key] = !visible[key];
   }
 
@@ -30,7 +35,9 @@ export function useToggleFilter(getData, getKey) {
   );
 
   const filtered = $derived(
-    Array.isArray(getData()) ? getData().filter((d) => visible[getKey(d)]) : [],
+    Array.isArray(getData())
+      ? getData().filter((d) => visible[getKey(d)])
+      : [],
   );
 
   return {

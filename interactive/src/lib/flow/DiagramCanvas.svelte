@@ -1,42 +1,38 @@
 <script lang="ts">
-  import {
-    SvelteFlow,
-    Background,
-    Controls,
-    MiniMap,
-    MarkerType,
-    type NodeTypes,
-    type EdgeTypes,
-    type DefaultEdgeOptions,
-  } from '@xyflow/svelte';
   import '@xyflow/svelte/dist/style.css';
   import 'virtual:theme-vars.css';
 
-  import CircleNode from './nodes/CircleNode.svelte';
-  import BoxNode from './nodes/BoxNode.svelte';
-  import ContainerNode from './nodes/ContainerNode.svelte';
+  import {
+    type DefaultEdgeOptions,
+    type EdgeTypes,
+    MarkerType,
+    type NodeTypes,
+    SvelteFlow,
+  } from '@xyflow/svelte';
 
-  import StructuralEdge from './edges/StructuralEdge.svelte';
-  import FlowEdge from './edges/FlowEdge.svelte';
   import EncodedEdge from './edges/EncodedEdge.svelte';
+  import FlowEdge from './edges/FlowEdge.svelte';
+  import StructuralEdge from './edges/StructuralEdge.svelte';
+  import BoxNode from './nodes/BoxNode.svelte';
+  import CircleNode from './nodes/CircleNode.svelte';
+  import ContainerNode from './nodes/ContainerNode.svelte';
+  import type { DiagramEdge, DiagramNode } from './types.ts';
 
-  import type { DiagramNode, DiagramEdge } from './types.ts';
+  type DiagramCanvasProps = {
+    nodes: DiagramNode[];
+    edges: DiagramEdge[];
+    width?: string;
+    height?: string;
+    fitView?: boolean;
+  };
 
   let {
     nodes = $bindable([]),
     edges = $bindable([]),
-    interactive = false,
     width = '100%',
     height = '400px',
     fitView = true,
-  }: {
-    nodes: DiagramNode[];
-    edges: DiagramEdge[];
-    interactive?: boolean;
-    width?: string;
-    height?: string;
-    fitView?: boolean;
-  } = $props();
+  }: DiagramCanvasProps = $props();
 
   const nodeTypes: NodeTypes = {
     circle: CircleNode,
@@ -53,8 +49,6 @@
   const defaultEdgeOptions: DefaultEdgeOptions = {
     markerEnd: { type: MarkerType.ArrowClosed, width: 12, height: 12 },
   };
-
-  const isDev = import.meta.env.DEV;
 </script>
 
 <div class="diagram-canvas" style:width style:height>
@@ -65,20 +59,14 @@
     {edgeTypes}
     {defaultEdgeOptions}
     {fitView}
-    nodesDraggable={interactive || isDev}
-    nodesConnectable={interactive}
-    elementsSelectable={interactive || isDev}
+    nodesDraggable={false}
+    nodesConnectable={false}
+    elementsSelectable={false}
     panOnDrag={true}
     zoomOnScroll={true}
     minZoom={0.2}
     maxZoom={4}
-    proOptions={{ hideAttribution: true }}
-  >
-    {#if isDev}
-      <Background />
-      <Controls />
-      <MiniMap />
-    {/if}
+    proOptions={{ hideAttribution: true }}>
   </SvelteFlow>
 </div>
 

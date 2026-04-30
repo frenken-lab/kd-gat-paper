@@ -1,13 +1,19 @@
 <script lang="ts">
   import {
     BaseEdge,
+    type Edge,
     EdgeLabel,
+    type EdgeProps,
     getSmoothStepPath,
     useSvelteFlow,
-    type EdgeProps,
   } from '@xyflow/svelte';
-  import { resolve } from '../palette.ts';
-  import { boundaryToward, getEdgeParams, roundedPolylinePath } from '../floating.ts';
+
+  import { getPaletteColor } from '../../palette.ts';
+  import {
+    boundaryToward,
+    getEdgeParams,
+    roundedPolylinePath,
+  } from '../floating.ts';
   import type { FlowEdgeData } from '../types.ts';
 
   let {
@@ -22,13 +28,11 @@
     targetPosition,
     data,
     markerEnd,
-  }: EdgeProps<FlowEdgeData> = $props();
+  }: EdgeProps<Edge<FlowEdgeData>> = $props();
 
-  let stroke = $derived(resolve(data?.color).stroke);
+  let stroke = $derived(getPaletteColor(data?.color).stroke);
   let strokeWidth = $derived(data?.strokeWidth ?? 1);
-  let dashArr = $derived(
-    data?.dashArray ?? (data?.dashed ? '4 3' : 'none'),
-  );
+  let dashArr = $derived(data?.dashArray ?? (data?.dashed ? '4 3' : 'none'));
 
   let labelColor = $derived(data?.labelOnStroke ? stroke : '#666');
   let labelOffsetX = $derived(data?.labelOffsetX ?? 0);
@@ -54,7 +58,11 @@
       const tCap = boundaryToward(t, bps[bps.length - 1]);
       const points = [sCap, ...bps, tCap];
       const mid = points[Math.floor(points.length / 2)];
-      return { path: roundedPolylinePath(points, 6), labelX: mid.x, labelY: mid.y };
+      return {
+        path: roundedPolylinePath(points, 6),
+        labelX: mid.x,
+        labelY: mid.y,
+      };
     }
 
     const params = getEdgeParams(s, t);
@@ -71,8 +79,12 @@
 
   let fallback = $derived.by(() => {
     const [path, lx, ly] = getSmoothStepPath({
-      sourceX, sourceY, sourcePosition,
-      targetX, targetY, targetPosition,
+      sourceX,
+      sourceY,
+      sourcePosition,
+      targetX,
+      targetY,
+      targetPosition,
     });
     return { path, labelX: lx, labelY: ly };
   });
@@ -86,8 +98,7 @@
   {id}
   path={edgePath}
   {markerEnd}
-  style="stroke: {stroke}; stroke-width: {strokeWidth}px; stroke-dasharray: {dashArr};"
-/>
+  style="stroke: {stroke}; stroke-width: {strokeWidth}px; stroke-dasharray: {dashArr};" />
 
 {#if data?.label}
   <EdgeLabel x={labelX + labelOffsetX} y={labelY}>
@@ -95,8 +106,7 @@
       class="flow-label"
       class:bold={labelBold}
       class:left-align={labelLeftAlign}
-      style:color={labelColor}
-    >
+      style:color={labelColor}>
       {data.label}
     </div>
   </EdgeLabel>
@@ -109,7 +119,10 @@
     font-size: 7px;
     color: #666;
     font-style: italic;
-    font-family: system-ui, -apple-system, sans-serif;
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
     pointer-events: none;
     background: white;
     padding: 1px 3px;
