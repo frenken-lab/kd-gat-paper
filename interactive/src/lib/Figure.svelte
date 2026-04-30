@@ -3,8 +3,6 @@
   import "./theme.css";
   import "virtual:theme-vars.css";
 
-  // Global SveltePlot defaults — all figures inherit these.
-  // Override per-figure by passing props to <Plot> where needed.
   setPlotDefaults({
     height: 350,
     categoricalColorScheme: "observable10",
@@ -19,3 +17,19 @@
   {#if title}<h3>{title}</h3>{/if}
   {@render children()}
 </div>
+
+<style>
+  .figure {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .figure h3 {
+    margin: 0;
+  }
+
+  .figure :global(figure) {
+    margin: 0;
+  }
+</style>

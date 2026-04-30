@@ -80,60 +80,77 @@
     { label: "FedProx aggregate (μ=1)", color: purple, thick: true },
     { label: "True gradient",        color: DARK },
   ];
+
+  // ─── Grid data for Contour ────────────────────────────────────────────────
+  // SveltePlot's Contour mark expects [{x, y, value}], not a function
+  const STEPS = 120;
+  const step = (DOMAIN[1] - DOMAIN[0]) / STEPS;
+  const contourData = [];
+  for (let i = 0; i <= STEPS; i++) {
+    for (let j = 0; j <= STEPS; j++) {
+      const x = DOMAIN[0] + i * step;
+      const y = DOMAIN[0] + j * step;
+      contourData.push({ x, y, value: loss(x, y) });
+    }
+  }
+  let smooth = $state(true);
+  let blur = $state(0);
 </script>
 
 <style>
   .legend {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px 18px;
+    gap: 4px 12px;   /* was 6px 18px */
     font-size: 12px;
     color: #333;
-    padding: 2px 14px 6px;
+    padding: 0 8px 2px;    /* was 2px 14px 6px */
+    margin-top: 0px; 
   }
-  .legend-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .swatch {
-    width: 22px;
-    height: 3px;
-    border-radius: 2px;
-    flex-shrink: 0;
-  }
+  .swatch { width: 22px; height: 3px; border-radius: 1px; flex-shrink: 0; }
   .swatch.thick { height: 5px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
 </style>
 
 <Figure title="FedAvg Gradient Drift Under Non-IID Client Data">
-  <div class="controls sliders">
-    <label>
-      Local steps <strong>E = {E}</strong>
-      <input type="range" min={1} max={15} bind:value={E} />
-    </label>
-  </div>
+  <!-- wrapper collapses all inter-child gaps -->
+  <div style="display:flex; flex-direction:column; gap:0;">
+    
+    <div class="controls sliders" style="margin:0; padding:2px 0;">
+      <label style="margin:0; line-height:1.3;">
+        Local steps <strong>E = {E}</strong>
+        <input type="range" min={1} max={15} bind:value={E} />
+      </label>
+    </div>
 
-  <Plot
-    width={500}
-    height={460}
-    x={{ domain: DOMAIN, label: "θ₁" }}
-    y={{ domain: DOMAIN, label: "θ₂" }}
-    grid={false}
-    frame={true}
-    marginTop={16}
-    marginRight={16}
-    marginBottom={32}
-    marginLeft={44}
-  >
+    <Plot
+      width={500}
+      height={460}
+      x={{ domain: DOMAIN, label: "θ₁" }}
+      y={{ domain: DOMAIN, label: "θ₂" }}
+      grid={false}
+      frame={true}
+      marginTop={6}
+      marginRight={6}
+      marginBottom={28}
+      marginLeft={36}
+    >
+      <!-- all marks unchanged -->
+
     <!-- Loss landscape: concentric rings centered at θ* -->
     <Contour
-      value={loss}
+      data={contourData}
+      x="x"
+      y="y"
+      value="value"
       thresholds={7}
-      fill={teal}
-      fillOpacity={0.05}
-      stroke={teal}
-      strokeOpacity={0.22}
-      strokeWidth={0.8}
+      fill={grey}
+      fillOpacity={0.10}
+      stroke={grey}
+      strokeOpacity={0.5}
+      strokeWidth={0.5}
+      {smooth}
+      {blur}
     />
 
     <!-- True gradient −∇F(θ^(t)): reference direction toward global min -->
