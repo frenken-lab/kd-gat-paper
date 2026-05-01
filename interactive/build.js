@@ -7,18 +7,25 @@
  * index.html and main.js are generated from templates if not present,
  * so each figure only needs an App.svelte (and optional data.json).
  */
-import { readdirSync, existsSync, renameSync, rmSync, writeFileSync, statSync } from "fs";
-import { resolve } from "path";
-import { exec } from "child_process";
-import { promisify } from "util";
+import {
+  readdirSync,
+  existsSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+  statSync,
+} from 'fs';
+import { resolve } from 'path';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 const execAsync = promisify(exec);
 
-const srcDir = resolve(import.meta.dirname, "src/figures");
-const outDir = resolve(import.meta.dirname, "..", "_build", "figures");
+const srcDir = resolve(import.meta.dirname, 'src/figures');
+const outDir = resolve(import.meta.dirname, '..', '_build', 'figures');
 
 // Figures live under src/figures/{data,diagrams}/<name>/. Output names stay
 // flat (_build/figures/<name>.html) so iframe URLs in MyST/TMLR are unchanged.
-const CATEGORIES = ["data", "diagrams"];
+const CATEGORIES = ['data', 'diagrams'];
 
 function discoverFigures() {
   const found = [];
@@ -28,7 +35,7 @@ function discoverFigures() {
     for (const d of readdirSync(catDir, { withFileTypes: true })) {
       if (!d.isDirectory()) continue;
       const figDir = resolve(catDir, d.name);
-      if (!existsSync(resolve(figDir, "App.svelte"))) continue;
+      if (!existsSync(resolve(figDir, 'App.svelte'))) continue;
       found.push({ name: d.name, category, dir: figDir });
     }
   }
@@ -36,8 +43,8 @@ function discoverFigures() {
 }
 
 // FIGURE=name → build only that figure. FORCE=1 → ignore mtime gate.
-const figureFilter = process.env.FIGURE || "";
-const force = process.env.FORCE === "1";
+const figureFilter = process.env.FIGURE || '';
+const force = process.env.FORCE === '1';
 
 // Recursively find max mtime across files/dirs (used for incremental gating).
 function maxMtime(paths) {
@@ -58,20 +65,18 @@ function maxMtime(paths) {
 
 // Shared dependency surface: a change here invalidates every figure.
 const sharedMtime = maxMtime([
-  resolve(import.meta.dirname, "src/lib"),
-  resolve(import.meta.dirname, "vite.config.js"),
-  resolve(import.meta.dirname, "package.json"),
-  resolve(import.meta.dirname, "..", "styles.yml"),
+  resolve(import.meta.dirname, 'src/lib'),
+  resolve(import.meta.dirname, 'vite.config.js'),
+  resolve(import.meta.dirname, 'package.json'),
+  resolve(import.meta.dirname, '..', 'styles.yml'),
 ]);
 
 /** Generate index.html for a figure if it doesn't already exist. */
 function ensureIndexHtml(figDir, name) {
-  const dest = resolve(figDir, "index.html");
+  const dest = resolve(figDir, 'index.html');
   if (existsSync(dest)) return;
   // Derive a human-readable title from the directory name
-  const title = name
-    .replace(/-/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  const title = name.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   writeFileSync(
     dest,
     `<!doctype html>
@@ -93,7 +98,7 @@ function ensureIndexHtml(figDir, name) {
 
 /** Generate main.js for a figure if it doesn't already exist. */
 function ensureMainJs(figDir, name) {
-  const dest = resolve(figDir, "main.js");
+  const dest = resolve(figDir, 'main.js');
   if (existsSync(dest)) return;
   writeFileSync(
     dest,
@@ -110,23 +115,29 @@ autoResizeIframe();
 const figures = discoverFigures();
 
 const filtered = figureFilter
-  ? figures.filter((f) => f.name === figureFilter)
+  ? figures.filter(f => f.name === figureFilter)
   : figures;
 if (figureFilter && filtered.length === 0) {
-  console.error(`ERROR: figure '${figureFilter}' not found under ${srcDir}/{data,diagrams}/`);
-  console.error(`Available: ${figures.map((f) => f.name).join(", ")}`);
+  console.error(
+    `ERROR: figure '${figureFilter}' not found under ${srcDir}/{data,diagrams}/`,
+  );
+  console.error(`Available: ${figures.map(f => f.name).join(', ')}`);
   process.exit(1);
 }
 
 console.log(
-  `Building ${filtered.length} figure(s): ${filtered.map((f) => `${f.category}/${f.name}`).join(", ")}${force ? " [FORCE]" : ""}`,
+  `Building ${filtered.length} figure(s): ${filtered.map(f => `${f.category}/${f.name}`).join(', ')}${force ? ' [FORCE]' : ''}`,
 );
 
 // Remove stale outputs from figures no longer in src/ (only when building all).
 if (existsSync(outDir) && !figureFilter) {
-  const figSet = new Set(figures.map((f) => f.name));
+  const figSet = new Set(figures.map(f => f.name));
   for (const f of readdirSync(outDir)) {
-    if (f.endsWith(".html") && f !== "index.html" && !figSet.has(f.replace(/\.html$/, ""))) {
+    if (
+      f.endsWith('.html') &&
+      f !== 'index.html' &&
+      !figSet.has(f.replace(/\.html$/, ''))
+    ) {
       console.log(`  removing stale output: ${f}`);
       rmSync(resolve(outDir, f), { force: true });
     }
@@ -171,9 +182,20 @@ const buildResults = await Promise.all(
       });
 
       // Vite outputs to outDir/src/figures/<category>/<name>/index.html — rename flat.
-      const nestedHtml = resolve(outDir, "src", "figures", category, name, "index.html");
-      const rootIndexHtml = resolve(outDir, "index.html");
-      const outputHtml = existsSync(nestedHtml) ? nestedHtml : existsSync(rootIndexHtml) ? rootIndexHtml : null;
+      const nestedHtml = resolve(
+        outDir,
+        'src',
+        'figures',
+        category,
+        name,
+        'index.html',
+      );
+      const rootIndexHtml = resolve(outDir, 'index.html');
+      const outputHtml = existsSync(nestedHtml)
+        ? nestedHtml
+        : existsSync(rootIndexHtml)
+          ? rootIndexHtml
+          : null;
 
       if (outputHtml) {
         renameSync(outputHtml, resolve(outDir, `${name}.html`));
@@ -188,7 +210,7 @@ const buildResults = await Promise.all(
       console.error(`  ERROR: ${name} — build failed:\n${detail}`);
       return { name, ok: false };
     }
-  })
+  }),
 );
 
 for (const { name, ok } of buildResults) {
@@ -197,14 +219,14 @@ for (const { name, ok } of buildResults) {
 }
 
 // Clean up stray nested dirs left by Vite (done once after all builds finish).
-rmSync(resolve(outDir, "index.html"), { force: true });
-rmSync(resolve(outDir, "src"), { recursive: true, force: true });
+rmSync(resolve(outDir, 'index.html'), { force: true });
+rmSync(resolve(outDir, 'src'), { recursive: true, force: true });
 
 // Summary
 console.log(
   `\nBuild complete: ${passed.length - skipped.length} built, ${skipped.length} skipped, ${failed.length} failed`,
 );
 if (failed.length > 0) {
-  console.error(`Failed figures: ${failed.join(", ")}`);
+  console.error(`Failed figures: ${failed.join(', ')}`);
   process.exit(1);
 }
