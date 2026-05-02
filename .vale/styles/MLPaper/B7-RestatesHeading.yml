@@ -1,0 +1,9 @@
+extends: existence
+message: "STYLE.md B7 — restates the heading. Wastes the opener. Commit immediately (R1)."
+link: paper/STYLE.md
+level: warning
+ignorecase: true
+tokens:
+  - 'In this (section|paper|chapter|subsection)( ,)? we (propose|discuss|present|describe|introduce)'
+  - 'In what follows we'
+  - 'This section (discusses|presents|describes|introduces)'

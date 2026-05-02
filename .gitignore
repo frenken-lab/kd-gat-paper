@@ -32,3 +32,8 @@ interactive/.env
 tools/spikes/*.html
 tools/spikes/*.svg
 tools/spikes/*.spec.json
+
+# Vale — downloaded style packages (proselint, write-good) live under here.
+# MLPaper rules and the MLPaper vocabulary are tracked; package downloads are not.
+.vale/styles/proselint/
+.vale/styles/write-good/

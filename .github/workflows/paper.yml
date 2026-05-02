@@ -27,15 +27,14 @@ jobs:
       - run: python tools/validate_bib.py
 
   # Fast TMLR-converter regression check, parallel to validate. Fails fast on
-  # paper-content edits that would break the load-bearing AST walker.
+  # paper-content edits that would break the load-bearing AST serializer.
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with: { python-version: "3.12" }
-      - run: pip install pyyaml tabulate pytest
-      - run: python -m pytest tests/ -v
+      - uses: actions/setup-node@v4
+        with: { node-version: "22", cache: npm, cache-dependency-path: tools/tmlr/package-lock.json }
+      - run: cd tools/tmlr && npm ci && npm test
 
   figures:
     runs-on: ubuntu-latest
@@ -55,7 +54,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: "22" }
+        with: { node-version: "22", cache: npm, cache-dependency-path: tools/tmlr/package-lock.json }
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - uses: actions/download-artifact@v4
@@ -66,8 +65,10 @@ jobs:
         run: python tools/tables/build.py
       - name: Build MyST AST
         run: npm install -g mystmd@1.8.3 && myst build --site
+      - name: Install TMLR serializer deps
+        run: cd tools/tmlr && npm ci
       - name: Build TMLR submission (public)
-        run: python tools/tmlr/build.py --output _build/submission/
+        run: cd tools/tmlr && node build.mjs --output ../../_build/submission/
       - name: Merge with TMLR author kit
         run: |
           cp _build/submission/submission.md tmlr_do_not_modify/_under_review/submission.md
@@ -76,7 +77,7 @@ jobs:
       # Build anonymous submission artifact
       - name: Build TMLR submission (anonymous)
         if: github.ref == 'refs/heads/main'
-        run: python tools/tmlr/build.py --output _build/submission_anon/ --anonymous
+        run: cd tools/tmlr && node build.mjs --output ../../_build/submission_anon/ --anonymous
       - uses: actions/upload-artifact@v4
         if: github.ref == 'refs/heads/main'
         with: { name: tmlr-submission, path: _build/submission_anon/ }

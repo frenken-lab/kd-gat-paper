@@ -17,7 +17,7 @@ The candidacy TOC includes all paper content plus `paper/candidacy/` extensions 
 | Build                 | **Vite 6** + `vite-plugin-singlefile`       | Each figure → self-contained HTML (JS+CSS+data inlined)                                            |
 | Tables                | **spec.yaml** + `tools/tables/build.py`     | Declarative table specs, booktabs-style, literature baselines                                      |
 | Validation schemas    | **`data/schemas.yaml`**                     | Single source of truth for both export and pull validation                                         |
-| TMLR export           | **AST serializer** (`tools/tmlr/build.py`)  | Walks MyST AST JSON → Distill-layout markdown                                                      |
+| TMLR export           | **AST serializer** (`tools/tmlr/build.mjs`) | mdast-util-to-markdown defaults + Distill overrides (cite, iframe, image, container, admonition)   |
 | CI/CD                 | **GitHub Actions**                          | validate → figures → deploy-figures (Pages) + build-and-deploy (curve.space)                       |
 
 ## Key Commands
@@ -41,7 +41,7 @@ make candidacy-dev  # myst start --config myst.candidacy.yml (live reload)
 make candidacy-pdf  # myst build --pdf via Typst → _build/exports/candidacy-report.pdf
 make sync          # Pull Curvenote editor changes into repo
 make bib           # Validate paper/references/*.bib
-make test          # Run pytest suite (tools/tmlr tests)
+make test          # Run TMLR serializer tests (node --test in tools/tmlr/)
 make all           # figures → tables → site (data pulled transitively)
 make clean         # rm -rf _build
 ```

@@ -1,0 +1,11 @@
+extends: existence
+message: "STYLE.md R4 — hedge phrase / LLM tell. Name the limit directly."
+link: paper/STYLE.md
+level: warning
+ignorecase: true
+tokens:
+  - 'one might (argue|expect|say)'
+  - 'arguably,'
+  - 'it could be said'
+  - 'as is well known'
+  - 'further research (is needed|will be needed)'

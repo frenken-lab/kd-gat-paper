@@ -52,7 +52,7 @@ paper/references/   data/csv/   interactive/src/
       v         v
   tools/    myst build --pdf
   tmlr/        --> _build/exports/candidacy-report.pdf
-  build.py
+  build.mjs
       |
       v
   tmlr_do_not_modify/ (submission.md + assets/ written in place for Jekyll)
@@ -72,7 +72,7 @@ Before running anything locally, install these prerequisites:
 ```bash
 npm install -g mystmd          # Paper build tool
 cd interactive && npm ci       # Figure dependencies
-pip install pyyaml tabulate    # Python build deps
+cd ../tools/tmlr && npm ci     # TMLR serializer dependencies
 ```
 
 ## Commands

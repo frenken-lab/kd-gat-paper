@@ -1,0 +1,13 @@
+extends: existence
+message: "STYLE.md B6 — empty intensifier. If the claim is %s, it doesn't need to be labeled %s."
+link: paper/STYLE.md
+level: warning
+ignorecase: true
+nonword: false
+tokens:
+  - '\bnaturally,'
+  - '\bclearly,'
+  - '\bobviously,'
+  - '\bnotably,'
+  - '\binterestingly,'
+  - '\bof course,'

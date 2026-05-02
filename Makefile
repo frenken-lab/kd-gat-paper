@@ -1,4 +1,4 @@
-.PHONY: data validate figures figures-static tables site dev candidacy-site candidacy-dev candidacy-pdf tmlr tmlr-anon preview deploy sync bib test all clean watch-tables pre-commit pre-commit-install
+.PHONY: data validate figures figures-static tables site dev candidacy-site candidacy-dev candidacy-pdf tmlr tmlr-anon preview deploy sync bib test all clean watch-tables pre-commit pre-commit-install lint lint-sync
 
 data:
 	uv run python tools/pull_data.py
@@ -32,10 +32,10 @@ candidacy-pdf: figures tables
 	myst build --pdf --config myst.candidacy.yml
 
 tmlr: site
-	uv run python tools/tmlr/build.py --output _build/submission/
+	cd tools/tmlr && npm i --silent && node build.mjs --output ../../_build/submission/
 
 tmlr-anon: site
-	uv run python tools/tmlr/build.py --output _build/submission/ --anonymous
+	cd tools/tmlr && npm i --silent && node build.mjs --output ../../_build/submission/ --anonymous
 
 # Merge submission into TMLR author kit and preview with Docker
 preview: tmlr
@@ -56,7 +56,7 @@ bib:
 	uv run python tools/validate_bib.py
 
 test:
-	uv run python -m pytest tests/ -v
+	cd tools/tmlr && npm test
 
 all: site
 
@@ -74,3 +74,13 @@ pre-commit-install:
 
 pre-commit:
 	pre-commit run --all-files
+
+# Prose lint — Vale + MLPaper rules (STYLE.md §3 R4 + §4 B1-B8) + proselint + write-good.
+# Install Vale: https://vale.sh/docs/install (binary; brew/scoop/apt). First run needs `make lint-sync`.
+lint:
+	@command -v vale >/dev/null 2>&1 || { echo "vale not found. Install: https://vale.sh/docs/install"; exit 1; }
+	vale paper/content/ paper/candidacy/
+
+lint-sync:
+	@command -v vale >/dev/null 2>&1 || { echo "vale not found. Install: https://vale.sh/docs/install"; exit 1; }
+	vale sync

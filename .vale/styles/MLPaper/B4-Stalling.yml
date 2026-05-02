@@ -1,0 +1,15 @@
+extends: existence
+message: "STYLE.md B4/R4 — stalling transition. None of the exemplars uses '%s'. Cut or replace with a structural connector."
+link: paper/STYLE.md
+level: warning
+ignorecase: true
+nonword: false
+tokens:
+  - '\bmoreover\b'
+  - '\bfurthermore\b'
+  - 'thus we (see|have shown)'
+  - 'it is important to note( that)?'
+  - 'as we shall see'
+  - 'it is worth noting( that)?'
+  - 'it is well known( that)?'
+  - 'in conclusion'

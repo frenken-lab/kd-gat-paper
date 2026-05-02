@@ -3,7 +3,13 @@
   "remote.autoForwardPortsSource": "hybrid",
 
   "ltex.language": "en-US",
+  "ltex.dictionary": {
+    "en-US": [":.vale/styles/config/vocabularies/MLPaper/accept.txt"]
+  },
   "pandocCiter.DefaultBib": "references.bib",
+
+  "vale.valeCLI.config": "${workspaceFolder}/.vale.ini",
+  "vale.valeCLI.minAlertLevel": "suggestion",
 
   "files.associations": {
     "*.md": "markdown"

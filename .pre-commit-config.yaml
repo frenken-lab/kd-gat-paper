@@ -17,13 +17,14 @@ repos:
 
   - repo: local
     hooks:
-      # The TMLR converter (tools/tmlr/build.py) is a 415-line MyST-AST → Distill
-      # serializer. Re-run its tests whenever paper content or the converter changes.
-      - id: pytest-tmlr
-        name: pytest tools/tmlr
+      # tools/tmlr/build.mjs serializes MyST mdast → Distill markdown via
+      # mdast-util-to-markdown defaultHandlers + Distill-flavored overrides.
+      # Re-run its semantic-property tests whenever the converter changes.
+      - id: tmlr-tests
+        name: tmlr serializer tests (node --test)
         language: system
-        entry: uv run python -m pytest tests/ -q
-        files: '^(paper/(content|candidacy)/.*\.md|tools/tmlr/.*\.py|tests/.*\.py)$'
+        entry: bash -c 'cd tools/tmlr && npm test'
+        files: '^tools/tmlr/.*\.mjs$'
         pass_filenames: false
 
       - id: validate-bib
@@ -53,3 +54,12 @@ repos:
         entry: bash -c 'cd interactive && npx prettier --check src/'
         files: '^interactive/src/'
         pass_filenames: false
+
+      # Vale prose lint — STYLE.md §3 R4 + §4 B1-B8 codified under .vale/styles/MLPaper/.
+      # Skip silently if vale isn't installed (OSC login node, fresh clone before
+      # `make lint-sync`). CI installs vale and runs `make lint`.
+      - id: vale
+        name: vale (prose lint)
+        language: system
+        entry: bash -c 'command -v vale >/dev/null 2>&1 && vale "$@" || true' --
+        files: '^paper/(content|candidacy)/.*\.md$'

@@ -1,6 +1,8 @@
 {
   "recommendations": [
     "ExecutableBookProject.myst-highlight",
+    "chrisjsewell.myst-lsp",
+    "errata-ai.vale-server",
     "svelte.svelte-vscode",
     "goessner.mdmath",
     "ltex-plus.vscode-ltex-plus",
