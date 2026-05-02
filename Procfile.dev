@@ -1,0 +1,3 @@
+myst:   myst start
+figs:   cd interactive && npm run dev
+tables: ls data/csv/*.csv data/schemas.yaml tools/tables/spec.yaml | entr -r make tables

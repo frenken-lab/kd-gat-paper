@@ -28,9 +28,8 @@ make validate      # Validate committed data only (no ESS, used in CI)
 make figures       # cd interactive && npm run build → _build/figures/*.html
 make tables        # Build markdown tables from CSV + spec.yaml
 make site          # myst build (depends on figures + tables)
-make dev           # myst start (prose live reload; iframes hit production URLs)
-make dev-figures   # vite dev server for figures only (HMR on Svelte edits)
-make dev-all       # both servers, iframes rewritten to localhost for HMR integration
+make dev           # overmind orchestrator: myst start + vite (figures HMR) + entr-driven `make tables`
+make dev-myst      # myst start alone (no figure HMR, no table watcher) — fallback when overmind isn't installed
 make tmlr          # Build TMLR submission directly into tmlr_do_not_modify/
 make tmlr-anon     # Build anonymous TMLR submission (into kit, for review-check)
 make preview       # Build submission + Jekyll preview via Docker

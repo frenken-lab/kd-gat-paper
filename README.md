@@ -80,9 +80,8 @@ cd ../tools/tmlr && npm ci     # TMLR serializer dependencies
 ```bash
 # Paper build
 make site           # Build MyST paper site (depends on figures + tables)
-make dev            # Live-reload dev server (prose only; iframes hit prod URLs)
-make dev-figures    # Vite dev server for figures (HMR on Svelte edits)
-make dev-all        # Both servers; MyST iframes point at localhost for HMR
+make dev            # Orchestrated dev (overmind): myst + vite (figures HMR) + table rebuild on CSV/spec change
+make dev-myst       # Myst only (prose live reload; iframes hit prod URLs); when overmind isn't installed
 make tmlr           # Build TMLR Beyond PDF submission (into tmlr_do_not_modify/)
 make tmlr-anon      # Build anonymous TMLR submission (into kit)
 make submission-zip # Flat anonymous submission.zip for OpenReview upload

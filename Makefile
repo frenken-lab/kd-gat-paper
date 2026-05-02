@@ -1,4 +1,4 @@
-.PHONY: data validate figures figures-static tables site dev candidacy-site candidacy-dev candidacy-pdf tmlr tmlr-anon preview deploy sync bib test all clean watch-tables pre-commit pre-commit-install lint lint-sync
+.PHONY: data validate figures figures-static tables site dev dev-myst candidacy-site candidacy-dev candidacy-pdf tmlr tmlr-anon preview deploy sync bib test all clean watch-tables pre-commit pre-commit-install lint lint-sync
 
 data:
 	uv run python tools/pull_data.py
@@ -19,7 +19,15 @@ tables: data
 site: figures tables
 	myst build --site
 
+# Orchestrated dev: myst + vite (figures) + entr-driven table rebuild.
+# Requires `overmind` (https://github.com/DarthSim/overmind) and `entr`.
+# `make dev-myst` runs only myst (no figure HMR, no table watcher).
 dev:
+	@command -v overmind >/dev/null 2>&1 || { echo "overmind not found. Install: go install github.com/DarthSim/overmind/v2@latest (binary lands in ~/go/bin) — or use mprocs if you prefer Rust"; exit 1; }
+	@command -v entr >/dev/null 2>&1 || { echo "entr not found. Install: https://eradman.com/entrproject/"; exit 1; }
+	overmind start -f Procfile.dev
+
+dev-myst:
 	myst start
 
 candidacy-site: figures tables
