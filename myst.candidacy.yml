@@ -75,6 +75,8 @@ project:
         papersize: us-letter
   toc:
     - file: paper/candidacy/index.md
+    - title: Talk
+      file: paper/slides/story.md
     - file: paper/candidacy/current-framework.md
     - file: paper/candidacy/proposed-combined.md
     - file: paper/candidacy/committee-questions/index.md
@@ -97,3 +99,4 @@ site:
     hide_outline: true
     css:
       - _static/custom.css
+      - _static/story.css
