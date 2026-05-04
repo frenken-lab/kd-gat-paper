@@ -4,106 +4,55 @@ Goal: tighten the four authoring loops (prose, figure visual, figure data, submi
 
 ## Latency targets
 
-| Loop | Edit                              | Feedback                          | Budget    |
-| ---- | --------------------------------- | --------------------------------- | --------- |
-| L1   | `paper/**/*.md`                   | Rendered prose, cites, figures    | <1s       |
-| L2   | `interactive/src/figures/**/*`    | Updated chart in browser          | <200ms    |
-| L3   | `data/csv/*.csv`, schemas         | Updated chart from new numbers    | <5s       |
-| L4   | Anything                          | Distill-rendered TMLR submission  | <30s      |
+| Loop | Edit                              | Feedback                          | Budget    | Status |
+| ---- | --------------------------------- | --------------------------------- | --------- | ------ |
+| L1   | `paper/**/*.md`                   | Rendered prose, cites, figures    | <1s       | ✓ MyST `start` |
+| L2   | `interactive/src/figures/**/*`    | Updated chart in browser          | <200ms    | ✓ Vite HMR |
+| L3   | `data/csv/*.csv`, schemas         | Updated chart from new numbers    | <5s       | partial — needs `data.dev.json` (open) |
+| L4   | Anything                          | Distill-rendered TMLR submission  | <30s      | ✓ `tools/tmlr/preview.mjs` (~2s) |
 
-## Components, in build order
+## Shipped
 
-### 1. Process orchestrator → `overmind` (1 hour)
+- **Overmind orchestrator + `Procfile.dev`.** Five processes: `myst`, `figs` (bun), `tables` (entr-driven), `vale` (entr-driven), `preview` (bun). `make dev` runs `overmind start -f Procfile.dev`. `make dev-myst` is the no-overmind fallback.
+- **Distill preview server.** `tools/tmlr/preview.mjs` watches `_build/site/content/*.json`, re-runs `build.mjs`, serves through a stripped Distill shell at `localhost:4002` with SSE livereload. Replaces the 30s Jekyll-Docker round-trip for layout judgment. Jekyll preview stays as the canonical pre-PR render via `make preview`.
+- **Editor surface (workspace-level).** `pandocCiter.DefaultBib` configured in `.vscode/settings.json` covering all 13 bib files. `kd-gat-paper.code-snippets` provides `cp` / `nr` / `eq` / `fig` / `alg` triggers. `chrisjsewell.myst-lsp` and `errata-ai.vale-server` recommended in `.vscode/extensions.json`.
+- **Vale + STYLE.md banlists.** `.vale.ini` with proper `TokenIgnores` (MyST inline roles, inline math) and `BlockIgnores` (fenced directives, display math). `MLPaper/B1..B8` and `MLPaper/R4` rules ship with the repo. `make lint` / `make lint-sync` / pre-commit hook.
+- **TMLR serializer ported to bun.** `tools/tmlr/build.mjs` (~450 lines) replaces the Python builder; rides on `mdast-util-to-markdown` defaults plus Distill-flavored handler overrides. 29 semantic-property tests via `bun test`.
 
-Replace `make dev` / `make dev-figures` / `make dev-all` with a single `Procfile.dev`:
+## Open
 
-```
-myst:    myst start
-figs:    cd interactive && bun run dev
-tables:  ls data/csv/*.csv data/schemas.yaml tools/tables/spec.yaml | entr -r make tables
-vale:    vale --output=line paper/content/ paper/candidacy/ 2>&1 | tail -F /dev/null
-```
+### Figure data sketch path — `data.dev.json` convention
 
-- **Tool:** `overmind` (Go binary, single static file, runs anywhere). `mprocs` is a nicer TUI alternative; both read Procfile-style input. Pick one — they're equivalent for our needs.
-- **Why not `concurrently` (an npm package)?** No clean detach, no per-process restart, prefixes are ugly. Overmind has tmux-style attach/detach, restart-one-process, output capture per process.
-- **Why not Make `&` background?** No process supervision, ctrl-C orphans children, output interleaves chaotically.
-- **Verification:** `overmind start -f Procfile.dev` → hit save in any of {prose, figure svelte, data csv}, see correct loop trigger.
-- **Install:** `go install github.com/DarthSim/overmind/v2@latest` (binary lives in `~/go/bin`); falls back to `mprocs` (Rust, `cargo install mprocs`) if Go isn't preferred.
+Iterating a figure's data still requires `KD-GAT/export_paper_data.py` + `make data`. Closes L3 from "minutes" to <200ms.
 
-`make dev` becomes a one-line alias: `overmind start -f Procfile.dev`. Old `dev-figures` / `dev-all` targets get removed; one entrypoint.
+- **Convention:** if `interactive/src/figures/<kind>/<name>/data.dev.json` exists, the figure loads it instead of `data.json`. `data.dev.json` is gitignored; pre-commit blocks any staging.
+- **Implementation:** ~10 lines total (one-line import change per figure, `.gitignore` entry, pre-commit grep). Detail in `GAPS.md` Gap 6.
+- **Discoverability:** one-liner in `interactive/README.md` (comments in figure files rot).
+- **Pay off only when** figure-data iteration becomes the daily bottleneck. Cheap to add later.
 
-### 2. Distill preview server (half day)
+### Output-tree split (paper vs candidacy)
 
-The biggest gap is L4 — we don't see how prose lands in Distill's two-column layout until full `make tmlr` + Jekyll Docker. Close it with a static server:
+Both builds currently write to `_build/site/`, so switching between `make site` and `make candidacy-site` clobbers the previous output. The Distill preview server reads from `_build/site/content/*.json` — fine while building one config at a time, foot-gun once both are active in CI.
 
-- **Tool:** `vite` (already in repo) or plain `http-server` (a JS package, installable via `bun add`). Lighter is better — no plugin chain.
-- **Pipeline:**
-  1. `tools/tmlr/build.mjs --watch` re-runs on `_build/site/content/*.json` change (chokidar; ~30 lines of glue).
-  2. Output `_build/submission/submission.md` is rendered through a stripped Distill template (one HTML file in `tools/tmlr/preview/index.html` that loads Distill's `template.v2.js` and an iframe to the markdown rendered by `markdown-it` — same pipeline Jekyll uses without Jekyll).
-  3. `http-server _build/submission --port 4001` serves it; `--watch` flag triggers livereload.
-- **Why not Jekyll-in-Docker?** 30s startup, no live reload, container churn.
-- **Why not full Distill build?** We don't need bibtex resolution etc. for preview — `<d-cite>` can render as `[key]` in preview mode.
-- **Caveat:** preview ≠ ship. Reserve `make preview` (Docker-Jekyll) for the "before-PR" sanity check; the new preview is for *during writing*.
-- **Verification:** edit a paragraph in `paper/content/methodology.md`, see Distill column-width version of that paragraph in browser within 2s.
+- **Fix:** route MyST output through `--output _build/<config>/site/`, update Make targets, update `preview.mjs`'s `SITE_CONTENT` constant.
+- **Mechanical;** maybe an hour. Defer until the conflict actually bites — currently the CI job sequence avoids it.
 
-Add to Procfile:
+### Figure scaffolder (`bun run new-figure`)
 
-```
-preview: cd tools/tmlr && bun run preview
-```
+Lowest priority. A small `interactive/scripts/new-figure.ts` that copies a `_template/{data,diagrams}/` skeleton and opens the new files in `$EDITOR`.
 
-### 3. Figure data sketch path (half day)
-
-Today, iterating on a figure means round-tripping through `KD-GAT/export_paper_data.py` + git commit + `make data` here. Add a local override convention:
-
-- **Convention:** if `interactive/src/figures/<kind>/<name>/data.dev.json` exists, the figure loads it instead of `data.json`. Both files live next to each other; `data.dev.json` is gitignored.
-- **Implementation:** one line in each figure's data import (or a Vite alias plugin if we want zero figure changes). One line preferred.
-- **Foot-gun mitigation:** pre-commit hook fails if any tracked file imports `data.dev.json`, OR if `data.dev.json` exists when `git status --short` shows the parent dir staged.
-- **Verification:** drop a 5-row JSON in `interactive/src/figures/data/umap/data.dev.json`, see chart render against it; remove it, see real data.
-- **Tool:** none — convention + 5 lines of gitignore + a pre-commit grep.
-
-### 4. Editor surface for cross-refs and cites (half day, mostly install)
-
-Already partially shipped (myst-lsp + Vale recommended in `.vscode/extensions.json`). Remaining:
-
-- **Bibkey completion on `[@`** — `cmp-pandoc-references` or equivalent VS Code extension. The extension `notZaki.pandocciter` is already in `.vscode/extensions.json`; configure it via `pandocCiter.DefaultBib` or an array pointing at all 12 `.bib` files.
-- **Vale-LS in dev loop** — Vale's LSP mode (`vale-ls` binary, separate install: `cargo install vale-ls` or download release) gives squiggles in VS Code instead of only on save. Add to `.vscode/settings.json`.
-- **Verification:** type `[@` in a `.md` file, see fuzzy bibkey list. Add a banned phrase from `STYLE.md §4` (e.g. "moreover,"), see Vale squiggle inline.
-
-### 5. Figure scaffolder (1 hour)
-
-A small package script that adds the friction-eliminator for "should I bother making this a figure":
-
-- **Tool:** `bun run new-figure -- name=foo kind=data` → copies a template dir, opens the new files in `$EDITOR`. Pure shell + cp; no plop/yeoman.
-- **Files created:** `App.svelte`, `data.json` (empty `[]`), `index.html`, `main.js` from a `_template/data/` reference figure. For diagrams, `_template/diagrams/` with a starter `spec.yaml`.
-- **Registration:** `interactive/build.js` already auto-discovers figures from filesystem (verify); if not, scaffolder appends to its list.
-- **Verification:** `bun run new-figure -- name=test_chart kind=data`, see new dir + dropdown shell entry.
-
-### 6. Output-tree split (per the previous Makefile discussion)
-
-Already designed. Implement after #1 + #2 land — preview server in #2 needs to read from a stable per-config dir. Pairs naturally.
+- Pure shell + cp; no plop/yeoman.
+- Pay off only when adding a figure feels annoying. Currently rare.
 
 ## What we're explicitly not building
 
-- A custom dev orchestrator (Python script, even a small one). Overmind is one static binary; we don't add a moving part.
-- A "figure preview rig" beyond Vite's existing dev server. Vite + iframe is fine.
-- Bazel / nx / turbo. The Makefile is the right size for a single-paper repo (see `AUTHORING_STACK.md` rationale).
-- A custom Distill renderer. The preview server is a thin wrapper; the canonical render is still Jekyll in `make preview` for ship sanity.
+- A custom dev orchestrator. Overmind is one static binary; we don't add a moving part.
+- A custom figure preview rig beyond Vite. Vite + iframe is fine.
+- Bazel / nx / turbo. Makefile is right-sized for a single-paper repo (see `AUTHORING_STACK.md`).
+- A custom Distill renderer. The preview server is a thin wrapper; canonical render is still Jekyll via `make preview`.
 - LaTeX export. No venue currently demands it for this submission.
 
-## Open questions
+## Open questions (still relevant)
 
-- **Vale-LS install on OSC**: needs Cargo / a binary. WSL desktop is fine; OSC headless might require building from release tarball. Confirm before committing to LSP mode.
-- **Distill template licensing**: `template.v2.js` is from the TMLR kit (`tmlr_do_not_modify/`). Reusing it for a local preview server is fine for personal use; double-check the kit's LICENSE before publicising the preview server pattern.
-- **`data.dev.json` discoverability**: how does a future-me / collaborator know the convention exists? Add a one-liner in each figure's `App.svelte` comment, or document once in `interactive/README.md`. Probably the latter — comments rot.
-
-## Order of operations (if executing this plan)
-
-1. **#1 orchestrator** — biggest daily-life win, smallest blast radius. Validates the boring-tools premise.
-2. **#6 output-tree split** — needed before #2's preview can be reliable. Mechanical.
-3. **#2 Distill preview** — the loop that changes how you write.
-4. **#4 editor surface** — install-only; do whenever there's 30 minutes.
-5. **#3 sketch path** — when figure-data iteration starts being slow enough to notice.
-6. **#5 scaffolder** — when adding a new figure first feels annoying.
-
-Each step is independent and skippable; this is not a waterfall.
+- **Vale-LS install on OSC.** `make lint` works (CLI). LSP-mode squiggles in VS Code need the `vale-ls` binary — fine on WSL desktop, requires a release tarball or Cargo on OSC. Unblocked since `make lint` covers the CI need; defer until the in-editor latency bites.
+- **Distill template licensing in `preview.mjs`.** The preview server pulls `template.v2.js` and `main.css` from `tmlr_do_not_modify/assets/`. Local-only use is fine; double-check the kit's LICENSE before publicising the pattern.
