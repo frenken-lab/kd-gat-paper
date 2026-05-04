@@ -19,13 +19,13 @@ Replace `make dev` / `make dev-figures` / `make dev-all` with a single `Procfile
 
 ```
 myst:    myst start
-figs:    cd interactive && npm run dev
+figs:    cd interactive && bun run dev
 tables:  ls data/csv/*.csv data/schemas.yaml tools/tables/spec.yaml | entr -r make tables
 vale:    vale --output=line paper/content/ paper/candidacy/ 2>&1 | tail -F /dev/null
 ```
 
 - **Tool:** `overmind` (Go binary, single static file, runs anywhere). `mprocs` is a nicer TUI alternative; both read Procfile-style input. Pick one — they're equivalent for our needs.
-- **Why not `concurrently` (npm)?** No clean detach, no per-process restart, prefixes are ugly. Overmind has tmux-style attach/detach, restart-one-process, output capture per process.
+- **Why not `concurrently` (an npm package)?** No clean detach, no per-process restart, prefixes are ugly. Overmind has tmux-style attach/detach, restart-one-process, output capture per process.
 - **Why not Make `&` background?** No process supervision, ctrl-C orphans children, output interleaves chaotically.
 - **Verification:** `overmind start -f Procfile.dev` → hit save in any of {prose, figure svelte, data csv}, see correct loop trigger.
 - **Install:** `go install github.com/DarthSim/overmind/v2@latest` (binary lives in `~/go/bin`); falls back to `mprocs` (Rust, `cargo install mprocs`) if Go isn't preferred.
@@ -36,7 +36,7 @@ vale:    vale --output=line paper/content/ paper/candidacy/ 2>&1 | tail -F /dev/
 
 The biggest gap is L4 — we don't see how prose lands in Distill's two-column layout until full `make tmlr` + Jekyll Docker. Close it with a static server:
 
-- **Tool:** `vite` (already in repo) or plain `http-server` (npm). Lighter is better — no plugin chain.
+- **Tool:** `vite` (already in repo) or plain `http-server` (a JS package, installable via `bun add`). Lighter is better — no plugin chain.
 - **Pipeline:**
   1. `tools/tmlr/build.mjs --watch` re-runs on `_build/site/content/*.json` change (chokidar; ~30 lines of glue).
   2. Output `_build/submission/submission.md` is rendered through a stripped Distill template (one HTML file in `tools/tmlr/preview/index.html` that loads Distill's `template.v2.js` and an iframe to the markdown rendered by `markdown-it` — same pipeline Jekyll uses without Jekyll).
@@ -49,7 +49,7 @@ The biggest gap is L4 — we don't see how prose lands in Distill's two-column l
 Add to Procfile:
 
 ```
-preview: cd tools/tmlr && npm run preview
+preview: cd tools/tmlr && bun run preview
 ```
 
 ### 3. Figure data sketch path (half day)
@@ -72,12 +72,12 @@ Already partially shipped (myst-lsp + Vale recommended in `.vscode/extensions.js
 
 ### 5. Figure scaffolder (1 hour)
 
-A small npm script that adds the friction-eliminator for "should I bother making this a figure":
+A small package script that adds the friction-eliminator for "should I bother making this a figure":
 
-- **Tool:** `npm run new-figure -- name=foo kind=data` → copies a template dir, opens the new files in `$EDITOR`. Pure shell + cp; no plop/yeoman.
+- **Tool:** `bun run new-figure -- name=foo kind=data` → copies a template dir, opens the new files in `$EDITOR`. Pure shell + cp; no plop/yeoman.
 - **Files created:** `App.svelte`, `data.json` (empty `[]`), `index.html`, `main.js` from a `_template/data/` reference figure. For diagrams, `_template/diagrams/` with a starter `spec.yaml`.
 - **Registration:** `interactive/build.js` already auto-discovers figures from filesystem (verify); if not, scaffolder appends to its list.
-- **Verification:** `npm run new-figure -- name=test_chart kind=data`, see new dir + dropdown shell entry.
+- **Verification:** `bun run new-figure -- name=test_chart kind=data`, see new dir + dropdown shell entry.
 
 ### 6. Output-tree split (per the previous Makefile discussion)
 

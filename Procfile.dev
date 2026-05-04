@@ -1,3 +1,5 @@
-myst:   myst start
-figs:   cd interactive && npm run dev
-tables: ls data/csv/*.csv data/schemas.yaml tools/tables/spec.yaml | entr -r make tables
+myst:    myst start
+figs:    cd interactive && bun run dev
+tables:  ls data/csv/*.csv data/schemas.yaml tools/tables/spec.yaml | entr -r make tables
+vale:    find paper/content paper/candidacy -name '*.md' | entr -d vale --output=line paper/content/ paper/candidacy/
+preview: cd tools/tmlr && bun preview.mjs

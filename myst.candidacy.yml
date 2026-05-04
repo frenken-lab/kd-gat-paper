@@ -38,6 +38,9 @@ project:
     - paper/references/background.bib
     - paper/references/loss.bib
     - paper/references/candidacy.bib
+  # Interactive figures are web-only. The Typst PDF below renders iframes as
+  # blank boxes by design — see GAPS.md Gap 1. Restoring static SVG export
+  # would require Playwright (extract-svg.js was deleted in 6c5866b).
   exports:
     - format: typst
       template: plain_typst_book

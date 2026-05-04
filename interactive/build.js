@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 /**
  * Build each figure as a separate vite invocation.
  * vite-plugin-singlefile requires inlineDynamicImports which is
@@ -176,7 +176,7 @@ for (const { name, category, dir: figDir } of filtered) {
 const buildResults = await Promise.all(
   toBuild.map(async ({ name, category }) => {
     try {
-      const { stderr } = await execAsync(`npx vite build`, {
+      const { stderr } = await execAsync(`bunx vite build`, {
         cwd: import.meta.dirname,
         env: { ...process.env, FIGURE: name, FIGURE_CATEGORY: category },
       });

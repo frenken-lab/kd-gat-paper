@@ -58,9 +58,9 @@ bridges:
 ### 3. Build
 
 ```bash
-cd interactive && npm run build
+cd interactive && bun run build
 # or just one figure:
-FIGURE=my-figure npm run build
+FIGURE=my-figure bun run build
 ```
 
 Output lands in `_build/figures/my-figure.html` as a self-contained HTML file (JS + CSS + data inlined).
@@ -343,5 +343,5 @@ Encoded edges live in the same component (intra-cluster), so they fall through E
 - **Container hugs nodes too closely?** `CONTAINER_PAD` and `CONTAINER_LABEL_PAD` are fixed in `convert.ts` (16 + 18 px). Adjust there if you need tighter/looser groups across the board.
 - **Edges look spaghetti?** Check that you're using `pipeline` (which feeds ELK super-edges) rather than `hstack`/`vstack` followed by manual bridges — pipeline gives ELK the layout signal it needs to place components in order.
 - **Edge endpoints anchor on the wrong side?** Floating-edge geometry picks the nearest cardinal side automatically. If a bend-point routed edge looks off, the issue is usually that ELK placed components in an unexpected order; try a different layout tree or an explicit pipeline.
-- **Test cluster geometry** — `__tests__/geometry.test.ts` has helpers (`absoluteCenter`, `aabb`, `overlaps`) you can copy when you want to assert "node X is left-of node Y" or "container bbox encloses children". Tests run via `npm test` (vitest).
-- **Visual check is required** — `npm run build` validates structure (TypeScript + Svelte compile + ELK runs without errors), but not aesthetics. Open `_build/figures/<name>.html` in a browser, or run `npm run dev` from `interactive/` for HMR.
+- **Test cluster geometry** — `__tests__/geometry.test.ts` has helpers (`absoluteCenter`, `aabb`, `overlaps`) you can copy when you want to assert "node X is left-of node Y" or "container bbox encloses children". Tests run via `bun run test` (vitest).
+- **Visual check is required** — `bun run build` validates structure (TypeScript + Svelte compile + ELK runs without errors), but not aesthetics. Open `_build/figures/<name>.html` in a browser, or run `bun run dev` from `interactive/` for HMR.

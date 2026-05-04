@@ -47,7 +47,7 @@ interactive/src/figures/data/umap/
 4. Test it:
    ```bash
    cd interactive
-   npm run dev    # shell at localhost:5173; pick my-figure from the dropdown
+   bun run dev    # shell at localhost:5173; pick my-figure from the dropdown
    ```
 
 5. Build all figures:
@@ -82,7 +82,7 @@ Architecture diagrams (architecture, gat, kd-gat, kd-vgae, vgae) use a different
 
 1. Scans `src/figures/{data,diagrams}/` for directories containing `App.svelte`
 2. Auto-generates `index.html` + `main.js` from templates if missing
-3. Runs `npx vite build` with `FIGURE=<name>` injected
+3. Runs `bunx vite build` with `FIGURE=<name>` injected
 4. Renames output from `_build/figures/index.html` → `_build/figures/<name>.html`
 
 ## Styling

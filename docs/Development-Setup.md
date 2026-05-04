@@ -4,9 +4,9 @@
 
 | Tool | Version | Install |
 |------|---------|---------|
-| Node.js | 22+ | `nvm install 22` |
+| Bun | latest | `curl -fsSL https://bun.sh/install \| bash` |
 | Python | 3.12+ | System or `module load python/3.12` (OSC) |
-| MyST | latest | `npm install -g mystmd` |
+| MyST | latest | `bun install -g mystmd@1.8.3` |
 | Typst | latest | [typst.app/docs/installation](https://github.com/typst/typst) (PDF export only) |
 
 Python packages:
@@ -20,7 +20,7 @@ pip install pyyaml tabulate "bibtexparser>=2.0.0b7"
 ```bash
 git clone git@github.com:frenken-lab/kd-gat-paper.git
 cd kd-gat-paper
-cd interactive && npm ci && cd ..
+cd interactive && bun install --frozen-lockfile && cd ..
 ```
 
 ## Development Workflows
@@ -45,7 +45,7 @@ Serves the candidacy superset (paper content + candidacy extensions). The candid
 
 ```bash
 cd interactive
-npm run dev    # shell at localhost:5173 — pick figure from dropdown
+bun run dev    # shell at localhost:5173 — pick figure from dropdown
 ```
 
 The shell page uses an iframe so switching figures never tears down the HMR connection. Works in StackBlitz.

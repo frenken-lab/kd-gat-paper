@@ -1,4 +1,4 @@
-.PHONY: data validate figures figures-static tables site dev dev-myst candidacy-site candidacy-dev candidacy-pdf tmlr tmlr-anon preview deploy sync bib test all clean watch-tables pre-commit pre-commit-install lint lint-sync
+.PHONY: data validate figures tables site dev dev-myst candidacy-site candidacy-dev candidacy-pdf tmlr tmlr-anon preview deploy sync bib test all clean watch-tables pre-commit pre-commit-install lint lint-sync
 
 data:
 	uv run python tools/pull_data.py
@@ -8,10 +8,7 @@ validate:
 
 # FIGURE=name builds only one figure. FORCE=1 bypasses the mtime cache.
 figures: data
-	cd interactive && npm i && FIGURE="$(FIGURE)" FORCE="$(FORCE)" npm run build
-
-figures-static: figures
-	node tools/pdf/extract-svg.js
+	cd interactive && bun install && FIGURE="$(FIGURE)" FORCE="$(FORCE)" bun run build
 
 tables: data
 	uv run python tools/tables/build.py
@@ -40,10 +37,10 @@ candidacy-pdf: figures tables
 	myst build --pdf --config myst.candidacy.yml
 
 tmlr: site
-	cd tools/tmlr && npm i --silent && node build.mjs --output ../../_build/submission/
+	cd tools/tmlr && bun install --silent && bun build.mjs --output ../../_build/submission/
 
 tmlr-anon: site
-	cd tools/tmlr && npm i --silent && node build.mjs --output ../../_build/submission/ --anonymous
+	cd tools/tmlr && bun install --silent && bun build.mjs --output ../../_build/submission/ --anonymous
 
 # Merge submission into TMLR author kit and preview with Docker
 preview: tmlr
@@ -57,14 +54,14 @@ deploy: tmlr
 	@echo "Push to main to deploy via GitHub Pages"
 
 sync:
-	npx curvenote pull
+	bunx curvenote pull
 	@echo "Review changes with: git diff"
 
 bib:
 	uv run python tools/validate_bib.py
 
 test:
-	cd tools/tmlr && npm test
+	cd tools/tmlr && bun test
 
 all: site
 

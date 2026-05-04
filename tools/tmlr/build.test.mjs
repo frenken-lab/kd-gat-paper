@@ -6,10 +6,9 @@
 // responsibility of mdast-util-to-markdown; we test only the
 // Distill-flavored handlers we own.
 //
-// Run: cd tools/tmlr && npm test  (or `node --test build.test.mjs`)
+// Run: cd tools/tmlr && bun test
 
-import { test } from 'node:test';
-import assert from 'node:assert/strict';
+import { test, expect } from 'bun:test';
 import yaml from 'js-yaml';
 import { serialize, buildFrontmatter, buildToc, collectTocFiles, textOf } from './build.mjs';
 
@@ -57,18 +56,18 @@ const detailsNode = (summaryC, bodyC, open = false) => ({
 
 test('cite emits <d-cite key="..."> tag with label preferred over identifier', () => {
   const out = serialize(root(paragraph(cite('myref'))));
-  assert.match(out, /<d-cite key="myref"><\/d-cite>/);
+  expect(out).toMatch(/<d-cite key="myref"><\/d-cite>/);
 });
 
 test('cite uses label field when present', () => {
   const out = serialize(root(paragraph(cite('id-a', 'label-a'))));
-  assert.match(out, /<d-cite key="label-a"><\/d-cite>/);
-  assert.doesNotMatch(out, /key="id-a"/);
+  expect(out).toMatch(/<d-cite key="label-a"><\/d-cite>/);
+  expect(out).not.toMatch(/key="id-a"/);
 });
 
 test('citeGroup concatenates children into a run of <d-cite> tags', () => {
   const out = serialize(root(paragraph(citeGroup(cite('a'), cite('b'), cite('c')))));
-  assert.match(out, /<d-cite key="a"><\/d-cite><d-cite key="b"><\/d-cite><d-cite key="c"><\/d-cite>/);
+  expect(out).toMatch(/<d-cite key="a"><\/d-cite><d-cite key="b"><\/d-cite><d-cite key="c"><\/d-cite>/);
 });
 
 test('cite survives inside table cell (regression: container[table] dispatch)', () => {
@@ -81,7 +80,7 @@ test('cite survives inside table cell (regression: container[table] dispatch)', 
     )
   );
   const out = serialize(tree);
-  assert.match(out, /<d-cite key="book"><\/d-cite>/);
+  expect(out).toMatch(/<d-cite key="book"><\/d-cite>/);
 });
 
 // ---------------------------------------------------------------------------
@@ -90,12 +89,12 @@ test('cite survives inside table cell (regression: container[table] dispatch)', 
 
 test('inlineMath wraps in single $', () => {
   const out = serialize(root(paragraph(inlineMath('x^2'))));
-  assert.match(out, /\$x\^2\$/);
+  expect(out).toMatch(/\$x\^2\$/);
 });
 
 test('block math fenced with $$', () => {
   const out = serialize(root(blockMath('y = mx + b')));
-  assert.match(out, /\$\$\ny = mx \+ b\n\$\$/);
+  expect(out).toMatch(/\$\$\ny = mx \+ b\n\$\$/);
 });
 
 // ---------------------------------------------------------------------------
@@ -104,12 +103,12 @@ test('block math fenced with $$', () => {
 
 test('crossReference uses template + enumerator when both present', () => {
   const out = serialize(root(paragraph(xref({ identifier: 'fig:x', template: 'Figure %s', enumerator: 3 }))));
-  assert.match(out, /Figure 3/);
+  expect(out).toMatch(/Figure 3/);
 });
 
 test('crossReference falls back to identifier when no template', () => {
   const out = serialize(root(paragraph(xref({ identifier: 'foo' }))));
-  assert.match(out, /\[foo\]/);
+  expect(out).toMatch(/\[foo\]/);
 });
 
 // ---------------------------------------------------------------------------
@@ -118,13 +117,13 @@ test('crossReference falls back to identifier when no template', () => {
 
 test('iframe rewrites src to assets/html/submission/<basename>', () => {
   const out = serialize(root(iframe('https://frenken-lab.github.io/kd-gat-paper/figures/umap.html')));
-  assert.match(out, /<iframe src="\{\{ 'assets\/html\/submission\/umap\.html' \| relative_url \}\}"/);
+  expect(out).toMatch(/<iframe src="\{\{ 'assets\/html\/submission\/umap\.html' \| relative_url \}\}"/);
 });
 
 test('iframe strips query strings and fragments', () => {
   const out = serialize(root(iframe('umap.html?v=1#anchor')));
-  assert.match(out, /'assets\/html\/submission\/umap\.html'/);
-  assert.doesNotMatch(out, /v=1|#anchor/);
+  expect(out).toMatch(/'assets\/html\/submission\/umap\.html'/);
+  expect(out).not.toMatch(/v=1|#anchor/);
 });
 
 // ---------------------------------------------------------------------------
@@ -133,14 +132,14 @@ test('iframe strips query strings and fragments', () => {
 
 test('image uses Jekyll relative_url and assets/images path', () => {
   const out = serialize(root(image({ url: 'figs/architecture.png', alt: 'arch' })));
-  assert.match(out, /'assets\/images\/architecture\.png'/);
-  assert.match(out, /alt="arch"/);
+  expect(out).toMatch(/'assets\/images\/architecture\.png'/);
+  expect(out).toMatch(/alt="arch"/);
 });
 
 test('image with .pdf extension renders as <embed>', () => {
   const out = serialize(root(image({ url: 'figs/diagram.pdf' })));
-  assert.match(out, /<embed src="\{\{ 'assets\/images\/diagram\.pdf' \| relative_url \}\}"/);
-  assert.match(out, /type="application\/pdf"/);
+  expect(out).toMatch(/<embed src="\{\{ 'assets\/images\/diagram\.pdf' \| relative_url \}\}"/);
+  expect(out).toMatch(/type="application\/pdf"/);
 });
 
 // ---------------------------------------------------------------------------
@@ -149,15 +148,15 @@ test('image with .pdf extension renders as <embed>', () => {
 
 test('admonition with class="algorithm" emits algorithm-styled div', () => {
   const out = serialize(root(admonition([text('Algorithm 1')], [paragraph(text('body'))], 'algorithm')));
-  assert.match(out, /<div class="algorithm"/);
-  assert.match(out, /<style>\.algorithm/);
-  assert.match(out, /Algorithm 1/);
+  expect(out).toMatch(/<div class="algorithm"/);
+  expect(out).toMatch(/<style>\.algorithm/);
+  expect(out).toMatch(/Algorithm 1/);
 });
 
 test('plain admonition degrades to blockquote', () => {
   const out = serialize(root(admonition([text('Note')], [paragraph(text('hello'))], '')));
-  assert.match(out, /^>\s*\*\*Note\*\*/m);
-  assert.match(out, /^>\s*hello/m);
+  expect(out).toMatch(/^>\s*\*\*Note\*\*/m);
+  expect(out).toMatch(/^>\s*hello/m);
 });
 
 // ---------------------------------------------------------------------------
@@ -166,8 +165,8 @@ test('plain admonition degrades to blockquote', () => {
 
 test('container[figure] wraps children in <figure id="..."> tags', () => {
   const out = serialize(root(figureContainer('fig:foo', iframe('foo.html'), caption(text('cap')))));
-  assert.match(out, /<figure id="fig:foo">/);
-  assert.match(out, /<\/figure>/);
+  expect(out).toMatch(/<figure id="fig:foo">/);
+  expect(out).toMatch(/<\/figure>/);
 });
 
 test('container[table] without tbl- identifier falls through to inline rendering', () => {
@@ -178,9 +177,9 @@ test('container[table] without tbl- identifier falls through to inline rendering
       tableNode(tableRow(tableCell(text('A'))), tableRow(tableCell(text('1'))))
     )
   ));
-  assert.match(out, /\*\*My caption\*\*/);
+  expect(out).toMatch(/\*\*My caption\*\*/);
   // Pipe table should appear (gfm-table extension).
-  assert.match(out, /\| A\s*\|/);
+  expect(out).toMatch(/\| A\s*\|/);
 });
 
 // ---------------------------------------------------------------------------
@@ -192,15 +191,15 @@ test('tabSet renders each tab as a bold-titled section (Distill nav-tabs are blo
     tabItem('First', paragraph(text('one'))),
     tabItem('Second', paragraph(text('two')))
   )));
-  assert.match(out, /\*\*First\*\*/);
-  assert.match(out, /\*\*Second\*\*/);
+  expect(out).toMatch(/\*\*First\*\*/);
+  expect(out).toMatch(/\*\*Second\*\*/);
 });
 
 test('details emits <details markdown="1"> with summary and body', () => {
   const out = serialize(root(detailsNode([text('Click')], [paragraph(text('hidden'))], true)));
-  assert.match(out, /<details open markdown="1">/);
-  assert.match(out, /<summary>Click<\/summary>/);
-  assert.match(out, /hidden/);
+  expect(out).toMatch(/<details open markdown="1">/);
+  expect(out).toMatch(/<summary>Click<\/summary>/);
+  expect(out).toMatch(/hidden/);
 });
 
 // ---------------------------------------------------------------------------
@@ -209,12 +208,12 @@ test('details emits <details markdown="1"> with summary and body', () => {
 
 test('internal /foo links rewrite to in-page #foo anchors', () => {
   const out = serialize(root(paragraph(link('/methodology', text('see method')))));
-  assert.match(out, /\[see method\]\(#methodology\)/);
+  expect(out).toMatch(/\[see method\]\(#methodology\)/);
 });
 
 test('external links pass through unchanged', () => {
   const out = serialize(root(paragraph(link('https://example.com', text('ex')))));
-  assert.match(out, /\[ex\]\(https:\/\/example\.com\)/);
+  expect(out).toMatch(/\[ex\]\(https:\/\/example\.com\)/);
 });
 
 // ---------------------------------------------------------------------------
@@ -223,20 +222,20 @@ test('external links pass through unchanged', () => {
 
 test('frontmatter sets distill layout', async () => {
   const fm = await buildFrontmatter({}, false);
-  assert.equal(yaml.load(fm).layout, 'distill');
+  expect(yaml.load(fm).layout).toBe('distill');
 });
 
 test('frontmatter title comes from project', async () => {
   const fm = await buildFrontmatter({ title: 'My Paper' }, false);
-  assert.equal(yaml.load(fm).title, 'My Paper');
+  expect(yaml.load(fm).title).toBe('My Paper');
 });
 
 test('anonymous mode replaces all authors with single Anonymous', async () => {
   const proj = { authors: [{ name: 'Alice', affiliations: ['MIT'] }] };
   const fm = await buildFrontmatter(proj, true);
   const parsed = yaml.load(fm);
-  assert.equal(parsed.authors.length, 1);
-  assert.equal(parsed.authors[0].name, 'Anonymous');
+  expect(parsed.authors.length).toBe(1);
+  expect(parsed.authors[0].name).toBe('Anonymous');
 });
 
 test('non-anonymous preserves authors, normalizes affiliation shape', async () => {
@@ -247,15 +246,15 @@ test('non-anonymous preserves authors, normalizes affiliation shape', async () =
     ],
   };
   const parsed = yaml.load(await buildFrontmatter(proj, false));
-  assert.equal(parsed.authors.length, 2);
-  assert.equal(parsed.authors[0].affiliations.name, 'MIT');
-  assert.equal(parsed.authors[1].affiliations.name, 'Stanford');
+  expect(parsed.authors.length).toBe(2);
+  expect(parsed.authors[0].affiliations.name).toBe('MIT');
+  expect(parsed.authors[1].affiliations.name).toBe('Stanford');
 });
 
 test('frontmatter always sets bibliography to submission.bib and htmlwidgets:true', async () => {
   const parsed = yaml.load(await buildFrontmatter({}, false));
-  assert.equal(parsed.bibliography, 'submission.bib');
-  assert.equal(parsed.htmlwidgets, true);
+  expect(parsed.bibliography).toBe('submission.bib');
+  expect(parsed.htmlwidgets).toBe(true);
 });
 
 // ---------------------------------------------------------------------------
@@ -264,13 +263,13 @@ test('frontmatter always sets bibliography to submission.bib and htmlwidgets:tru
 
 test('buildToc captures ## as top-level entries', () => {
   const toc = buildToc('## Intro\nfoo\n## Methods\nbar\n');
-  assert.deepEqual(toc, [{ name: 'Intro' }, { name: 'Methods' }]);
+  expect(toc).toEqual([{ name: 'Intro' }, { name: 'Methods' }]);
 });
 
 test('buildToc nests ### under preceding ##', () => {
   const toc = buildToc('## Intro\n### Background\n### Setup\n## Methods\n');
-  assert.equal(toc.length, 2);
-  assert.deepEqual(toc[0].subsections, [{ name: 'Background' }, { name: 'Setup' }]);
+  expect(toc.length).toBe(2);
+  expect(toc[0].subsections).toEqual([{ name: 'Background' }, { name: 'Setup' }]);
 });
 
 test('collectTocFiles flattens nested children', () => {
@@ -278,7 +277,7 @@ test('collectTocFiles flattens nested children', () => {
     { file: 'a.md' },
     { children: [{ file: 'b.md' }, { file: 'c.md' }] },
   ]);
-  assert.deepEqual(files, ['a.md', 'b.md', 'c.md']);
+  expect(files).toEqual(['a.md', 'b.md', 'c.md']);
 });
 
 // ---------------------------------------------------------------------------
@@ -287,5 +286,5 @@ test('collectTocFiles flattens nested children', () => {
 
 test('textOf concatenates plain text from nested nodes', () => {
   const tree = paragraph(text('hello '), { type: 'strong', children: [text('world')] });
-  assert.equal(textOf(tree), 'hello world');
+  expect(textOf(tree)).toBe('hello world');
 });

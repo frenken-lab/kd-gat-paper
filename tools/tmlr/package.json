@@ -5,12 +5,14 @@
   "type": "module",
   "description": "TMLR Beyond PDF submission builder — MyST AST → Distill markdown.",
   "scripts": {
-    "build": "node build.mjs",
-    "test": "node --test build.test.mjs"
+    "build": "bun build.mjs",
+    "preview": "bun preview.mjs",
+    "test": "bun test"
   },
   "dependencies": {
+    "chokidar": "^4.0.3",
+    "js-yaml": "^4.1.0",
     "mdast-util-to-markdown": "^2.1.0",
-    "myst-to-md": "^1.0.4",
-    "js-yaml": "^4.1.0"
+    "myst-to-md": "^1.0.4"
   }
 }

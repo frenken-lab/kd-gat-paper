@@ -60,20 +60,59 @@ paper/references/   data/csv/   interactive/src/
 
 ## Local Setup
 
-Before running anything locally, install these prerequisites:
+### 1. Install prerequisites
 
-- [Python 3.11+](https://www.python.org/downloads/)
-- [Docker](https://docs.docker.com/get-docker/)
-- [uv](https://docs.astral.sh/uv/getting-started/installation/) (Python package manager)
-- [Node.js 20+](https://nodejs.org/)
+| Tool | Why | Install |
+|------|-----|---------|
+| Python 3.11+ | data validation, table builder | https://www.python.org/downloads/ |
+| [uv](https://docs.astral.sh/uv/) | Python package manager (fast, replaces pip) | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| [Bun](https://bun.sh) | JS runtime + package manager (replaces Node + npm; runs all builds, dev servers, and tests) | `curl -fsSL https://bun.sh/install \| bash` |
+| Docker | TMLR Jekyll preview (`make preview`) | https://docs.docker.com/get-docker/ |
+| [overmind](https://github.com/DarthSim/overmind) | optional — drives `make dev` (5-process orchestrator) | `go install github.com/DarthSim/overmind/v2@latest` |
+| [entr](https://eradman.com/entrproject/) | optional — table + lint watchers used by `make dev` | `apt install entr` / `brew install entr` |
+| [Vale](https://vale.sh) | optional — prose lint (`make lint`) | https://vale.sh/docs/install |
 
-## Quick Start
+The Bun installer adds `~/.bun/bin` to your PATH on the line it prints — open a new shell or `source` that line before continuing.
+
+### 2. Install project dependencies
 
 ```bash
-npm install -g mystmd          # Paper build tool
-cd interactive && npm ci       # Figure dependencies
-cd ../tools/tmlr && npm ci     # TMLR serializer dependencies
+# From the repo root, on each machine:
+bun install -g mystmd@1.8.3        # Paper build tool (matches CI version)
+cd interactive && bun install      # Figure dependencies (Svelte, Vite, SveltePlot)
+cd ../tools/tmlr && bun install    # TMLR serializer dependencies (mdast-util-to-markdown, chokidar)
 ```
+
+First run creates `interactive/bun.lockb` and `tools/tmlr/bun.lockb`. **Commit those lockfiles.** Existing `package-lock.json` files can be removed once `bun.lockb` is in place across machines.
+
+### 3. (Optional) Install Vale styles
+
+```bash
+make lint-sync   # Downloads remote Vale style packages used by .vale.ini
+```
+
+### 4. Verify
+
+```bash
+make test        # Runs the TMLR serializer test suite (29 tests, ~200 ms)
+make figures     # Builds all interactive figures into _build/figures/*.html
+make site        # Builds the paper site into _build/site/
+```
+
+If `make test` fails with `bun: command not found`, the Bun installer didn't extend your PATH — open a fresh shell or `source ~/.bashrc`.
+
+### 5. Day-to-day
+
+```bash
+make dev         # Five-process dev loop (myst + figures + tables + vale + Distill preview)
+                 # Requires overmind + entr; falls back to instructions if missing.
+make dev-myst    # Just myst start (when overmind isn't available)
+```
+
+`make dev` ports:
+- `localhost:3000` — MyST paper site (HMR on .md edits)
+- `localhost:5173` — figure shell (HMR on .svelte/.json edits)
+- `localhost:4002` — Distill layout preview (auto-rebuilds on save, see `tools/tmlr/preview.mjs`)
 
 ## Commands
 
@@ -127,7 +166,7 @@ Figures use [SveltePlot 0.12](https://svelteplot.dev) (grammar-of-graphics): `<C
 
 ```bash
 cd interactive
-npm run dev    # shell at localhost:5173 — pick figure from dropdown
+bun run dev    # shell at localhost:5173 — pick figure from dropdown
 ```
 
 The shell page keeps HMR alive across figure switches (iframe swap, not hard navigation). Works in StackBlitz.

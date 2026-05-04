@@ -4,7 +4,7 @@
     {
       "label": "Start Dev Session",
       "type": "shell",
-      "command": "cd interactive && npm install && npm run dev -- --port 5173",
+      "command": "cd interactive && bun install && bun run dev -- --port 5173",
       "isBackground": true,
       "problemMatcher": [],
       "presentation": { "reveal": "always", "panel": "dedicated" },
@@ -22,7 +22,7 @@
     {
       "label": "Figure Dev Server",
       "type": "shell",
-      "command": "cd interactive && npm run dev -- --port 5173",
+      "command": "cd interactive && bun run dev -- --port 5173",
       "isBackground": true,
       "problemMatcher": [],
       "group": "build",
@@ -31,7 +31,7 @@
     {
       "label": "Build Figures",
       "type": "shell",
-      "command": "cd interactive && npm run build",
+      "command": "cd interactive && bun run build",
       "group": { "kind": "build", "isDefault": true },
       "problemMatcher": []
     },

@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 // Build TMLR Beyond PDF submission from MyST AST.
 //
 // Reads site-build AST JSON (_build/site/content/*.json) and serializes to
@@ -384,21 +384,11 @@ async function copyAssets(out) {
   }
 }
 
-async function main() {
-  const { values } = parseArgs({
-    options: {
-      output: { type: 'string', short: 'o' },
-      anonymous: { type: 'boolean', default: false },
-    },
-  });
-  if (!values.output) {
-    console.error('ERROR: --output/-o is required');
-    process.exit(2);
-  }
+async function build({ output, anonymous = false } = {}) {
+  if (!output) throw new Error('build: output is required');
 
   if (!existsSync(SITE_CONTENT) || !existsSync(SITE_CONFIG)) {
-    console.error("ERROR: _build/site/content/ not found. Run 'myst build --site' first.");
-    process.exit(1);
+    throw new Error("_build/site/content/ not found. Run 'myst build --site' first.");
   }
 
   const siteCfg = JSON.parse(await readFile(SITE_CONFIG, 'utf8'));
@@ -424,26 +414,39 @@ async function main() {
     console.log(`  ok: ${rel}`);
   }
 
-  if (!parts.length) {
-    console.error('No content serialized');
-    process.exit(1);
-  }
+  if (!parts.length) throw new Error('No content serialized');
 
   const content = parts.join('\n\n').replace(/\n{3,}/g, '\n\n');
 
-  const out = resolve(values.output);
+  const out = resolve(output);
   await mkdir(out, { recursive: true });
 
-  const frontmatter = await buildFrontmatter(proj, values.anonymous);
+  const frontmatter = await buildFrontmatter(proj, anonymous);
   const tocEntries = buildToc(content);
   const toc = tocEntries.length ? yaml.dump({ toc: tocEntries }, { sortKeys: false }) : '';
-  await writeFile(join(out, 'submission.md'), `---\n${frontmatter}${toc}---\n\n${content}`);
+  const submissionPath = join(out, 'submission.md');
+  await writeFile(submissionPath, `---\n${frontmatter}${toc}---\n\n${content}`);
 
   await copyAssets(out);
-  console.log(`Done: ${join(out, 'submission.md')}`);
+  console.log(`Done: ${submissionPath}`);
+  return submissionPath;
 }
 
-export { serialize, buildFrontmatter, buildToc, collectTocFiles, textOf, handlers };
+async function main() {
+  const { values } = parseArgs({
+    options: {
+      output: { type: 'string', short: 'o' },
+      anonymous: { type: 'boolean', default: false },
+    },
+  });
+  if (!values.output) {
+    console.error('ERROR: --output/-o is required');
+    process.exit(2);
+  }
+  await build({ output: values.output, anonymous: values.anonymous });
+}
+
+export { build, serialize, buildFrontmatter, buildToc, collectTocFiles, textOf, handlers };
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch((err) => {

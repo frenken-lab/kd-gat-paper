@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node build.js",
+    "build": "bun build.js",
     "preview": "vite preview",
     "test": "vitest run --config vitest.config.ts",
     "lint": "eslint src",

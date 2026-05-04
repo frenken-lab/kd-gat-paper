@@ -318,7 +318,7 @@ interactive/src/figures/data/parameter-calculator/
 When graphids retunes a deployed configuration:
 
 1. **One JSON row.** Edit the matching component preset in `data.json`. Ensemble presets reference component presets by name, so the ensemble view picks up the change automatically. Most knob retunes touch only this file.
-2. **`npm test`** in `interactive/`. Anchor tests fail loudly if the new preset lands outside `TOLERANCE[model]`. The failure points at the formula or the tolerance, not at the JSON.
+2. **`bun run test`** in `interactive/`. Anchor tests fail loudly if the new preset lands outside `TOLERANCE[model]`. The failure points at the formula or the tolerance, not at the JSON.
 3. **Formula edit, only if the architectural family changed.** If graphids replaces `JK = LSTM` with a different aggregator, or the symmetric VGAE decoder becomes asymmetric, that's a `formulas.ts` edit, likely with a tolerance refresh, and an updated calibration record in §"Status".
 
 Failure mode is loud (CI red), not silent. The maintenance surface is one file in the common case, three in the worst.

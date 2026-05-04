@@ -6,13 +6,13 @@ Svelte + Vite project that builds each figure as a self-contained HTML file (via
 
 ```bash
 cd interactive
-npm install
+bun install
 ```
 
 ## Dev
 
 ```bash
-npm run dev    # shell at localhost:5173
+bun run dev    # shell at localhost:5173
 ```
 
 The dev server serves a shell page at `/` with a dropdown and iframe. Selecting a figure swaps `iframe.src` without navigating the outer page, so the HMR WebSocket stays connected. This also works in StackBlitz WebContainers (hard MPA navigation between figure URLs tears down the WS; iframe swap does not).
@@ -36,7 +36,7 @@ For architecture diagrams, copy any `diagrams/*/` figure — they follow the `sp
 ## Building all figures
 
 ```bash
-npm run build
+bun run build
 # or from the repo root:
 make figures
 ```

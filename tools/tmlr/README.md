@@ -8,7 +8,7 @@ the mystmd `mdast` tree.
 ```bash
 make tmlr          # Build submission
 make tmlr-anon     # Build anonymous submission
-cd tools/tmlr && npm test     # Run serializer tests
+cd tools/tmlr && bun test     # Run serializer tests
 ```
 
 ## How It Works
@@ -46,9 +46,9 @@ The pipeline:
 
 ## Tests
 
-`build.test.mjs` uses `node --test` (no runner dep) and checks observable
-*properties* of the output (does `<d-cite>` survive table cells? does
-`.pdf` images render as `<embed>`?) rather than byte-exact strings —
+`build.test.mjs` uses Bun's built-in test runner (`bun test`) and checks
+observable *properties* of the output (does `<d-cite>` survive table cells?
+does `.pdf` images render as `<embed>`?) rather than byte-exact strings —
 because exact-string assertions break trivially when
 `mdast-util-to-markdown` updates its escaping or wrapping.
 
@@ -59,4 +59,4 @@ because exact-string assertions break trivially when
 - `mdast-util-gfm-table` (transitive via `myst-to-md`)
 - `js-yaml` ^4.1
 
-Install: `npm install` (run from this directory; the lockfile lives here).
+Install: `bun install` (run from this directory; the lockfile lives here).

@@ -21,9 +21,9 @@ repos:
       # mdast-util-to-markdown defaultHandlers + Distill-flavored overrides.
       # Re-run its semantic-property tests whenever the converter changes.
       - id: tmlr-tests
-        name: tmlr serializer tests (node --test)
+        name: tmlr serializer tests (bun test)
         language: system
-        entry: bash -c 'cd tools/tmlr && npm test'
+        entry: bash -c 'cd tools/tmlr && bun test'
         files: '^tools/tmlr/.*\.mjs$'
         pass_filenames: false
 
@@ -44,14 +44,14 @@ repos:
       - id: eslint
         name: eslint (interactive)
         language: system
-        entry: bash -c 'cd interactive && npx eslint --max-warnings=0 src/'
+        entry: bash -c 'cd interactive && bunx eslint --max-warnings=0 src/'
         files: '^interactive/src/.*\.(ts|js|svelte)$'
         pass_filenames: false
 
       - id: prettier
         name: prettier (interactive)
         language: system
-        entry: bash -c 'cd interactive && npx prettier --check src/'
+        entry: bash -c 'cd interactive && bunx prettier --check src/'
         files: '^interactive/src/'
         pass_filenames: false
 

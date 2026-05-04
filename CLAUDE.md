@@ -25,7 +25,7 @@ The candidacy TOC includes all paper content plus `paper/candidacy/` extensions 
 ```bash
 make data          # Pull from ESS + validate against schemas.yaml
 make validate      # Validate committed data only (no ESS, used in CI)
-make figures       # cd interactive && npm run build → _build/figures/*.html
+make figures       # cd interactive && bun run build → _build/figures/*.html
 make tables        # Build markdown tables from CSV + spec.yaml
 make site          # myst build (depends on figures + tables)
 make dev           # overmind orchestrator: myst start + vite (figures HMR) + entr-driven `make tables`
@@ -40,7 +40,7 @@ make candidacy-dev  # myst start --config myst.candidacy.yml (live reload)
 make candidacy-pdf  # myst build --pdf via Typst → _build/exports/candidacy-report.pdf
 make sync          # Pull Curvenote editor changes into repo
 make bib           # Validate paper/references/*.bib
-make test          # Run TMLR serializer tests (node --test in tools/tmlr/)
+make test          # Run TMLR serializer tests (bun test in tools/tmlr/)
 make all           # figures → tables → site (data pulled transitively)
 make clean         # rm -rf _build
 ```
@@ -51,7 +51,7 @@ make clean         # rm -rf _build
 KD-GAT eval artifacts
   → export_paper_data.py → ESS exports/paper/ (_manifest.json + _provenance.json)
   → validate_data.py (checks schemas.yaml) → data/csv/ + interactive/src/figures/data/*/data.json
-  → npm run build → _build/figures/*.html
+  → bun run build → _build/figures/*.html
   → myst build → _build/ → curvenote deploy → rob.curve.space
                           → GitHub Pages (figures only) → frenken-lab.github.io/kd-gat-paper/
   → tools/tmlr/build.py (reads _build/site/ AST) → tmlr_do_not_modify/_under_review/submission.md (+ assets/)
