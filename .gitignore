@@ -33,7 +33,6 @@ tools/spikes/*.html
 tools/spikes/*.svg
 tools/spikes/*.spec.json
 
-# Vale — downloaded style packages (proselint, write-good) live under here.
+# Vale — downloaded style packages live under here, synced via `make lint-sync`.
 # MLPaper rules and the MLPaper vocabulary are tracked; package downloads are not.
-.vale/styles/proselint/
-.vale/styles/write-good/
+.vale/styles/Microsoft/
