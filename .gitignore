@@ -36,3 +36,6 @@ tools/spikes/*.spec.json
 # Vale — downloaded style packages live under here, synced via `make lint-sync`.
 # MLPaper rules and the MLPaper vocabulary are tracked; package downloads are not.
 .vale/styles/Microsoft/
+# Stale leftovers from before the Microsoft swap; safe to delete locally.
+.vale/styles/proselint/
+.vale/styles/write-good/
