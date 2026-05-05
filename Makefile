@@ -1,4 +1,4 @@
-.PHONY: data validate validate-inputs validate-semantic figures tables site dev dev-myst candidacy-site candidacy-dev candidacy-pdf tmlr tmlr-anon preview deploy sync bib test all clean watch-tables pre-commit pre-commit-install lint lint-sync
+.PHONY: data validate validate-inputs validate-semantic figures tables site dev dev-myst candidacy-site candidacy-dev candidacy-pdf candidacy-astro tmlr tmlr-anon preview deploy sync bib test all clean watch-tables pre-commit pre-commit-install lint lint-sync
 
 data:
 	uv run python tools/pull_data.py
@@ -45,6 +45,11 @@ candidacy-dev:
 
 candidacy-pdf: figures tables
 	myst build --pdf --config myst.candidacy.yml
+
+# Self-hosted Astro build of the candidacy site. Reads _build/site/ produced
+# by candidacy-site and emits flat HTML to _build/astro/. See tools/site/README.md.
+candidacy-astro: candidacy-site
+	cd tools/site && bun install --silent && bun run build
 
 tmlr: site
 	cd tools/tmlr && bun install --silent && bun build.mjs --output ../../_build/submission/

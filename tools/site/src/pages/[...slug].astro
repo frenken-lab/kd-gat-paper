@@ -1,0 +1,23 @@
+---
+import Page from '../layouts/Page.astro';
+import MystNode from '../components/MystNode.astro';
+import { loadAllPages } from '../lib/content';
+
+export async function getStaticPaths() {
+  const pages = loadAllPages();
+  return pages.map((page) => ({
+    params: { slug: page.slug === 'index' ? undefined : page.slug },
+    props: { page },
+  }));
+}
+
+const { page } = Astro.props;
+const fm = page.frontmatter as Record<string, unknown>;
+const title = (fm.title as string) ?? page.slug;
+const description = fm.description as string | undefined;
+---
+<Page title={title} description={description}>
+  <article>
+    <MystNode node={page.mdast} />
+  </article>
+</Page>
