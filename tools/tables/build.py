@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """Build markdown tables from raw CSVs + YAML spec.
 
-Reads tools/tables/spec.yaml, loads each CSV, merges literature baselines,
-applies formatting + bolding, writes _build/tables/{name}.md.
+Reads tools/tables/spec.yaml, loads each CSV with polars, merges literature
+baselines, applies formatting + bolding, writes _build/tables/{name}.md.
+
+Two render modes per spec:
+    format_mode: html    -> great-tables HTML output (publication-grade)
+    (default)            -> GFM pipe table via tabulate
 
 Usage:
     python tools/tables/build.py
@@ -10,11 +14,13 @@ Usage:
 
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
-import pandas as pd
+import polars as pl
 import yaml
+from great_tables import GT, loc, style
 from tabulate import tabulate
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -22,173 +28,133 @@ SPEC_PATH = ROOT / "tools" / "tables" / "spec.yaml"
 STYLES_PATH = ROOT / "styles.yml"
 OUT_DIR = ROOT / "_build" / "tables"
 
-# Load palette fills from shared styles (used by HTML table renderer)
 _styles = yaml.safe_load(STYLES_PATH.read_text())
-FILL_GREEN = _styles["fills"]["green"]   # #D7E8D3 — best-in-column
-FILL_BLUE = _styles["fills"]["blue"]     # #DAE3EF — near-best
-ACCENT_BLUE = _styles["palette"]["blue"] # #4E79A7 — our-model left border
+FILL_GREEN = _styles["fills"]["green"]    # best-in-column
+FILL_BLUE = _styles["fills"]["blue"]      # near-best (>= 99% of column max)
+ACCENT_BLUE = _styles["palette"]["blue"]  # our-model accent border
 
 
-def load_csv(path: Path) -> pd.DataFrame:
+def load_csv(path: Path) -> pl.DataFrame:
     if not path.exists():
         print(f"  WARNING: {path.relative_to(ROOT)} not found", file=sys.stderr)
-        return pd.DataFrame()
-    return pd.read_csv(path, dtype=str)  # keep everything as strings for formatting
+        return pl.DataFrame()
+    # All strings: spec-driven formatting handles numeric coercion downstream.
+    return pl.read_csv(path, infer_schema_length=0)
 
 
-def render_table(
-    df: pd.DataFrame,
+def _format_cell(val, fmt: str | None) -> str:
+    if val is None or val == "" or val == "nan":
+        return "" if val is None else str(val)
+    if fmt:
+        try:
+            return fmt.format(float(val))
+        except (ValueError, TypeError):
+            pass
+    return str(val)
+
+
+def _decimals_from_format(fmt: str) -> int:
+    m = re.search(r"\.(\d+)f", fmt)
+    return int(m.group(1)) if m else 4
+
+
+def render_markdown_table(
+    df: pl.DataFrame,
     columns: dict[str, str],
     formats: dict[str, str],
-    bold_models: set[str] | None = None,
-    separator_at: int | None = None,
+    bold_models: set[str],
+    separator_at: int | None,
 ) -> str:
-    """Render a DataFrame as a markdown pipe table via tabulate."""
-    if df.empty:
+    """GFM pipe table via tabulate. Polars rows feed in directly as tuples."""
+    if df.is_empty():
         return "*No data available.*\n"
 
-    bold_models = bold_models or set()
     keys = list(columns.keys())
     headers = list(columns.values())
 
-    # Format values and apply bold
     rows: list[list[str]] = []
-    for i, (_, row) in enumerate(df.iterrows()):
-        # Insert blank separator row between groups
+    for i, row in enumerate(df.iter_rows(named=True)):
         if separator_at is not None and i == separator_at:
             rows.append([""] * len(keys))
-
-        cells = []
-        for k in keys:
-            val = row.get(k, "")
-            fmt = formats.get(k)
-            if fmt and val not in (None, "", "nan"):
-                try:
-                    val = fmt.format(float(val))
-                except (ValueError, TypeError):
-                    pass
-            cells.append(str(val) if val is not None else "")
-
-        if row.get("model", "") in bold_models:
+        cells = [_format_cell(row.get(k), formats.get(k)) for k in keys]
+        if row.get("model") in bold_models:
             cells = [f"**{c}**" for c in cells]
-
         rows.append(cells)
 
     return tabulate(rows, headers=headers, tablefmt="github", disable_numparse=True) + "\n"
 
 
 def render_html_table(
-    df: pd.DataFrame,
+    df: pl.DataFrame,
     columns: dict[str, str],
     formats: dict[str, str],
-    bold_models: set[str] | None = None,
-    separator_at: int | None = None,
+    bold_models: set[str],
+    separator_at: int | None,
 ) -> str:
-    """Render a DataFrame as an HTML table with inline styles and conditional formatting."""
-    if df.empty:
+    """Publication-grade HTML via great-tables. Conditional fill on best/near-best;
+    our-model rows get bold + accent border on the model column."""
+    if df.is_empty():
         return "<p><em>No data available.</em></p>\n"
 
-    bold_models = bold_models or set()
     keys = list(columns.keys())
-    headers = list(columns.values())
     metric_keys = [k for k in keys if k != "model" and formats.get(k)]
 
-    # Compute column-wise best for conditional coloring
-    col_best: dict[str, float] = {}
-    for k in metric_keys:
-        numeric = pd.to_numeric(df[k], errors="coerce")
-        if numeric.notna().any():
-            col_best[k] = numeric.max()
-
-    # Table styles
-    table_css = (
-        "border-collapse:collapse; width:100%; font-size:0.9rem; "
-        "font-family:system-ui,-apple-system,sans-serif"
+    # Coerce metric columns to float so great-tables can format numerically and
+    # so our column-max comparisons work in polars expressions below.
+    df_typed = df.with_columns(
+        [pl.col(k).cast(pl.Float64, strict=False) for k in metric_keys if k in df.columns]
     )
-    th_css = "padding:6px 12px; text-align:right; font-weight:600; border-bottom:2px solid #333"
-    th_model_css = th_css.replace("text-align:right", "text-align:left")
 
-    lines = [f'<table style="{table_css}">']
+    # Use row groups to render the baselines/our-models separator. Empty-string
+    # group labels keep the visual separator without a labeled header.
+    if separator_at is not None and 0 < separator_at < df_typed.height:
+        groups = ["baselines"] * separator_at + ["ours"] * (df_typed.height - separator_at)
+        df_typed = df_typed.with_columns(pl.Series("_group", groups))
+        gt = GT(df_typed, groupname_col="_group")
+    else:
+        gt = GT(df_typed)
 
-    # Header
-    lines.append("  <thead>")
-    lines.append('    <tr style="border-top:2px solid #333">')
-    for i, h in enumerate(headers):
-        css = th_model_css if i == 0 else th_css
-        lines.append(f'      <th style="{css}">{h}</th>')
-    lines.append("    </tr>")
-    lines.append("  </thead>")
+    # Column labels and alignment
+    gt = gt.cols_label(**{k: v for k, v in columns.items() if k in df_typed.columns})
+    if metric_keys:
+        gt = gt.cols_align(align="right", columns=metric_keys)
+    if "model" in df_typed.columns:
+        gt = gt.cols_align(align="left", columns=["model"])
 
-    # Body
-    lines.append("  <tbody>")
-    row_idx = 0
-    for _, row in df.iterrows():
-        # Separator row
-        if separator_at is not None and row_idx == separator_at:
-            lines.append(
-                f'    <tr><td colspan="{len(keys)}" '
-                f'style="height:4px; border-bottom:1px solid #ccc; padding:0"></td></tr>'
-            )
+    # Numeric formatting per column from the {:.Nf} spec strings
+    for k, fmt in formats.items():
+        if k in metric_keys:
+            gt = gt.fmt_number(columns=k, decimals=_decimals_from_format(fmt))
 
-        is_ours = row.get("model", "") in bold_models
-        is_last = row_idx == len(df) - 1
+    # Conditional fill: best-in-column → green, near-best (>= 99% of max) → blue
+    for k in metric_keys:
+        col_max = df_typed[k].max()
+        if col_max is None:
+            continue
+        gt = gt.tab_style(
+            style=style.fill(color=FILL_GREEN),
+            locations=loc.body(columns=k, rows=pl.col(k) == col_max),
+        )
+        gt = gt.tab_style(
+            style=style.fill(color=FILL_BLUE),
+            locations=loc.body(
+                columns=k, rows=(pl.col(k) >= col_max * 0.99) & (pl.col(k) != col_max)
+            ),
+        )
 
-        cells: list[str] = []
-        for i, k in enumerate(keys):
-            val = row.get(k, "")
-            fmt = formats.get(k)
-            if fmt and val not in (None, "", "nan"):
-                try:
-                    val = fmt.format(float(val))
-                except (ValueError, TypeError):
-                    pass
-            val = str(val) if val is not None else ""
+    # Our-model emphasis: bold the row, accent border on the model cell
+    if bold_models and "model" in df_typed.columns:
+        ours = pl.col("model").is_in(list(bold_models))
+        gt = gt.tab_style(style=style.text(weight="bold"), locations=loc.body(rows=ours))
+        gt = gt.tab_style(
+            style=style.borders(sides="left", color=ACCENT_BLUE, weight="3px"),
+            locations=loc.body(columns="model", rows=ours),
+        )
 
-            # Cell styling
-            parts = ["padding:6px 12px"]
-            if i == 0:
-                parts.append("text-align:left")
-            else:
-                parts.append("text-align:right; font-variant-numeric:tabular-nums")
-
-            # Conditional coloring for metric cells
-            if k in col_best:
-                try:
-                    num = float(row.get(k, ""))
-                    if num == col_best[k]:
-                        parts.append(f"background:{FILL_GREEN}")
-                    elif num >= col_best[k] * 0.99:
-                        parts.append(f"background:{FILL_BLUE}")
-                except (ValueError, TypeError):
-                    pass
-
-            # Bottom border on last row
-            if is_last:
-                parts.append("border-bottom:2px solid #333")
-            else:
-                parts.append("border-bottom:1px solid rgba(0,0,0,0.05)")
-
-            # Our-model accent
-            if is_ours:
-                parts.append("font-weight:700")
-                if i == 0:
-                    parts.append(f"border-left:3px solid {ACCENT_BLUE}")
-
-            css = "; ".join(parts)
-            cells.append(f'      <td style="{css}">{val}</td>')
-
-        lines.append("    <tr>")
-        lines.extend(cells)
-        lines.append("    </tr>")
-        row_idx += 1
-
-    lines.append("  </tbody>")
-    lines.append("</table>")
-    return "\n".join(lines) + "\n"
+    return gt.as_raw_html() + "\n"
 
 
 def build_table(name: str, spec: dict) -> None:
-    """Build a single table from its spec entry."""
     source = ROOT / "data" / spec["source"]
     df = load_csv(source)
 
@@ -196,31 +162,33 @@ def build_table(name: str, spec: dict) -> None:
     bold_models: set[str] = set(sort_order.get("bold_models", []))
     baselines_first = sort_order.get("baselines_first", False)
 
-    # Load and merge baselines
-    separator_at = None
+    # Merge literature baselines if declared. `diagonal` handles the column-set
+    # mismatch (baselines carry citation_key; main results don't).
+    separator_at: int | None = None
     if "baselines_source" in spec:
         baselines = load_csv(ROOT / "data" / spec["baselines_source"])
-        if not baselines.empty and baselines_first:
-            baselines = baselines.sort_values("model")
-            df = df.sort_values("model")
-            separator_at = len(baselines)
-            df = pd.concat([baselines, df], ignore_index=True)
-        elif not baselines.empty:
-            df = pd.concat([df, baselines], ignore_index=True)
+        if not baselines.is_empty() and baselines_first:
+            baselines = baselines.sort("model")
+            df = df.sort("model")
+            separator_at = baselines.height
+            df = pl.concat([baselines, df], how="diagonal")
+        elif not baselines.is_empty():
+            df = pl.concat([df, baselines], how="diagonal")
 
-    # Fallback sort
     sort_keys = spec.get("sort_by", [])
     if sort_keys and separator_at is None:
-        df = df.sort_values(sort_keys)
+        df = df.sort(sort_keys)
 
-    cols, fmts = spec.get("columns", {}), spec.get("format", {})
+    cols = spec.get("columns", {})
+    fmts = spec.get("format", {})
     if spec.get("format_mode") == "html":
-        md = render_html_table(df, cols, fmts, bold_models, separator_at)
+        out = render_html_table(df, cols, fmts, bold_models, separator_at)
     else:
-        md = render_table(df, cols, fmts, bold_models, separator_at)
+        out = render_markdown_table(df, cols, fmts, bold_models, separator_at)
+
     out_path = OUT_DIR / f"{name}.md"
-    out_path.write_text(md)
-    print(f"  {name}: {len(df)} rows -> {out_path.relative_to(ROOT)}")
+    out_path.write_text(out)
+    print(f"  {name}: {df.height} rows -> {out_path.relative_to(ROOT)}")
 
 
 def main() -> None:
