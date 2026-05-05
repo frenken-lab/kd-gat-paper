@@ -56,7 +56,7 @@ because exact-string assertions break trivially when
 
 - Node.js 20+
 - `mdast-util-to-markdown` ^2.1
-- `mdast-util-gfm-table` (transitive via `myst-to-md`)
+- `mdast-util-gfm-table` ^2.0
 - `js-yaml` ^4.1
 
 Install: `bun install` (run from this directory; the lockfile lives here).

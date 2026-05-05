@@ -47,10 +47,16 @@ const citeGroup = (node) =>
     .join('');
 
 const crossReference = (node, _parent, state, info) => {
-  const { template, enumerator } = node;
-  if (template && enumerator != null) return template.replace('%s', String(enumerator));
-  if (node.children?.length) return state.containerPhrasing(node, info);
-  return `[${node.identifier || ''}]`;
+  const { template, enumerator, identifier } = node;
+  // Equation refs ride MathJax \eqref so AMS tagging produces a linked "(N)".
+  if (identifier?.startsWith('eq-')) return `\\eqref{${identifier}}`;
+  const inner =
+    template && enumerator != null
+      ? template.replace('%s', String(enumerator))
+      : node.children?.length
+        ? state.containerPhrasing(node, info)
+        : identifier || '';
+  return identifier ? `[${inner}](#${identifier})` : `[${inner}]`;
 };
 
 // MyST emits link nodes with internal `/foo` urls for cross-page links;
@@ -65,7 +71,18 @@ const link = (node, parent, state, info) => {
 };
 
 const inlineMath = (node) => `$${node.value || ''}$`;
-const math = (node) => `\n$$\n${node.value || ''}\n$$\n`;
+// AMS tags='ams' is set in the TMLR kit (mathjax.html); numbered envs auto-number
+// and \label binds the cross-ref target. For unnumbered authoring (\begin{aligned}
+// or no env), drop an <a id> anchor so #identifier links still resolve.
+const math = (node) => {
+  const value = node.value || '';
+  const isNumberedEnv = /\\begin\{(equation|align|gather|multline)\*?\}/.test(value);
+  const id = node.identifier ? `<a id="${node.identifier}"></a>\n` : '';
+  if (isNumberedEnv || !node.identifier) {
+    return `\n${id}$$\n${value}\n$$\n`;
+  }
+  return `\n${id}$$\n\\begin{equation}\\label{${node.identifier}}\n${value}\n\\end{equation}\n$$\n`;
+};
 
 const iframe = (node) => {
   // Initial height is a placeholder; figure-resize.ts grows the iframe to fit
@@ -188,7 +205,8 @@ const container = (node, _parent, state, info) => {
     let body = '';
     for (const c of children) {
       if (c.type === 'caption') {
-        cap = textOf(c).trim();
+        // containerPhrasing preserves <d-cite>, emphasis, links inside captions.
+        cap = state.containerPhrasing(c, info).trim();
       } else {
         body += serializeChild(c, state, info);
       }
@@ -204,7 +222,12 @@ const container = (node, _parent, state, info) => {
         if (content.startsWith('<table')) body = `\n${content}\n`;
       }
     }
-    return (cap ? `\n**${cap}**\n` : '') + body;
+    // Wrap in <figure> so cross-refs to #tbl-* resolve and Distill styles
+    // figcaption. markdown="1" lets kramdown process pipe tables inside.
+    const idAttr = node.identifier ? ` id="${node.identifier}"` : '';
+    const num = node.enumerator ? `<strong>Table ${node.enumerator}:</strong> ` : '';
+    const figcap = cap ? `<figcaption>${num}${cap}</figcaption>\n` : '';
+    return `\n<figure${idAttr} markdown="1">\n${figcap}${body}\n</figure>\n`;
   }
   return state.containerFlow(node, info);
 };

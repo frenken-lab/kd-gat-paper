@@ -97,6 +97,23 @@ test('block math fenced with $$', () => {
   expect(out).toMatch(/\$\$\ny = mx \+ b\n\$\$/);
 });
 
+test('block math with identifier emits <a id> anchor and AMS \\label', () => {
+  const out = serialize(root({ type: 'math', value: 'x = y', identifier: 'eq-foo' }));
+  expect(out).toMatch(/<a id="eq-foo"><\/a>/);
+  expect(out).toMatch(/\\begin\{equation\}\\label\{eq-foo\}/);
+});
+
+test('block math already in numbered env is not double-wrapped', () => {
+  const out = serialize(root({
+    type: 'math',
+    value: '\\begin{align}\na &= b \\\\\nc &= d\n\\end{align}',
+    identifier: 'eq-pair',
+  }));
+  expect(out).toMatch(/<a id="eq-pair"><\/a>/);
+  // Anchor present but no extra \begin{equation} wrapper around \begin{align}.
+  expect(out).not.toMatch(/\\begin\{equation\}\\label/);
+});
+
 // ---------------------------------------------------------------------------
 // Cross-references
 // ---------------------------------------------------------------------------
@@ -107,8 +124,23 @@ test('crossReference uses template + enumerator when both present', () => {
 });
 
 test('crossReference falls back to identifier when no template', () => {
+  // Identifier-only refs render as [foo](#foo) so the link target is live.
   const out = serialize(root(paragraph(xref({ identifier: 'foo' }))));
-  expect(out).toMatch(/\[foo\]/);
+  expect(out).toMatch(/\[foo\]\(#foo\)/);
+});
+
+test('crossReference to figure emits clickable markdown link', () => {
+  const out = serialize(root(paragraph(xref({
+    identifier: 'fig-bar', template: 'Figure %s', enumerator: 2,
+  }))));
+  expect(out).toMatch(/\[Figure 2\]\(#fig-bar\)/);
+});
+
+test('crossReference to equation uses MathJax \\eqref', () => {
+  const out = serialize(root(paragraph(xref({
+    identifier: 'eq-foo', template: 'Eq. (%s)', enumerator: 3,
+  }))));
+  expect(out).toMatch(/\\eqref\{eq-foo\}/);
 });
 
 // ---------------------------------------------------------------------------
@@ -169,17 +201,36 @@ test('container[figure] wraps children in <figure id="..."> tags', () => {
   expect(out).toMatch(/<\/figure>/);
 });
 
-test('container[table] without tbl- identifier falls through to inline rendering', () => {
-  // No HTML fallback — should render the table from AST.
+test('container[table] wraps in <figure id="tbl-..."> with figcaption', () => {
   const out = serialize(root(
-    tableContainer('plain-id',
+    tableContainer('tbl-foo',
       caption(text('My caption')),
       tableNode(tableRow(tableCell(text('A'))), tableRow(tableCell(text('1'))))
     )
   ));
-  expect(out).toMatch(/\*\*My caption\*\*/);
-  // Pipe table should appear (gfm-table extension).
+  expect(out).toMatch(/<figure id="tbl-foo" markdown="1">/);
+  expect(out).toMatch(/<figcaption>.*My caption<\/figcaption>/);
+  // Pipe table from gfm-table extension still appears inside the figure.
   expect(out).toMatch(/\| A\s*\|/);
+});
+
+test('container[table] enumerator becomes "Table N:" prefix in figcaption', () => {
+  const tree = root({
+    type: 'container', kind: 'table', identifier: 'tbl-x', enumerator: 4,
+    children: [caption(text('Cap')), tableNode(tableRow(tableCell(text('A'))))],
+  });
+  const out = serialize(tree);
+  expect(out).toMatch(/<strong>Table 4:<\/strong>\s*Cap/);
+});
+
+test('table caption preserves inline cite (regression: phrasing not textOf)', () => {
+  const out = serialize(root(
+    tableContainer('tbl-cited-cap',
+      caption(text('See '), cite('ref1')),
+      tableNode(tableRow(tableCell(text('A'))))
+    )
+  ));
+  expect(out).toMatch(/<d-cite key="ref1">/);
 });
 
 // ---------------------------------------------------------------------------

@@ -12,7 +12,7 @@
   "dependencies": {
     "chokidar": "^4.0.3",
     "js-yaml": "^4.1.0",
-    "mdast-util-to-markdown": "^2.1.0",
-    "myst-to-md": "^1.0.4"
+    "mdast-util-gfm-table": "^2.0.0",
+    "mdast-util-to-markdown": "^2.1.0"
   }
 }
