@@ -60,7 +60,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with: { name: figures, path: _build/figures/ }
 
-      - run: pip install pyyaml tabulate polars great-tables
+      - run: pip install pyyaml polars great-tables
       - name: Build tables
         run: python tools/tables/build.py
       - name: Build MyST AST
@@ -124,7 +124,7 @@ jobs:
         with: { python-version: "3.12" }
       - uses: actions/download-artifact@v4
         with: { name: figures, path: _build/figures/ }
-      - run: pip install pyyaml tabulate polars great-tables
+      - run: pip install pyyaml polars great-tables
       # typst-community/setup-typst@v4 is broken upstream as of 2026-04-27
       # (its release-list fetch fails for any version requested). Direct
       # download from typst/typst releases sidesteps the action entirely.
@@ -153,7 +153,7 @@ jobs:
         with: { name: figures, path: _build/figures/ }
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      - run: pip install pyyaml tabulate polars great-tables
+      - run: pip install pyyaml polars great-tables
       - name: Deploy candidacy to curve.space
         env:
           CURVENOTE_TOKEN: ${{ secrets.CURVENOTE_TOKEN }}

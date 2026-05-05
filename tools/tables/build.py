@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
-"""Build markdown tables from raw CSVs + YAML spec.
+"""Build HTML tables from raw CSVs + YAML spec.
 
 Reads tools/tables/spec.yaml, loads each CSV with polars, merges literature
-baselines, applies formatting + bolding, writes _build/tables/{name}.md.
+baselines, applies formatting + per-cell highlighting, writes
+_build/tables/{name}.md as great-tables HTML.
 
-Two render modes per spec:
-    format_mode: html    -> great-tables HTML output (publication-grade)
-    (default)            -> GFM pipe table via tabulate
+Distill (TMLR Beyond PDF), the MyST site, and curve.space all render raw
+HTML tables, so a single render path covers every consumer. The TMLR
+serializer (tools/tmlr/build.mjs) copies these files through verbatim.
 
 Usage:
-    python tools/tables/build.py
+    uv run python tools/tables/build.py
 """
 
 from __future__ import annotations
@@ -21,7 +22,6 @@ from pathlib import Path
 import polars as pl
 import yaml
 from great_tables import GT, loc, style
-from tabulate import tabulate
 
 ROOT = Path(__file__).resolve().parents[2]
 SPEC_PATH = ROOT / "tools" / "tables" / "spec.yaml"
@@ -42,46 +42,9 @@ def load_csv(path: Path) -> pl.DataFrame:
     return pl.read_csv(path, infer_schema_length=0)
 
 
-def _format_cell(val, fmt: str | None) -> str:
-    if val is None or val == "" or val == "nan":
-        return "" if val is None else str(val)
-    if fmt:
-        try:
-            return fmt.format(float(val))
-        except (ValueError, TypeError):
-            pass
-    return str(val)
-
-
 def _decimals_from_format(fmt: str) -> int:
     m = re.search(r"\.(\d+)f", fmt)
     return int(m.group(1)) if m else 4
-
-
-def render_markdown_table(
-    df: pl.DataFrame,
-    columns: dict[str, str],
-    formats: dict[str, str],
-    bold_models: set[str],
-    separator_at: int | None,
-) -> str:
-    """GFM pipe table via tabulate. Polars rows feed in directly as tuples."""
-    if df.is_empty():
-        return "*No data available.*\n"
-
-    keys = list(columns.keys())
-    headers = list(columns.values())
-
-    rows: list[list[str]] = []
-    for i, row in enumerate(df.iter_rows(named=True)):
-        if separator_at is not None and i == separator_at:
-            rows.append([""] * len(keys))
-        cells = [_format_cell(row.get(k), formats.get(k)) for k in keys]
-        if row.get("model") in bold_models:
-            cells = [f"**{c}**" for c in cells]
-        rows.append(cells)
-
-    return tabulate(rows, headers=headers, tablefmt="github", disable_numparse=True) + "\n"
 
 
 def render_html_table(
@@ -181,10 +144,7 @@ def build_table(name: str, spec: dict) -> None:
 
     cols = spec.get("columns", {})
     fmts = spec.get("format", {})
-    if spec.get("format_mode") == "html":
-        out = render_html_table(df, cols, fmts, bold_models, separator_at)
-    else:
-        out = render_markdown_table(df, cols, fmts, bold_models, separator_at)
+    out = render_html_table(df, cols, fmts, bold_models, separator_at)
 
     out_path = OUT_DIR / f"{name}.md"
     out_path.write_text(out)

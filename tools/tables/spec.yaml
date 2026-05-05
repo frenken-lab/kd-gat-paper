@@ -1,11 +1,11 @@
 # Table specifications — defines how raw CSVs become paper tables.
 # Run: python tools/tables/build.py
-# Output: data/tables/*.md (included by content/*.md via {include})
+# Output: _build/tables/*.md (great-tables HTML, included by content/*.md
+# via {include}; the TMLR serializer copies them through verbatim).
 
 main_results:
   title: "Test Performance on HCRL Car-Hacking Dataset"
   label: tbl-main-results
-  format_mode: html
   source: csv/main_results.csv
   baselines_source: csv/literature_baselines.csv
   columns:

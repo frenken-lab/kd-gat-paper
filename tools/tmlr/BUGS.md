@@ -76,15 +76,9 @@ cap = textOf(c).trim();
 
 ---
 
-### B5 — Pipe-table mode silently bypasses HTML fallback
+### B5 — Pipe-table mode silently bypasses HTML fallback (RESOLVED)
 
-**Where**: `tools/tmlr/build.mjs:204`.
-
-```js
-if (content.startsWith('<table')) body = `\n${content}\n`;
-```
-
-Only fires for tables built with `format_mode: html` in `tools/tables/spec.yaml`. `test_scenarios` and `vgae_threshold` (no `format_mode: html`) fall through to AST → pipe-table rendering. Different visual style on the same page from `main_results`. Not strictly wrong, but inconsistent and hard to debug.
+`format_mode` removed from `tools/tables/spec.yaml`; `tools/tables/build.py` always emits great-tables HTML; `tools/tmlr/build.mjs` `container[table]` copies the file through verbatim and drops the AST fallback. All spec-driven tables now share one render path.
 
 ---
 
@@ -191,13 +185,9 @@ For equations the cleaner output is `\eqref{eq-foo}` which MathJax renders as a 
 
 Use `state.containerPhrasing(captionNode)` instead of `textOf` so `<d-cite>`, emphasis, links survive.
 
-### F5 — Asymmetric table modes (cosmetic)
+### F5 — Asymmetric table modes (RESOLVED)
 
-Either:
-- Add `format_mode: html` to all entries in `tools/tables/spec.yaml` (uniform HTML output), or
-- Drop the HTML branch in `build.py` entirely and rely on the kramdown pipe-table → `<table>` path with a single CSS rule for the bolded user-models row.
-
-Lower priority than B1–B4. Defer until B1–B4 land and the visual delta is real.
+Took option 1: dropped `format_mode` from the spec, made HTML the only render mode, and removed the AST-pipe-table fallback in the TMLR serializer. See B5 above.
 
 ---
 

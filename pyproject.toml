@@ -9,7 +9,6 @@ dependencies = [
     "polars",
     "pyyaml",
     "scipy",
-    "tabulate",
 ]
 
 [project.optional-dependencies]

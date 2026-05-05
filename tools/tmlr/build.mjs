@@ -201,34 +201,31 @@ const container = (node, _parent, state, info) => {
     return `\n<figure${idAttr}>\n${inner}\n</figure>\n`;
   }
   if (kind === 'table') {
+    // Tables are pre-rendered as great-tables HTML by tools/tables/build.py
+    // and emitted to _build/tables/<name>.md. We copy that HTML through
+    // verbatim — the AST representation drops the inline styles great-tables
+    // produces, and parsing the HTML back through MyST gives us mdast `div`
+    // nodes that toMarkdown can't serialize anyway.
     let cap = '';
     let body = '';
-    // Prefer pre-built HTML from _build/tables/*.md (preserves inline styles
-    // that the AST drops, and skips AST body serialization which can hit
-    // unhandled nodes like `div` from great-tables HTML).
     const label = node.identifier || '';
-    let prebuilt = '';
     if (label.startsWith('tbl-')) {
       const tableName = label.slice(4).replaceAll('-', '_');
       const htmlPath = join(TABLE_DIR, `${tableName}.md`);
       if (existsSync(htmlPath)) {
-        const content = readFileSync(htmlPath, 'utf8').trim();
-        if (content.startsWith('<table') || content.startsWith('<div')) {
-          prebuilt = `\n${content}\n`;
-        }
+        body = `\n${readFileSync(htmlPath, 'utf8').trim()}\n`;
+      } else {
+        console.warn(`warning: ${htmlPath} not found; run 'make tables' first`);
       }
     }
     for (const c of children) {
       if (c.type === 'caption') {
         // containerPhrasing preserves <d-cite>, emphasis, links inside captions.
         cap = state.containerPhrasing(c, info).trim();
-      } else if (!prebuilt) {
-        body += serializeChild(c, state, info);
       }
     }
-    if (prebuilt) body = prebuilt;
     // Wrap in <figure> so cross-refs to #tbl-* resolve and Distill styles
-    // figcaption. markdown="1" lets kramdown process pipe tables inside.
+    // figcaption. markdown="1" lets kramdown process content inside.
     const idAttr = node.identifier ? ` id="${node.identifier}"` : '';
     const num = node.enumerator ? `<strong>Table ${node.enumerator}:</strong> ` : '';
     const figcap = cap ? `<figcaption>${num}${cap}</figcaption>\n` : '';
