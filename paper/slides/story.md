@@ -11,7 +11,7 @@ site:
 %% Each [WRITE: ...] block is a brief describing what the panel needs to do. Robert writes the prose.
 %% Only figures that actually build are embedded; see _build/figures/ for the list.
 
-+++ {"class": "slide-full slide-dark"}
++++ {"class": "col-screen slide-full slide-dark"}
 
 # KD-GAT
 
@@ -23,7 +23,7 @@ Robert Frenken · Candidacy · 2026
 
 +++
 
-+++ {"class": "slide-full"}
++++ {"class": "col-screen slide-full"}
 
 ### The deployment gap
 
@@ -31,7 +31,7 @@ Robert Frenken · Candidacy · 2026
 
 +++
 
-+++ {"class": "slide"}
++++ {"class": "col-screen slide"}
 
 **The technical gap**
 
@@ -45,7 +45,7 @@ Robert Frenken · Candidacy · 2026
 
 +++
 
-+++ {"class": "slide-full"}
++++ {"class": "col-screen slide-full"}
 
 ### The thesis
 
@@ -53,7 +53,7 @@ Robert Frenken · Candidacy · 2026
 
 +++
 
-+++ {"class": "slide-full slide-dark"}
++++ {"class": "col-screen slide-full slide-dark"}
 
 # Completed Work
 
@@ -63,7 +63,7 @@ Robert Frenken · Candidacy · 2026
 
 +++
 
-+++ {"class": "slide"}
++++ {"class": "col-screen slide"}
 
 **The distillation idea**
 
@@ -75,7 +75,7 @@ Robert Frenken · Candidacy · 2026
 
 +++
 
-+++ {"class": "slide"}
++++ {"class": "col-screen slide"}
 
 **Architecture**
 
@@ -87,7 +87,7 @@ Robert Frenken · Candidacy · 2026
 
 +++
 
-+++ {"class": "slide-full"}
++++ {"class": "col-screen slide-full"}
 
 ### Headline result
 
@@ -97,7 +97,7 @@ Robert Frenken · Candidacy · 2026
 
 +++
 
-+++ {"class": "slide"}
++++ {"class": "col-screen slide"}
 
 **What this taught us**
 
@@ -111,7 +111,7 @@ Robert Frenken · Candidacy · 2026
 
 +++
 
-+++ {"class": "slide-full slide-dark"}
++++ {"class": "col-screen slide-full slide-dark"}
 
 # Proposed Work
 
@@ -121,7 +121,7 @@ Robert Frenken · Candidacy · 2026
 
 +++
 
-+++ {"class": "slide"}
++++ {"class": "col-screen slide"}
 
 **Axis 1: physics-informed dynamics**
 
@@ -135,7 +135,7 @@ Robert Frenken · Candidacy · 2026
 
 +++
 
-+++ {"class": "slide"}
++++ {"class": "col-screen slide"}
 
 **Axis 2: interpretability and calibration**
 
@@ -149,7 +149,7 @@ Robert Frenken · Candidacy · 2026
 
 +++
 
-+++ {"class": "slide"}
++++ {"class": "col-screen slide"}
 
 **Axis 3: federated optimization & curriculum**
 
@@ -161,7 +161,7 @@ Robert Frenken · Candidacy · 2026
 
 +++
 
-+++ {"class": "slide"}
++++ {"class": "col-screen slide"}
 
 **Axis 4: reinforcement learning for fusion**
 
@@ -175,7 +175,7 @@ Robert Frenken · Candidacy · 2026
 
 +++
 
-+++ {"class": "slide-full"}
++++ {"class": "col-screen slide-full"}
 
 ### Timeline & deliverables
 
@@ -183,7 +183,7 @@ Robert Frenken · Candidacy · 2026
 
 +++
 
-+++ {"class": "slide-full slide-dark"}
++++ {"class": "col-screen slide-full slide-dark"}
 
 ### What you should remember
 

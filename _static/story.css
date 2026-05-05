@@ -9,19 +9,10 @@ html:has(.slide-full) {
   scroll-behavior: smooth;
 }
 
-/* Break out of article-theme's prose column (max-width: 65ch) so panels
-   span the full viewport regardless of parent constraint. Standard
-   Tailwind-prose viewport escape. */
-.slide,
-.slide-full {
-  width: 100vw;
-  position: relative;
-  left: 50%;
-  right: 50%;
-  margin-left: -50vw;
-  margin-right: -50vw;
-  box-sizing: border-box;
-}
+/* Slide blocks escape the prose column via MyST's documented grid:
+   add `col-screen` to the +++ block class list (in story.md) and the
+   wrapper becomes a direct grid item spanning [screen-start, screen-end].
+   No viewport hacks needed; the article-grid does the work. */
 
 .slide {
   min-height: 90vh;
