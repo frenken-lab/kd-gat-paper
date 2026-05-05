@@ -49,7 +49,20 @@ Known shortfalls in the rendered builds (paper, candidacy site, candidacy PDF, T
 
 **Lesson recorded:** any styling intended for the deployed candidacy site must work without article-theme's bundled CSS. The local `myst start` preview (article-theme) is not a faithful proxy for the deploy target. Verify against the curve.space-rendered DOM, not the local preview.
 
-**Status:** fix applied (commit pending). Verify on curve.space after CI redeploy with a hard-refresh / cache-bypass.
+**Second fix (90e0fa5) was also incomplete.** The viewport-escape CSS in `_static/story.css` is correct, but verifying against the deployed CDN showed the stylesheet was never reaching curve.space at all. `myst.candidacy.yml` declared `site.options.css: [...]` (plural list), which is **not a valid article-theme option**. Article-theme's `template.yml` only accepts `style: <file>` (singular). curvenote/scms filters `site.options` against the theme's option list and silently drops unknowns; the deployed `config.json` at `cdn.curvenote.com/<key>/config.json` showed only `{ hide_outline: true }`. The CSS files 404'd at `https://rob.curve.space/_static/*.css`.
+
+**Third fix (this commit):**
+- Concat `_static/custom.css` + `_static/story.css` → `_static/site.bundle.css` via a Makefile rule (depends on both sources, regenerates when either changes).
+- Switch `myst.candidacy.yml` to `site.options.style: _static/site.bundle.css` (the documented singular option).
+- `_static/site.bundle.css` is gitignored — it's a build artifact.
+
+**How verification was done (recorded so the next time we don't speculate):**
+1. `curl https://api.curvenote.com/routers/rob.curve.space` → `{ cdn, key }` for the deployed site.
+2. `curl https://cdn.curvenote.com/<key>/config.json` → see what site options actually shipped.
+3. `curl https://cdn.curvenote.com/<key>/content/<slug>.json` → check the AST for class metadata.
+4. `curl -I https://rob.curve.space/_static/<file>.css` (returns 429 from Vercel bot challenge but the CDN equivalent at `cdn.curvenote.com/<key>/public/_static/<file>.css` returns plain HTTP) → check whether static files are hosted.
+
+**Status:** fix applied locally, awaiting CI deploy + visual verification on curve.space.
 
 ---
 

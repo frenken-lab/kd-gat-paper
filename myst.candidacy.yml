@@ -97,6 +97,7 @@ site:
       title: Download PDF
   options:
     hide_outline: true
-    css:
-      - _static/custom.css
-      - _static/story.css
+    # article-theme declares `style: <file>` (singular). Plural `css:` is
+    # silently dropped by curvenote/scms validation against the theme's
+    # template.yml. We concat custom.css + story.css into one bundled file.
+    style: _static/site.bundle.css

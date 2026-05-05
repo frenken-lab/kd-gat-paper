@@ -37,7 +37,13 @@ dev:
 dev-myst:
 	myst start
 
-candidacy-site: figures tables
+# Bundled stylesheet for the candidacy site. article-theme's `style:` option
+# only takes one file; we concat our two source CSS files into a single
+# bundle so curvenote/scms picks them up.
+_static/site.bundle.css: _static/custom.css _static/story.css
+	cat $^ > $@
+
+candidacy-site: figures tables _static/site.bundle.css
 	myst build --site --config myst.candidacy.yml
 
 candidacy-dev:

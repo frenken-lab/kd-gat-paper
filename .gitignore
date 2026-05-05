@@ -1,6 +1,7 @@
 # Build outputs
 _build/
 _figures/
+_static/site.bundle.css
 
 # Node
 node_modules/
