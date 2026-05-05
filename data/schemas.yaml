@@ -69,19 +69,34 @@ json:
     item_keys: [model, group, accuracy, precision, recall, f1, auc]
     min_items: 3
 
-# Input schema — expected columns in HF parquet files
-# (buckeyeguy/graphids-kd-gat). The new ablation-set bundle (metric=f1_macro)
-# replaced the old buckeyeguy/GraphIDS multi-metric layout on 2026-04-28.
-# Read by: pull_data.py (this repo) for input validation at pull time.
+# Input schema — HF parquet files (buckeyeguy/graphids-kd-gat ablation bundle,
+# metric=f1_macro; replaced the old buckeyeguy/GraphIDS multi-metric layout
+# 2026-04-28). Read by pull_data.py for input validation + as the pull manifest.
+#   columns:    expected parquet columns; missing → fail loudly at pull time
+#   output:     destination CSV under data/csv/
+#   sort_by:    list of columns to sort by before writing
+#   descending: bool list, same length as sort_by; true = sort descending on that key
 input:
   metrics/leaderboard.parquet:
     columns: [variant, n_seeds, mean, ci_low, ci_high, group, dataset]
+    output: leaderboard.csv
+    sort_by: [group, dataset, mean]
+    descending: [false, false, true]
   metrics/effect_size.parquet:
     columns: [variant_a, variant_b, mean_diff, cohens_d, diff_ci_low, diff_ci_high, n_seeds_a, n_seeds_b, group, dataset]
+    output: effect_size.csv
+    sort_by: [group, dataset, mean_diff]
+    descending: [false, false, true]
   metrics/expected_max.parquet:
     columns: [variant, n_seeds, expected_max, group, dataset]
+    output: expected_max.csv
+    sort_by: [group, dataset, expected_max]
+    descending: [false, false, true]
   metrics/tie_candidates.parquet:
     columns: [variant_a, variant_b, mean_a, mean_b, gap, n_seeds_a, n_seeds_b, group, dataset]
+    output: tie_candidates.csv
+    sort_by: [group, dataset, gap]
+    descending: [false, false, false]
 
 file_map:
   csv/main_results.csv: data/csv/main_results.csv
