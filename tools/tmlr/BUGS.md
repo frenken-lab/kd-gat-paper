@@ -4,6 +4,16 @@ Investigation of why tables and equations "fall apart" in the TMLR submission ou
 
 Code-path audit only — `_build/` was empty at investigation time, so this is reasoning from source + handler code, not from a real broken build artifact. Re-run `make tmlr` after fixes to confirm.
 
+## Open regressions in the rendered TMLR build (2026-05-05)
+
+Observed by inspecting `_build/submission/` after `make tmlr`. These are user-visible defects in the produced submission, not just AST analysis. Each entry should resolve into a B-bug below or a new one.
+
+- **Table 1 (`tbl-main-results`) parses incorrectly.** The other spec-driven tables render via the great-tables HTML path (now uniform after the B5/F5 refactor), but Table 1 still arrives in the submission with broken structure. Likely the row-group separator (`baselines` / `ours`) interacts with kramdown's `markdown="1"` table parsing inside the `<figure>` wrapper. Diff `_build/tables/main_results.md` against the rendered Distill page; if the prebuilt file is correct, the breakage is in `<figure markdown="1">` re-parsing the inner HTML.
+- **Equation rendering is broken across the build.** Display equations (numbered + labeled), `\begin{aligned}` blocks, algorithm admonitions, and inline `$...$` all render incorrectly in the TMLR submission compared to the MyST site. B2/B3 cover the labeled-display case; the algorithm and inline-math regressions are not yet ticketed. Audit needed: walk every `paper/content/**/*.md` math instance through `make tmlr` and tag which handler in `build.mjs` (`math`, `inlineMath`, `admonition[class=algorithm]`) is producing the bad output.
+- **Callouts and dropdowns don't render as intended.** MyST `:::{note}` / `:::{warning}` admonitions and `:::{dropdown}` blocks survive the AST walk (we have an `admonition` handler at `build.mjs:155` and a `details` handler at `build.mjs:116`), but the rendered submission doesn't show them as styled callouts or expandable dropdowns. Likely the kramdown re-parse drops the `markdown="1"` content, or the inline `<style>` from the algorithm-admonition path collides with Distill's CSS scope. Confirm whether each container makes it into `submission.md` at all, then check Jekyll output.
+
+These are observations, not fixes. Each should grow into a B-entry below with a concrete handler reference once reproduced against a fresh `make tmlr`.
+
 ## Affected source
 
 - ~10 `:::{table}` blocks across `paper/content/{results,related-work,ablation}.md` and `paper/candidacy/{introduction,proposed-research,broader-impact}.md`
