@@ -203,25 +203,30 @@ const container = (node, _parent, state, info) => {
   if (kind === 'table') {
     let cap = '';
     let body = '';
-    for (const c of children) {
-      if (c.type === 'caption') {
-        // containerPhrasing preserves <d-cite>, emphasis, links inside captions.
-        cap = state.containerPhrasing(c, info).trim();
-      } else {
-        body += serializeChild(c, state, info);
-      }
-    }
-    // Use pre-built HTML from _build/tables/*.md if present (preserves
-    // inline styles that the AST would otherwise drop).
+    // Prefer pre-built HTML from _build/tables/*.md (preserves inline styles
+    // that the AST drops, and skips AST body serialization which can hit
+    // unhandled nodes like `div` from great-tables HTML).
     const label = node.identifier || '';
+    let prebuilt = '';
     if (label.startsWith('tbl-')) {
       const tableName = label.slice(4).replaceAll('-', '_');
       const htmlPath = join(TABLE_DIR, `${tableName}.md`);
       if (existsSync(htmlPath)) {
         const content = readFileSync(htmlPath, 'utf8').trim();
-        if (content.startsWith('<table')) body = `\n${content}\n`;
+        if (content.startsWith('<table') || content.startsWith('<div')) {
+          prebuilt = `\n${content}\n`;
+        }
       }
     }
+    for (const c of children) {
+      if (c.type === 'caption') {
+        // containerPhrasing preserves <d-cite>, emphasis, links inside captions.
+        cap = state.containerPhrasing(c, info).trim();
+      } else if (!prebuilt) {
+        body += serializeChild(c, state, info);
+      }
+    }
+    if (prebuilt) body = prebuilt;
     // Wrap in <figure> so cross-refs to #tbl-* resolve and Distill styles
     // figcaption. markdown="1" lets kramdown process pipe tables inside.
     const idAttr = node.identifier ? ` id="${node.identifier}"` : '';
