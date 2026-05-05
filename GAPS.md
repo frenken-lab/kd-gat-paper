@@ -18,27 +18,32 @@ Known shortfalls in the rendered builds (paper, candidacy site, candidacy PDF, T
 
 ---
 
-## Gap 2 — Talk page is not a presentation
+## Gap 2 — Talk page renders inside the prose column instead of full-bleed
 
 **Where:** `paper/slides/story.md` rendered through `myst.candidacy.yml`. The page is in the candidacy site TOC under "Talk."
 
-**Symptom:** the page renders as a normal narrow-column MyST article with manual scrolling. The `+++ {"class": "slide-full"}` / `slide-dark` block separators do not produce panel-sized slides; content sits inside the article-theme's standard content column. Earlier sessions claimed this "worked" — it does not.
+**Symptom:** the page rendered as a normal narrow-column MyST article with manual scrolling. The `+++ {"class": "slide-full"}` / `slide-dark` block separators produced wrappers but the wrappers sat inside the article-theme's body column, so panels were tall-and-narrow rather than full-bleed.
 
-**What is in place today:**
-- `_static/story.css` defines `.slide`, `.slide-full`, `.slide-dark`, `.stat` with `min-height: 90vh`, scroll-snap, dark-panel styling.
-- `myst.candidacy.yml` loads the CSS via `site.options.css`.
-- `paper/slides/story.md` uses `+++ {"class": "..."}` MyST cell separators, with site-frontmatter `hide_outline`, `hide_toc`, `hide_title_block` set.
+**Root cause (verified, not speculation):**
+1. `+++ {"class": "..."}` *does* emit a `<div class="...">` wrapper. Confirmed by reading `myst-theme/packages/myst-to-react/src/block.tsx`:
+   ```jsx
+   const cn = classNames(className, node.class, { [node.data?.class]: typeof node.data?.class === 'string' });
+   return <div id={identifier} className={cn}>...</div>;
+   ```
+2. `article-theme` has no `full_width` / `wide_content` / `hide_title_block` option. Documented site options per `template.yml`: `hide_toc`, `hide_footer_links`, `hide_outline`, `hide_authors`, `outline_maxdepth`, `numbered_references`, `style`, plus logo/analytics knobs. Nothing widens the prose column.
+3. The article-theme renders page content inside `.article-grid`, a CSS Grid with named columns: `screen-start | page-start | body-start | ... | body-end | page-end | screen-end`. The default `body` column is the prose column; everything outside is empty grid space. Confirmed by inspecting the bundled CSS at `_build/templates/site/myst/article-theme/article-theme-main/public/build/_assets/app-*.css`.
+4. **MyST themes ship `col-screen`, `col-page`, `col-body`, `col-gutter-*`, `col-margin*` utility classes specifically as the escape mechanism.** `.col-screen { grid-column: screen }` makes a child span the full grid. This is the documented pattern, not a hack.
 
-**What is missing:**
-1. **Container break-out.** `article-theme` wraps page content in a `max-width` article element. `.slide-full { min-height: 90vh }` is honored, but the panels are bounded by the article column's width — tall but narrow. The CSS needs `width: 100vw; margin-left: calc(50% - 50vw)` (or equivalent) on `.slide-full` to escape the article container. Verify by inspecting the rendered DOM: which ancestor is imposing the max-width, and can the slide selector reach past it.
-2. **Class survives the AST.** Need to confirm `+++ {"class": "slide-full"}` actually emits a wrapper with `class="slide-full"` in the article-theme template. MyST cell metadata can drop on the floor depending on the theme. Check `_build/site/content/story.json` mdast for a `block` / `div` node carrying the class. (At time of writing, the cached `_build/site/` did not include `story.json` at all — the build that produced `_build/site/content/` predates the TOC entry. Run a fresh `make candidacy-site` first.)
-3. **Keyboard navigation / no-scroll mode.** A real presentation page needs arrow-key panel-advance and a way to suppress the site chrome (header, footer, sidebar) entirely on this route. `hide_outline` / `hide_toc` thin the chrome but don't remove the article wrapper.
+**Fix applied (3eee3e7):**
+- Added `col-screen` to every `+++` block class list in `story.md` (`col-screen slide-full`, `col-screen slide-full slide-dark`, `col-screen slide`).
+- Removed the `width:100vw; margin-left:-50vw` viewport-escape hack from `_static/story.css` — the grid does it natively.
 
-**Honest framing:** the slide CSS is necessary but not sufficient. Without (1) and (2) verified, the page can never render as a presentation regardless of how the panels are written. Earlier "this works" claims were unsupported.
+**Still open:**
+- **Verify on a fresh build.** No candidacy site has been built locally since the change; the deployed curve.space site needs CI to redeploy. Open the talk page after deploy and confirm panels span the viewport.
+- **Page chrome above the first slide.** `hide_title_block` is silently ignored by `article-theme` (not in its options). The page header + title block still eat vertical space above the first panel. Acceptable for a candidacy talk shown in a browser tab, but if you want a true fullscreen-on-load presentation, this needs a different theme route.
+- **Keyboard navigation.** No arrow-key panel-advance. CSS scroll-snap covers wheel/touch but not keyboard. JS would have to live in a custom CSS-only build trick (`tabindex` + `:focus-within`) or get added via the `style` option's companion JS — `article-theme` has no plugin hook for per-page JS. Probably defer; a presenter can use Page Down / Space.
 
-**Next investigation step:** `make candidacy-site && bun run preview` (or open `_build/site/` in MyST start mode), inspect the rendered DOM for the `.slide-full` element and its ancestor chain, and report back which container is imposing the width constraint. Then fix CSS or switch the page to a non-article template.
-
-**Status:** open, not started.
+**Status:** in progress — fix applied, awaiting visual verification on the deployed candidacy site (`rob.curve.space`).
 
 ---
 
