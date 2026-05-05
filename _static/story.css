@@ -9,10 +9,19 @@ html:has(.slide-full) {
   scroll-behavior: smooth;
 }
 
-/* Slide blocks escape the prose column via MyST's documented grid:
-   add `col-screen` to the +++ block class list (in story.md) and the
-   wrapper becomes a direct grid item spanning [screen-start, screen-end].
-   No viewport hacks needed; the article-grid does the work. */
+/* Theme-agnostic viewport escape. Works in any container (article-theme's
+   .article-grid, curve.space/scms's Tailwind prose, plain Astro layouts).
+   article-theme also sees `col-screen` from story.md and grid-positions
+   the panel; the viewport hack is no-op-compatible there since the grid
+   item is already full-width. */
+.slide,
+.slide-full {
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  margin-left: -50vw;
+  box-sizing: border-box;
+}
 
 .slide {
   min-height: 90vh;

@@ -43,7 +43,13 @@ Known shortfalls in the rendered builds (paper, candidacy site, candidacy PDF, T
 - **Page chrome above the first slide.** `hide_title_block` is silently ignored by `article-theme` (not in its options). The page header + title block still eat vertical space above the first panel. Acceptable for a candidacy talk shown in a browser tab, but if you want a true fullscreen-on-load presentation, this needs a different theme route.
 - **Keyboard navigation.** No arrow-key panel-advance. CSS scroll-snap covers wheel/touch but not keyboard. JS would have to live in a custom CSS-only build trick (`tabindex` + `:focus-within`) or get added via the `style` option's companion JS — `article-theme` has no plugin hook for per-page JS. Probably defer; a presenter can use Page Down / Space.
 
-**Status:** in progress — fix applied, awaiting visual verification on the deployed candidacy site (`rob.curve.space`).
+**First fix (3eee3e7) was wrong on curve.space.** Added `col-screen` to the `+++` blocks expecting article-theme's `.article-grid` named-column CSS to handle the escape. Verified after the fact that **curve.space does not use article-theme**: it's the "scms" renderer (`curvenote/curvenote@platform/scms`), Tailwind v4 + custom design tokens, no `.article-grid`, no `col-screen` rule. The class lands in the DOM as inert.
+
+**Real fix:** restore the theme-agnostic viewport escape (`width: 100vw; position: relative; left: 50%; margin-left: -50vw`) on `.slide` / `.slide-full` in `_static/story.css`. Works in any container regardless of theme. `col-screen` stays in `story.md` as belt-and-suspenders for article-theme local preview but is inert on curve.space.
+
+**Lesson recorded:** any styling intended for the deployed candidacy site must work without article-theme's bundled CSS. The local `myst start` preview (article-theme) is not a faithful proxy for the deploy target. Verify against the curve.space-rendered DOM, not the local preview.
+
+**Status:** fix applied (commit pending). Verify on curve.space after CI redeploy with a hard-refresh / cache-bypass.
 
 ---
 
