@@ -201,29 +201,33 @@ const container = (node, _parent, state, info) => {
     return `\n<figure${idAttr}>\n${inner}\n</figure>\n`;
   }
   if (kind === 'table') {
-    // Tables are pre-rendered as great-tables HTML by tools/tables/build.py
-    // and emitted to _build/tables/<name>.md. We copy that HTML through
-    // verbatim — the AST representation drops the inline styles great-tables
-    // produces, and parsing the HTML back through MyST gives us mdast `div`
-    // nodes that toMarkdown can't serialize anyway.
+    // Spec-driven tables are pre-rendered as great-tables HTML by
+    // tools/tables/build.py and emitted to _build/tables/<name>.md. We copy
+    // that HTML through verbatim — the AST representation drops the inline
+    // styles great-tables produces, and parsing the HTML back through MyST
+    // gives us mdast `div` nodes that toMarkdown can't serialize anyway.
+    // Tables without a pre-built file fall back to AST serialization
+    // (gfm-table extension handles inline pipe-table mdast nodes).
     let cap = '';
     let body = '';
+    let prebuilt = '';
     const label = node.identifier || '';
     if (label.startsWith('tbl-')) {
       const tableName = label.slice(4).replaceAll('-', '_');
       const htmlPath = join(TABLE_DIR, `${tableName}.md`);
       if (existsSync(htmlPath)) {
-        body = `\n${readFileSync(htmlPath, 'utf8').trim()}\n`;
-      } else {
-        console.warn(`warning: ${htmlPath} not found; run 'make tables' first`);
+        prebuilt = `\n${readFileSync(htmlPath, 'utf8').trim()}\n`;
       }
     }
     for (const c of children) {
       if (c.type === 'caption') {
         // containerPhrasing preserves <d-cite>, emphasis, links inside captions.
         cap = state.containerPhrasing(c, info).trim();
+      } else if (!prebuilt) {
+        body += serializeChild(c, state, info);
       }
     }
+    if (prebuilt) body = prebuilt;
     // Wrap in <figure> so cross-refs to #tbl-* resolve and Distill styles
     // figcaption. markdown="1" lets kramdown process content inside.
     const idAttr = node.identifier ? ` id="${node.identifier}"` : '';
