@@ -30,14 +30,14 @@ repos:
       - id: validate-bib
         name: validate bibliography
         language: system
-        entry: uv run python tools/validate_bib.py
+        entry: uv run python tools/validate/inputs/bib.py
         files: '^paper/references/.*\.bib$'
         pass_filenames: false
 
       - id: validate-data
         name: validate data schemas
         language: system
-        entry: uv run python tools/validate_data.py
+        entry: uv run python tools/validate/inputs/data.py
         files: '^(data/csv/.*\.csv|data/schemas\.yaml)$'
         pass_filenames: false
 

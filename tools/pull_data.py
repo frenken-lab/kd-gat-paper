@@ -182,7 +182,7 @@ def main() -> None:
     import subprocess
 
     result = subprocess.run(
-        [sys.executable, str(ROOT / "tools" / "validate_data.py")],
+        [sys.executable, str(ROOT / "tools" / "validate" / "inputs" / "data.py")],
         capture_output=True,
         text=True,
     )

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Semantic-layer validators over the mystmd mdast (Layer 2 of the validation architecture). See AUTHORING_GAPS.md.",
+  "description": "Semantic-layer validators over the mystmd mdast (Layer 2 of the three-layer validation architecture). Layer 1 lives in inputs/ as Python; see AUTHORING.md.",
   "scripts": {
     "lint": "bun lint.mjs"
   },

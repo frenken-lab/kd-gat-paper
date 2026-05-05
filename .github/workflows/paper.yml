@@ -23,8 +23,8 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - run: pip install pyyaml bibtexparser==2.0.0b9
-      - run: python tools/validate_data.py
-      - run: python tools/validate_bib.py
+      - run: python tools/validate/inputs/data.py
+      - run: python tools/validate/inputs/bib.py
 
   # Fast TMLR-converter regression check, parallel to validate. Fails fast on
   # paper-content edits that would break the load-bearing AST serializer.

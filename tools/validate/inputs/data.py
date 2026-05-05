@@ -2,7 +2,7 @@
 """Validate committed data files against schemas.yaml.
 
 Usage:
-    python tools/validate_data.py
+    python tools/validate/inputs/data.py
 """
 
 import csv
@@ -12,7 +12,7 @@ from pathlib import Path
 
 import yaml
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[3]
 SCHEMA_PATH = ROOT / "data" / "schemas.yaml"
 
 

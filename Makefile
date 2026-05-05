@@ -1,15 +1,20 @@
-.PHONY: data validate validate-semantic figures tables site dev dev-myst candidacy-site candidacy-dev candidacy-pdf tmlr tmlr-anon preview deploy sync bib test all clean watch-tables pre-commit pre-commit-install lint lint-sync
+.PHONY: data validate validate-inputs validate-semantic figures tables site dev dev-myst candidacy-site candidacy-dev candidacy-pdf tmlr tmlr-anon preview deploy sync bib test all clean watch-tables pre-commit pre-commit-install lint lint-sync
 
 data:
 	uv run python tools/pull_data.py
 
-validate:
-	uv run python tools/validate_data.py
+# Layer 1 — input contract: schemas + bib structure.
+validate-inputs: bib
+	uv run python tools/validate/inputs/data.py
 
-# Semantic-layer lint over _build/site/content/*.json (cross-refs + citations).
-# See tools/validate/README.md and AUTHORING_GAPS.md.
-validate-semantic: site
+# Layer 2 — semantic contract over _build/site/content/*.json (cross-refs + citations).
+# Requires _build/site/ to exist; run `make site` first if it doesn't.
+# See tools/validate/README.md and AUTHORING.md.
+validate-semantic:
 	cd tools/validate && bun install --silent && bun lint.mjs
+
+# Meta: run all validation layers. Single entry point for CI + pre-commit.
+validate: validate-inputs validate-semantic
 
 # FIGURE=name builds only one figure. FORCE=1 bypasses the mtime cache.
 figures: data
@@ -63,7 +68,7 @@ sync:
 	@echo "Review changes with: git diff"
 
 bib:
-	uv run python tools/validate_bib.py
+	uv run python tools/validate/inputs/bib.py
 
 test:
 	cd tools/tmlr && bun test

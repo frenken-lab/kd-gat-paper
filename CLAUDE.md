@@ -50,11 +50,11 @@ make clean         # rm -rf _build
 ```
 KD-GAT eval artifacts
   → export_paper_data.py → ESS exports/paper/ (_manifest.json + _provenance.json)
-  → validate_data.py (checks schemas.yaml) → data/csv/ + interactive/src/figures/data/*/data.json
+  → tools/validate/inputs/data.py (checks schemas.yaml) → data/csv/ + interactive/src/figures/data/*/data.json
   → bun run build → _build/figures/*.html
   → myst build → _build/ → curvenote deploy → rob.curve.space
                           → GitHub Pages (figures only) → frenken-lab.github.io/kd-gat-paper/
-  → tools/tmlr/build.py (reads _build/site/ AST) → tmlr_do_not_modify/_under_review/submission.md (+ assets/)
+  → tools/tmlr/build.mjs (reads _build/site/ AST) → tmlr_do_not_modify/_under_review/submission.md (+ assets/)
 ```
 
 ## Deployment

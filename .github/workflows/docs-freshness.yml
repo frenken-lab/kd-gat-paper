@@ -24,14 +24,14 @@ jobs:
           # the doc is considered stale.
           declare -A DOC_SOURCES
           DOC_SOURCES=(
-            ["docs/Development-Setup.md"]="interactive/package.json Makefile myst.yml myst.candidacy.yml tools/validate_data.py"
+            ["docs/Development-Setup.md"]="interactive/package.json Makefile myst.yml myst.candidacy.yml tools/validate/inputs/data.py"
             ["docs/Figure-Authoring.md"]="interactive/build.js interactive/vite.config.js interactive/src/lib/ interactive/package.json"
             ["docs/Diagram-Authoring-Guide.md"]="interactive/src/lib/flow/"
-            ["docs/Data-Pipeline.md"]="data/schemas.yaml tools/validate_data.py data/csv/"
+            ["docs/Data-Pipeline.md"]="data/schemas.yaml tools/validate/inputs/data.py data/csv/"
             ["docs/Table-Authoring.md"]="tools/tables/build.py tools/tables/spec.yaml"
             ["docs/Candidacy-Build.md"]="myst.candidacy.yml paper/candidacy/"
             ["docs/Deployment-and-CI.md"]=".github/workflows/paper.yml"
-            ["docs/TMLR-Export.md"]="tools/tmlr/build.py"
+            ["docs/TMLR-Export.md"]="tools/tmlr/build.mjs"
           )
 
           STALE=""

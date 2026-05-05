@@ -84,6 +84,6 @@ make validate    # Checks data against schemas.yaml + validates .bib files
 make bib         # Validates bibliography only
 ```
 
-`tools/validate_data.py` reads `data/schemas.yaml` and checks:
+`tools/validate/inputs/data.py` reads `data/schemas.yaml` and checks:
 - CSV files: required columns exist, minimum row count met
 - JSON files (figure data): required keys present, array length constraints

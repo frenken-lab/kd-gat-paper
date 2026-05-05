@@ -1,24 +1,30 @@
 # tools/validate
 
-Semantic-layer validators (Layer 2 of the validation architecture in `AUTHORING_GAPS.md`). Plugins walk the pre-built mdast in `_build/site/content/*.json` and emit messages through `vfile-reporter`.
+Validators for the paper build, organized by the contract they enforce. See `AUTHORING.md` for the architectural rationale.
 
 ## Layout
 
 ```
 tools/validate/
-  lint.mjs                       Driver: loads AST, runs plugins, reports
-  semantic/
-    no-dangling-xrefs.mjs        Fails on crossReference nodes with resolved !== true
-    citations-exist.mjs          Fails on cite keys missing from paper/references/*.bib;
-                                 warns on unused bib entries
+  inputs/                        Layer 1 — input contract (Python, library-driven)
+    data.py                        CSV/JSON shapes against data/schemas.yaml
+    bib.py                         BibTeX structure (required fields, dupes, DOI presence)
+  semantic/                      Layer 2 — semantic contract over the mdast (Bun, unist-util-visit)
+    no-dangling-xrefs.mjs          Fails on crossReference nodes with resolved !== true
+    citations-exist.mjs            Fails on cite keys missing from paper/references/*.bib;
+                                   warns on unused bib entries
+  lint.mjs                       Layer 2 driver: loads AST, runs plugins, reports
   package.json                   Bun deps (unist-util-visit, vfile, vfile-reporter)
 ```
+
+`make validate` runs both layers. Layer-3 (artifact contract — anonymization, submission shape) lives in `tools/tmlr/build.test.mjs` for now.
 
 ## Running
 
 ```bash
-make site                          # produce _build/site/content/*.json
-make validate-semantic             # or: cd tools/validate && bun install && bun lint.mjs
+make validate                      # all layers
+make validate-inputs               # Layer 1 only (Python)
+make validate-semantic             # Layer 2 only (depends on `make site`)
 ```
 
 Exit code is non-zero if any message is `fatal`.

@@ -2,8 +2,8 @@
 """Validate references/*.bib for missing fields, duplicates, and empty values.
 
 Usage:
-    python tools/validate_bib.py
-    python tools/validate_bib.py --strict  # Treat warnings as errors
+    python tools/validate/inputs/bib.py
+    python tools/validate/inputs/bib.py --strict  # Treat warnings as errors
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ from pathlib import Path
 
 import bibtexparser
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 BIB_DIR = PROJECT_ROOT / "paper" / "references"
 BIB_PATHS = sorted(BIB_DIR.glob("*.bib"))
 
