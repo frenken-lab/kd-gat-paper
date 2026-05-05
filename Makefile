@@ -1,10 +1,15 @@
-.PHONY: data validate figures tables site dev dev-myst candidacy-site candidacy-dev candidacy-pdf tmlr tmlr-anon preview deploy sync bib test all clean watch-tables pre-commit pre-commit-install lint lint-sync
+.PHONY: data validate validate-semantic figures tables site dev dev-myst candidacy-site candidacy-dev candidacy-pdf tmlr tmlr-anon preview deploy sync bib test all clean watch-tables pre-commit pre-commit-install lint lint-sync
 
 data:
 	uv run python tools/pull_data.py
 
 validate:
 	uv run python tools/validate_data.py
+
+# Semantic-layer lint over _build/site/content/*.json (cross-refs + citations).
+# See tools/validate/README.md and AUTHORING_GAPS.md.
+validate-semantic: site
+	cd tools/validate && bun install --silent && bun lint.mjs
 
 # FIGURE=name builds only one figure. FORCE=1 bypasses the mtime cache.
 figures: data

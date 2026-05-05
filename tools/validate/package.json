@@ -1,0 +1,15 @@
+{
+  "name": "kd-gat-validate",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Semantic-layer validators over the mystmd mdast (Layer 2 of the validation architecture). See AUTHORING_GAPS.md.",
+  "scripts": {
+    "lint": "bun lint.mjs"
+  },
+  "dependencies": {
+    "unist-util-visit": "^5.0.0",
+    "vfile": "^6.0.3",
+    "vfile-reporter": "^8.1.1"
+  }
+}
