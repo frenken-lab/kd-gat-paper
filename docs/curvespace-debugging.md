@@ -49,7 +49,7 @@ These are conclusions from inspecting deployed config + CDN responses, not from 
 |---|---|---|
 | `site.options.hide_outline` | Yes | In deployed config. |
 | `site.options.css: [list]` | **No** | Silently dropped. Not a documented option in any MyST theme. |
-| `site.options.style: <file>` | **Partial** | Lands in `config.json#options.style` as a hashed URL. The CSS file IS uploaded to `<cdn>/public/<hash>.css`. **But scms appears not to emit a `<link rel="stylesheet">` tag for it** — only article-theme does. Verify in your browser's Network tab whether the file is actually requested. |
+| `site.options.style: <file>` | **No (verified)** | Lands in `config.json#options.style` as a hashed URL. The CSS file IS uploaded to `<cdn>/public/<hash>.css` and is reachable directly by URL. **But scms does not emit a `<link rel="stylesheet">` tag for it** — verified by inspecting the Network tab on rob.curve.space: the bundle URL is never requested. Only scms's own `app-*.css` / `thebe-core-*.css` plus library CDN stylesheets (`katex.min.css`, `font-awesome.css`, `mpl_widget.css`) are loaded. The `style:` option is article-theme-specific. |
 | `site.options.hide_title_block` | Unknown | Not in `article-theme/template.yml` either; documented for `book-theme`. |
 | `site.template: article-theme` | Ignored on deploy | Only affects `myst start` local preview. curve.space is always rendered by scms. |
 
@@ -75,9 +75,9 @@ Attempting to make the talk page (`paper/slides/story.md`) render with full-blee
 
    CDN now showed: `options.style: /<hash>.css` ✓, file uploaded at `<cdn>/public/<hash>.css` ✓ (200), CSS content correct ✓. Page rendered the same.
 
-5. **Open question.** Despite the bundle being correctly uploaded and referenced in the deployed config, the rendered page on curve.space still looked unchanged. The remaining suspicion is that **scms doesn't read `options.style` to emit a `<link>` tag** — that work is article-theme's responsibility, and scms ignores the field. Verification path: browser Network tab. If the bundle URL is never requested, scms doesn't support custom CSS injection through the theme options at all.
+5. **Confirmed dead end.** Inspected the Network tab on the deployed page directly. scms loads its own `app-*.css`, `thebe-core-*.css`, and library stylesheets (`katex.min.css`, `font-awesome.css`, `mpl_widget.css`). **It never requests `site.bundle-...css`.** The `options.style` field lands in the config and the file is uploaded, but scms's renderer ignores both. Custom CSS injection via theme options is not supported on curve.space.
 
-Each layer revealed a new gate. The right way to debug this is to inspect the CDN config first, not last.
+Each layer revealed a new gate. The right way to debug this is to inspect the CDN config first, not last — and when the deployed config is correct but the page still looks wrong, open the browser Network tab on the deployed site to see what the renderer is actually requesting.
 
 ## Lessons
 
