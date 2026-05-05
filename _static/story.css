@@ -1,6 +1,14 @@
 /* Talk page — scroll-snap panels driven by +++ {"class": "slide" | "slide-full"} blocks.
    Loaded via myst.candidacy.yml site.options.css. Layout-only; no JS. */
 
+/* Scope snap to pages that actually have slides so the rest of the site
+   keeps free-scrolling. :has() is the cleanest cross-page scope. */
+html:has(.slide),
+html:has(.slide-full) {
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+}
+
 .slide {
   min-height: 90vh;
   display: grid;
