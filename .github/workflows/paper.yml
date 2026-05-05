@@ -162,5 +162,8 @@ jobs:
           cp myst.candidacy.yml myst.yml
           trap 'mv myst.yml.paper myst.yml' EXIT
           python tools/tables/build.py
+          # Bundle CSS files into a single file referenced by site.options.style
+          # (article-theme only accepts a single `style: <file>`, not a `css:` list).
+          cat _static/custom.css _static/story.css > _static/site.bundle.css
           bun install -g mystmd@1.8.3
           bunx -y curvenote@0.14.3 deploy --yes
