@@ -9,6 +9,20 @@ html:has(.slide-full) {
   scroll-behavior: smooth;
 }
 
+/* Break out of article-theme's prose column (max-width: 65ch) so panels
+   span the full viewport regardless of parent constraint. Standard
+   Tailwind-prose viewport escape. */
+.slide,
+.slide-full {
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  box-sizing: border-box;
+}
+
 .slide {
   min-height: 90vh;
   display: grid;
