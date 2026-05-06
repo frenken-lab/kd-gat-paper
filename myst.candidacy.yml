@@ -1,5 +1,8 @@
 version: 1
 project:
+  # Curvenote work key for `curvenote work push --public` (created 2026-05-06,
+  # https://curvenote.com/@rob — bootstrap run).
+  id: 019dfde1-92ed-7422-8217-4ef35cab63ce
   title: "Adaptive Fusion of Graph-Based Ensembles for Automotive Intrusion Detection"
   subtitle: "PhD Candidacy Report"
   authors:

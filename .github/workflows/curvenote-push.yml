@@ -1,0 +1,59 @@
+name: curvenote push (candidacy)
+
+# Pushes the candidacy build to its curvenote.com Project as a Work via
+# `curvenote work push --public`. The Project is the editor-side mirror
+# of paper/candidacy/* and is separate from the rob.curve.space deploy
+# (which is handled by the candidacy-site step in paper.yml).
+#
+# Manual trigger only until the Project is bootstrapped (myst.candidacy.yml
+# needs project.id). To bootstrap once on a dev machine with bun:
+#
+#   cp myst.candidacy.yml myst.yml
+#   bunx -y curvenote@0.14.3 work push --public      # interactive, prompts for work key
+#   # then copy the project.id field from myst.yml back into myst.candidacy.yml,
+#   # restore myst.yml, commit myst.candidacy.yml
+#
+# Once project.id is committed, change the trigger to push:branches:[main]
+# to mirror the deploy job's cadence, or keep workflow_dispatch if you'd
+# rather control when the editor mirror updates.
+#
+# See ~/plans/curvenote-sync-redesign.md for context.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with: { bun-version: latest }
+
+      # Activate candidacy config — same swap pattern as candidacy-site
+      # in paper.yml. The runner's working tree is throwaway so writeback
+      # within the runner is harmless; the diff step at the end records
+      # whether work push touched the file.
+      - name: Activate candidacy config
+        run: |
+          cp myst.yml myst.yml.paper
+          cp myst.candidacy.yml myst.yml
+
+      - name: curvenote work push (public)
+        env:
+          CURVENOTE_TOKEN: ${{ secrets.CURVENOTE_TOKEN }}
+        run: bunx -y curvenote@0.14.3 work push --public --yes
+
+      # Diagnostic: did work push write back to myst.yml mid-run?
+      # Open Q2 in ~/plans/curvenote-sync-redesign.md. If this surfaces
+      # a non-empty diff, document the writeback shape and update
+      # project_curvenote_cli_writeback.md accordingly.
+      - name: Diff myst.yml post-push (diagnostic)
+        if: always()
+        run: |
+          echo "::group::myst.yml diff vs swap source (myst.candidacy.yml)"
+          diff -u myst.candidacy.yml myst.yml || true
+          echo "::endgroup::"
