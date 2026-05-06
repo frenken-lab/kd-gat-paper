@@ -112,6 +112,10 @@ jobs:
           cat _static/custom.css _static/story.css > _static/site.bundle.css
           bun install -g mystmd@1.8.3
           myst build --html
+      - name: Copy figures into Pages output
+        run: |
+          mkdir -p _build/html/assets/html/submission
+          cp _build/figures/*.html _build/html/assets/html/submission/
       - uses: actions/configure-pages@v4
       - uses: actions/upload-pages-artifact@v3
         with: { path: _build/html/ }

@@ -54,17 +54,31 @@ html:has(.slide-full) {
   border-radius: 8px;
 }
 
+.slide,
+.slide-full:not(.slide-dark) {
+  background: #ffffff;
+}
+
 .slide-dark {
-  background: #0f0f0f;
-  color: #f5f5f4;
+  background: #e15759;
+  color: #ffffff;
 }
 .slide-dark h1,
 .slide-dark h2,
 .slide-dark h3,
-.slide-dark p { color: #f5f5f4; }
+.slide-dark p { color: #ffffff; }
+
+/* Red heading accent on light slides */
+.slide h1,
+.slide h2,
+.slide-full:not(.slide-dark) h1,
+.slide-full:not(.slide-dark) h2 {
+  color: #e15759;
+}
 
 .stat {
   font-size: 4rem;
   font-weight: 600;
   line-height: 1;
+  color: #e15759;
 }
