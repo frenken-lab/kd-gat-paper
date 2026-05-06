@@ -109,11 +109,12 @@ div.relative.inline-block > iframe {
 }
 
 /* Expand body content into the vacated secondary-sidebar space (hide_outline: true).
-   Targets only the inner content grid (.myst-article.article-grid) to avoid touching
-   the outer <main> grid. Double-class selector (specificity 0,0,2,0) beats the theme's
-   .article-grid > * { col-body } rule (0,0,1,0) regardless of stylesheet load order. */
-@media (min-width: 1280px) {
-  .myst-article.article-grid > * {
+   article-theme uses article-left-grid (not article-grid); the outline column
+   (body-outset-end → page-inset-end) first appears at lg (1024px). Double-class
+   selector (0,0,2,0) beats .article-left-grid > * { col-body } (0,0,1,0). Only
+   overrides grid-column-end; start stays body-start from col-body. */
+@media (min-width: 1024px) {
+  .myst-article.article-left-grid > * {
     grid-column-end: page-inset-end;
   }
 }
