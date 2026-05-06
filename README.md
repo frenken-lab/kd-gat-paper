@@ -2,11 +2,10 @@
 
 MyST Markdown paper with interactive SveltePlot figures. Three build targets from the same source tree:
 
-| Target            | Config               | Output                   | Deployed to                                                 |
-| ----------------- | -------------------- | ------------------------ | ----------------------------------------------------------- |
-| **Paper**         | `myst.yml`           | TMLR Distill-layout site | [GitHub Pages](https://frenken-lab.github.io/kd-gat-paper/) |
-| **Candidacy**     | `myst.candidacy.yml` | Superset report (web)    | [rob.curve.space](https://rob.curve.space)                  |
-| **Candidacy PDF** | `myst.candidacy.yml` | Typst book (US letter)   | CI artifact download                                        |
+| Target        | Config               | Output                   | Deployed to                                                 |
+| ------------- | -------------------- | ------------------------ | ----------------------------------------------------------- |
+| **Paper**     | `myst.yml`           | TMLR Distill-layout site | [GitHub Pages](https://frenken-lab.github.io/kd-gat-paper/) |
+| **Candidacy** | `myst.candidacy.yml` | Superset report (web)    | [rob.curve.space](https://rob.curve.space)                  |
 
 The candidacy build includes all paper content plus extended sections (introduction, CWD background, proposed research, broader impact, physics appendix).
 
@@ -26,7 +25,6 @@ kd-gat-paper/
   _build/              All generated output (gitignored)
     figures/              Built HTML figures (one per interactive)
     tables/               Rendered markdown tables
-    exports/              PDF exports (candidacy-report.pdf)
     submission/           TMLR submission (submission.md + assets)
     site/                 MyST site AST and HTML
 ```
@@ -47,15 +45,11 @@ paper/references/   data/csv/   interactive/src/
            v
        myst build --> _build/site/
            |
-      +----+----+
-      |         |
-      v         v
-  tools/    myst build --pdf
-  tmlr/        --> _build/exports/candidacy-report.pdf
-  build.mjs
-      |
-      v
-  tmlr_do_not_modify/ (submission.md + assets/ written in place for Jekyll)
+           v
+       tools/tmlr/build.mjs
+           |
+           v
+       tmlr_do_not_modify/ (submission.md + assets/ written in place for Jekyll)
 ```
 
 ## Local Setup
@@ -128,7 +122,6 @@ make submission-zip # Flat anonymous submission.zip for OpenReview upload
 # Candidacy build
 make candidacy-site # Build candidacy report site
 make candidacy-dev  # Live-reload candidacy dev server
-make candidacy-pdf  # Build Typst PDF --> _build/exports/candidacy-report.pdf
 
 # Data + assets
 make data           # Pull data from KD-GAT exports + validate
@@ -205,7 +198,6 @@ Data flows from the [KD-GAT](https://github.com/frenken-lab/KD-GAT) evaluation a
 | [GitHub Pages](https://frenken-lab.github.io/kd-gat-paper/) | TMLR Distill site + figures (iframe src) | Jekyll build + `deploy-pages` in CI            |
 | [rob.curve.space](https://rob.curve.space)                  | Candidacy report (MyST SPA)              | `curvenote deploy` in CI                       |
 | TMLR submission                                             | Anonymous self-contained folder          | `tools/tmlr/build.py`, uploaded as CI artifact |
-| Candidacy PDF                                               | Typst book with page numbers             | `myst build --pdf`, uploaded as CI artifact    |
 
 Figures require iframe isolation (Svelte apps need `<script>` execution) and curve.space's SPA can't serve static HTML, so GitHub Pages hosts the figure files separately. The TMLR build rewrites all iframe paths to `assets/html/submission/` so no external URLs leak into the anonymous submission.
 
@@ -215,7 +207,6 @@ Figures require iframe isolation (Svelte apps need `<script>` execution) and cur
 validate (schemas + bib)
   └─ figures (Svelte build)
        ├─ tmlr (MyST → Distill → Jekyll → GitHub Pages)
-       ├─ candidacy-pdf (MyST → Typst → artifact)
        └─ candidacy-site (MyST → Curvenote → curve.space)
 ```
 

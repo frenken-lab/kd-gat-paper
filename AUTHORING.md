@@ -6,7 +6,7 @@ The paper build is a typed-source → AST → multi-shape-artifact pipeline. Thi
 SOURCES                 AST                  ARTIFACTS
 data/csv/        →      _build/site/    →    _build/submission/    (TMLR Distill)
 data/*.bib              content/*.json       _build/site/           (paper site)
-images/                 (mdast)              _build/exports/        (Typst PDF)
+images/                 (mdast)
 paper/**/*.md
               ↑                       ↑
    semantic contract        output contract
@@ -50,8 +50,8 @@ Ten components a markdown-driven scientific authoring stack needs, mapped to wha
 | 3 | **Cross-references** | mystmd resolves `{ref}`/`{numref}`/`{eq}` across files; resolution surfaces as `crossReference.resolved` in the AST | Editor-side label completion |
 | 4 | **Citations** | 12 topic-split `.bib` files in `paper/references/`, validated by `tools/validate/inputs/bib.py`. mystmd resolves `[@key]`. TMLR build emits `<d-cite>`. | Bibkey completion that knows `{cite:p}` |
 | 5 | **Math** | mystmd handles inline + display + label refs. AMS tagging in TMLR via `\eqref{}`. Round-trips via `inlineMath` / `math` handlers. | Live math preview, equation-label completion |
-| 6 | **Figures** | SveltePlot data figures + SvelteFlow diagrams under `interactive/src/figures/`. Vite + `vite-plugin-singlefile` → self-contained HTML. iframed; TMLR rewrites paths via `_h_iframe`. | Static raster fallback for the candidacy Typst PDF (currently ships placeholders) |
-| 7 | **PDF output** | Typst via `myst build --pdf` for candidacy; Distill HTML for TMLR (Beyond PDF) | True LaTeX export (not currently demanded) |
+| 6 | **Figures** | SveltePlot data figures + SvelteFlow diagrams under `interactive/src/figures/`. Vite + `vite-plugin-singlefile` → self-contained HTML. iframed; TMLR rewrites paths via `_h_iframe`. | — |
+| 7 | **PDF output** | Distill HTML for TMLR (Beyond PDF). Candidacy PDF removed 2026-05-06 — see commit log. | True LaTeX export (not currently demanded); print-quality candidacy PDF if needed later |
 | 8 | **HTML output** | `myst build --site` → article-theme on GitHub Pages (paper); `curvenote deploy` → SPA on rob.curve.space (candidacy) | Self-host alternative to curve.space (tabled until post-candidacy) |
 | 9 | **Editor LSP** | VS Code: `chrisjsewell.myst-lsp` + `errata-ai.vale-server` recommended; `pandocCiter.DefaultBib` covers all bibs; `kd-gat-paper.code-snippets` provides `cp`/`nr`/`eq`/`fig`/`alg` | Neovim equivalents (deferred to dotfiles) |
 | 10 | **Lint / style** | Vale + STYLE.md banlists (`MLPaper/B1..B8`, `MLPaper/R4`), `make lint`, pre-commit hook. Validation see below. | LTeX-LS dictionary verification |
@@ -111,8 +111,6 @@ Missing:
 - **Figure data sketch path — `data.dev.json` convention.** Iterating a figure's data still requires `KD-GAT/export_paper_data.py` + `make data`, closing L3 from "minutes" to <200ms. Convention: if `interactive/src/figures/<kind>/<name>/data.dev.json` exists, the figure loads it instead of `data.json`. Gitignored, blocked by pre-commit. ~10 lines total. Pay off only when figure-data iteration becomes the daily bottleneck.
 
 - **Output-tree split (paper vs candidacy).** Both builds currently write to `_build/site/`, so switching between `make site` and `make candidacy-site` clobbers the previous output. The Distill preview server reads from `_build/site/content/*.json` — fine while building one config at a time, foot-gun once both are active in CI. Fix: route MyST output through `--output _build/<config>/site/`. Mechanical; defer until the conflict bites.
-
-- **Static fallback for Typst PDF figures.** The candidacy PDF currently ships iframe placeholders because Typst can't render web figures. Decision deferred until candidacy needs print-quality figures.
 
 ---
 

@@ -50,14 +50,6 @@ bun run dev    # shell at localhost:5173 — pick figure from dropdown
 
 The shell page uses an iframe so switching figures never tears down the HMR connection. Works in StackBlitz.
 
-### PDF Export
-
-```bash
-make candidacy-pdf    # Builds _build/exports/candidacy-report.pdf via Typst
-```
-
-Requires Typst installed. Significantly faster than LaTeX.
-
 ## Project Layout
 
 ```

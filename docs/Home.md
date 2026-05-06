@@ -18,14 +18,12 @@ For deployment, CI, TMLR export, and candidacy-vs-paper build differences, see `
 |--------|--------|-------------|
 | Paper | `myst.yml` | [GitHub Pages](https://frenken-lab.github.io/kd-gat-paper/) |
 | Candidacy (web) | `myst.candidacy.yml` | [rob.curve.space](https://rob.curve.space) |
-| Candidacy (PDF) | `myst.candidacy.yml` | CI artifact |
 
 ## Quick Reference
 
 ```bash
 make dev            # Paper live-reload (overmind: myst + vite + table watcher)
 make candidacy-dev  # Candidacy live-reload
-make candidacy-pdf  # Typst PDF
 make figures        # Build all interactive figures
 make all            # Full pipeline: data → figures → tables → site
 ```

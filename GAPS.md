@@ -1,20 +1,16 @@
 # Build Gaps
 
-Known shortfalls in the rendered builds (paper, candidacy site, candidacy PDF, TMLR submission, talk). Living document — each entry is observed in an artifact, not just code review. Resolve into a fix or a `Won't Fix` with reason.
+Known shortfalls in the rendered builds (paper, candidacy site, TMLR submission, talk). Living document — each entry is observed in an artifact, not just code review. Resolve into a fix or a `Won't Fix` with reason.
 
 `tools/tmlr/BUGS.md` covers TMLR-serializer-specific defects. This file covers everything else, plus rendered defects that span tooling.
 
 ---
 
-## Gap 1 — Typst PDF: iframes render as blank boxes
+## Gap 1 — ~~Typst PDF iframes~~ — RESOLVED 2026-05-06
 
-**Where:** `_build/exports/candidacy-report.pdf`. Every interactive figure (`<iframe src="…">`) appears as an empty rectangle.
+The candidacy Typst PDF export was removed entirely (see commit log). The iframe-render-as-blank-box symptom no longer applies because no PDF artifact is built.
 
-**Why:** Typst export has no JavaScript runtime, and we deleted the static-SVG export pipeline (`tools/pdf/extract-svg.js`, removed in 6c5866b). The iframe-to-image substitution that ran via Playwright is gone.
-
-**Restoring it:** add a Playwright pre-pass that loads each `_build/figures/*.html` headless and saves an SVG/PNG alongside, then have the Typst template reference the static asset for PDF builds while keeping the iframe for web. Was tabled as out of scope for the candidacy oral.
-
-**Status:** open. Acceptable for the oral — iframes render fine in the curve.space site that the committee will follow during the talk.
+If a print-quality candidacy PDF becomes needed later, the original fix (Playwright pre-pass that loads each `_build/figures/*.html` and saves an SVG/PNG, then Typst references the static asset) is still the right shape.
 
 ---
 
