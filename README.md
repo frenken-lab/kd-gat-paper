@@ -4,8 +4,8 @@ MyST Markdown paper with interactive SveltePlot figures. Three build targets fro
 
 | Target        | Config               | Output                   | Deployed to                                                 |
 | ------------- | -------------------- | ------------------------ | ----------------------------------------------------------- |
-| **Paper**     | `myst.yml`           | TMLR Distill-layout site | [GitHub Pages](https://frenken-lab.github.io/kd-gat-paper/) |
-| **Candidacy** | `myst.candidacy.yml` | Superset report (web)    | [rob.curve.space](https://rob.curve.space)                  |
+| **Paper**     | `myst.yml`           | TMLR Distill-layout site | CI artifact (anonymous submission zip)                      |
+| **Candidacy** | `myst.candidacy.yml` | Superset report (web)    | [GitHub Pages](https://frenken-lab.github.io/kd-gat-paper/) |
 
 The candidacy build includes all paper content plus extended sections (introduction, CWD background, proposed research, broader impact, physics appendix).
 
@@ -193,21 +193,20 @@ Data flows from the [KD-GAT](https://github.com/frenken-lab/KD-GAT) evaluation a
 
 ## Deployment
 
-| Target                                                      | What                                     | How                                            |
-| ----------------------------------------------------------- | ---------------------------------------- | ---------------------------------------------- |
-| [GitHub Pages](https://frenken-lab.github.io/kd-gat-paper/) | TMLR Distill site + figures (iframe src) | Jekyll build + `deploy-pages` in CI            |
-| [rob.curve.space](https://rob.curve.space)                  | Candidacy report (MyST SPA)              | `curvenote deploy` in CI                       |
-| TMLR submission                                             | Anonymous self-contained folder          | `tools/tmlr/build.py`, uploaded as CI artifact |
+| Target                                                       | What                            | How                                             |
+| ------------------------------------------------------------ | ------------------------------- | ----------------------------------------------- |
+| [GitHub Pages](https://frenken-lab.github.io/kd-gat-paper/) | Candidacy report (MyST site)    | `myst build --html` + `deploy-pages` in CI      |
+| TMLR submission                                              | Anonymous self-contained folder | `tools/tmlr/build.mjs`, uploaded as CI artifact |
 
-Figures require iframe isolation (Svelte apps need `<script>` execution) and curve.space's SPA can't serve static HTML, so GitHub Pages hosts the figure files separately. The TMLR build rewrites all iframe paths to `assets/html/submission/` so no external URLs leak into the anonymous submission.
+Figures require iframe isolation (Svelte apps need `<script>` execution). The candidacy site hosts figures via GitHub Pages URLs (iframes). The TMLR build rewrites all iframe paths to `assets/html/submission/` so no external URLs leak into the anonymous submission.
 
 ## CI Pipeline
 
 ```
 validate (schemas + bib)
   └─ figures (Svelte build)
-       ├─ tmlr (MyST → Distill → Jekyll → GitHub Pages)
-       └─ candidacy-site (MyST → Curvenote → curve.space)
+       ├─ build (MyST → Distill → tmlr-submission artifact)
+       └─ deploy-pages (MyST candidacy → GitHub Pages)
 ```
 
 All jobs run on `ubuntu-latest`. Figures are shared across downstream jobs via artifacts.

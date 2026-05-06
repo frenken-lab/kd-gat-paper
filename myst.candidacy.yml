@@ -58,8 +58,6 @@ project:
 
 site:
   template: article-theme
-  domains:
-    - rob.curve.space
   options:
     hide_outline: true
     # article-theme declares `style: <file>` (singular). Plural `css:` is
