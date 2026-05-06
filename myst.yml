@@ -50,4 +50,5 @@ project:
 site:
   template: article-theme
   options:
+    hide_outline: true
     style: _static/custom.css
