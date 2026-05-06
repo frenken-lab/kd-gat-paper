@@ -32,11 +32,23 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
         with: { bun-version: latest }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+
+      # Build tables before work push — `{include} _build/tables/<n>.md`
+      # directives in candidacy markdown resolve at myst-build time, and
+      # bunx work push runs myst-build internally. Without these files the
+      # editor mirror gets empty table containers. Figures don't need a
+      # local build: candidacy iframes use absolute GitHub Pages URLs.
+      - name: Build tables
+        run: |
+          pip install pyyaml polars great-tables
+          python tools/tables/build.py
 
       # Activate candidacy config — same swap pattern as candidacy-site
-      # in paper.yml. The runner's working tree is throwaway so writeback
-      # within the runner is harmless; the diff step at the end records
-      # whether work push touched the file.
+      # in paper.yml. With project.id already in myst.candidacy.yml, work
+      # push reuses the work key and does NOT rewrite the active config
+      # (verified in run 25444857727 — diff step produced no output).
       - name: Activate candidacy config
         run: |
           cp myst.yml myst.yml.paper
