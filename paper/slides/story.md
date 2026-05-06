@@ -33,17 +33,17 @@ Robert Frenken · Candidacy · 2026
 
 +++ {"class": "col-screen slide"}
 
+::::{div}
 **The technical gap**
 
 %% [WRITE: left column — what the literature offers (GAT-based detectors with strong in-distribution accuracy) and what it doesn't (calibrated confidence, cross-vehicle generalization, deployable parameter budgets). Three short bullets max.]
+::::
 
-%% [FIGURE: graph-base.html or kd-vgae.html — pick one that visually anchors "this is what graph-based IDS looks like." Right column.]
-
-+++ {"type": "iframe"}
-
+::::{div}
 :::{iframe} https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/graph-base.html
 :label: fig-graph-story
 :::
+::::
 
 +++
 
@@ -67,29 +67,33 @@ Robert Frenken · Candidacy · 2026
 
 +++ {"class": "col-screen slide"}
 
+::::{div}
 **The distillation idea**
 
 %% [WRITE: left column — what KD-GAT does in two sentences. Teacher GAT → smaller student GAT. The non-obvious move is *what* gets transferred (attention structure, not just labels) and *why* that matters for IDS specifically (attack-relevant patterns are structural). Don't restate the architecture — that's the next panel.]
+::::
 
-+++ {"type": "iframe"}
-
+::::{div}
 :::{iframe} https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/kd-gat.html
 :label: fig-kdgat-story
 :::
+::::
 
 +++
 
 +++ {"class": "col-screen slide"}
 
+::::{div}
 **Architecture**
 
 %% [WRITE: one short paragraph naming the components in the figure. Don't narrate every box — name the three things the audience needs to track to follow the rest of the talk (e.g., teacher, student, distillation loss path). The figure does the work.]
+::::
 
-+++ {"type": "iframe"}
-
+::::{div}
 :::{iframe} https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/architecture.html
 :label: fig-arch-story
 :::
+::::
 
 +++
 
@@ -105,17 +109,17 @@ Robert Frenken · Candidacy · 2026
 
 +++ {"class": "col-screen slide"}
 
+::::{div}
 **What this taught us**
 
 %% [WRITE: the bridge from completed → proposed. KD-GAT works, but it surfaced three open questions that organize the rest of the proposal: (1) confidence isn't calibrated under operational drift, (2) one model class can't cover the full attack surface, (3) capacity-gap law for distillation isn't characterized. Two sentences. This panel sets up the four-axis proposal.]
+::::
 
-%% [FIGURE: optional — cka.html or umap.html as a representation-space visual that hints at "the model learns the right thing internally, but confidence calibration is separate."]
-
-+++ {"type": "iframe"}
-
+::::{div}
 :::{iframe} https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/cka.html
 :label: fig-cka-story
 :::
+::::
 
 +++
 
@@ -131,63 +135,65 @@ Robert Frenken · Candidacy · 2026
 
 +++ {"class": "col-screen slide"}
 
+::::{div}
 **Axis 1: physics-informed dynamics**
 
 %% [WRITE: Q1 in three lines. The PINN-as-fourth-expert claim, the trust-gate mechanism, and what "calibrated against benign training data" buys you operationally. Pull from candidacy/committee-questions/physics-dynamics.md. Stop before getting into the three-conditions structure — that's the written report's job, not the talk's.]
+::::
 
-%% [FIGURE: composition-pipeline.html if it visually shows the gate path; otherwise no figure and let the prose carry the panel.]
-
-+++ {"type": "iframe"}
-
+::::{div}
 :::{iframe} https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/composition-pipeline.html
 :label: fig-pipeline-story
 :::
+::::
 
 +++
 
 +++ {"class": "col-screen slide"}
 
+::::{div}
 **Axis 2: interpretability and calibration**
 
 %% [WRITE: Q2 in three lines. The two-uncertainties decomposition (aleatoric/epistemic), the inter-branch disagreement signal as label-substitute, and what calibration under class imbalance demands that ECE-on-clean-split doesn't. Pull from interpretability-calibration.md. Land on the operational image (V1: "opposite ends of the same operating envelope").]
+::::
 
-%% [FIGURE: attention.html — shows the explainability surface. Or skip the figure if the panel feels crowded.]
-
-+++ {"type": "iframe"}
-
+::::{div}
 :::{iframe} https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/attention.html
 :label: fig-attn-story
 :::
+::::
 
 +++
 
 +++ {"class": "col-screen slide"}
 
+::::{div}
 **Axis 3: federated optimization & curriculum**
 
 %% [WRITE: Q3 in three lines. Why curriculum + federated drift the calibrations off their training baselines, and what the proposed correction looks like. Pull from federated-optimization.md. The fedavg-drift figure is the one piece of preliminary evidence here — name what it shows.]
+::::
 
-+++ {"type": "iframe"}
-
+::::{div}
 :::{iframe} https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/fedavg-drift.html
 :label: fig-fedavg-story
 :::
+::::
 
 +++
 
 +++ {"class": "col-screen slide"}
 
+::::{div}
 **Axis 4: reinforcement learning for fusion**
 
 %% [WRITE: Q4 in three lines. The bandit-based expert fusion, the reward shift problem at deployment, and the trust-score-as-pseudo-label move that lets adaptation continue without ground truth. Pull from reinforcement-learning.md. Mention that preliminary DQN results exist; don't show numbers (they're noisy and a talk isn't the place).]
+::::
 
-%% [FIGURE: fusion.html if it shows the bandit selecting between experts.]
-
-+++ {"type": "iframe"}
-
+::::{div}
 :::{iframe} https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/fusion.html
 :label: fig-fusion-story
 :::
+::::
 
 +++
 
