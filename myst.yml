@@ -50,5 +50,4 @@ project:
 site:
   template: article-theme
   options:
-    css:
-      - _static/custom.css
+    style: _static/custom.css
