@@ -109,10 +109,11 @@ div.relative.inline-block > iframe {
 }
 
 /* Expand body content into the vacated secondary-sidebar space (hide_outline: true).
-   At xl+ the default col-body ends at body-end; page-inset-end is the right boundary
-   of the page column, giving back the space the outline sidebar would have used. */
+   Targets only the inner content grid (.myst-article.article-grid) to avoid touching
+   the outer <main> grid. Double-class selector (specificity 0,0,2,0) beats the theme's
+   .article-grid > * { col-body } rule (0,0,1,0) regardless of stylesheet load order. */
 @media (min-width: 1280px) {
-  .article-grid > * {
+  .myst-article.article-grid > * {
     grid-column-end: page-inset-end;
   }
 }
