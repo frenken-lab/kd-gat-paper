@@ -102,7 +102,7 @@ jobs:
         with: { python-version: "3.12" }
       - uses: actions/download-artifact@v4
         with: { name: figures, path: _build/figures/ }
-      - run: pip install pyyaml polars great-tables
+      - run: pip install pyyaml polars great-tables altair huggingface_hub ipykernel jupyter-server
       - name: Build candidacy MyST site
         run: |
           cp myst.yml myst.yml.paper
@@ -111,7 +111,7 @@ jobs:
           python tools/tables/build.py
           cat _static/custom.css _static/story.css > _static/site.bundle.css
           bun install -g mystmd@1.8.3
-          myst build --html
+          myst build --execute --html
       - name: Copy figures into Pages output
         run: |
           mkdir -p _build/html/assets/html/submission

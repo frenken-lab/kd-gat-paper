@@ -53,6 +53,7 @@ project:
         - file: paper/candidacy/committee-questions/interpretability-calibration.md
         - file: paper/candidacy/committee-questions/federated-optimization.md
         - file: paper/candidacy/committee-questions/reinforcement-learning.md
+    - file: paper/candidacy/results-notebook.md
     - file: paper/content/conclusion.md
     - file: paper/candidacy/appendix-combined.md
 
