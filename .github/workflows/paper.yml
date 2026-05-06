@@ -104,6 +104,8 @@ jobs:
         with: { name: figures, path: _build/figures/ }
       - run: pip install pyyaml polars great-tables altair huggingface_hub ipykernel jupyter-server
       - name: Build candidacy MyST site
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           cp myst.yml myst.yml.paper
           cp myst.candidacy.yml myst.yml
