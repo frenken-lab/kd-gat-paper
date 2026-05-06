@@ -39,6 +39,8 @@ Robert Frenken · Candidacy · 2026
 
 %% [FIGURE: graph-base.html or kd-vgae.html — pick one that visually anchors "this is what graph-based IDS looks like." Right column.]
 
++++ {"type": "iframe"}
+
 :::{iframe} https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/graph-base.html
 :label: fig-graph-story
 :::
@@ -69,6 +71,8 @@ Robert Frenken · Candidacy · 2026
 
 %% [WRITE: left column — what KD-GAT does in two sentences. Teacher GAT → smaller student GAT. The non-obvious move is *what* gets transferred (attention structure, not just labels) and *why* that matters for IDS specifically (attack-relevant patterns are structural). Don't restate the architecture — that's the next panel.]
 
++++ {"type": "iframe"}
+
 :::{iframe} https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/kd-gat.html
 :label: fig-kdgat-story
 :::
@@ -80,6 +84,8 @@ Robert Frenken · Candidacy · 2026
 **Architecture**
 
 %% [WRITE: one short paragraph naming the components in the figure. Don't narrate every box — name the three things the audience needs to track to follow the rest of the talk (e.g., teacher, student, distillation loss path). The figure does the work.]
+
++++ {"type": "iframe"}
 
 :::{iframe} https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/architecture.html
 :label: fig-arch-story
@@ -105,6 +111,8 @@ Robert Frenken · Candidacy · 2026
 
 %% [FIGURE: optional — cka.html or umap.html as a representation-space visual that hints at "the model learns the right thing internally, but confidence calibration is separate."]
 
++++ {"type": "iframe"}
+
 :::{iframe} https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/cka.html
 :label: fig-cka-story
 :::
@@ -129,6 +137,8 @@ Robert Frenken · Candidacy · 2026
 
 %% [FIGURE: composition-pipeline.html if it visually shows the gate path; otherwise no figure and let the prose carry the panel.]
 
++++ {"type": "iframe"}
+
 :::{iframe} https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/composition-pipeline.html
 :label: fig-pipeline-story
 :::
@@ -143,6 +153,8 @@ Robert Frenken · Candidacy · 2026
 
 %% [FIGURE: attention.html — shows the explainability surface. Or skip the figure if the panel feels crowded.]
 
++++ {"type": "iframe"}
+
 :::{iframe} https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/attention.html
 :label: fig-attn-story
 :::
@@ -154,6 +166,8 @@ Robert Frenken · Candidacy · 2026
 **Axis 3: federated optimization & curriculum**
 
 %% [WRITE: Q3 in three lines. Why curriculum + federated drift the calibrations off their training baselines, and what the proposed correction looks like. Pull from federated-optimization.md. The fedavg-drift figure is the one piece of preliminary evidence here — name what it shows.]
+
++++ {"type": "iframe"}
 
 :::{iframe} https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/fedavg-drift.html
 :label: fig-fedavg-story
@@ -168,6 +182,8 @@ Robert Frenken · Candidacy · 2026
 %% [WRITE: Q4 in three lines. The bandit-based expert fusion, the reward shift problem at deployment, and the trust-score-as-pseudo-label move that lets adaptation continue without ground truth. Pull from reinforcement-learning.md. Mention that preliminary DQN results exist; don't show numbers (they're noisy and a talk isn't the place).]
 
 %% [FIGURE: fusion.html if it shows the bandit selecting between experts.]
+
++++ {"type": "iframe"}
 
 :::{iframe} https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/fusion.html
 :label: fig-fusion-story

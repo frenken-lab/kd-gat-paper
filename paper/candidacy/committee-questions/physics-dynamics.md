@@ -23,10 +23,14 @@ These failure modes though different are not entirely independent. They can sepa
 - If an input is within the physics model's assumptions.
 - IF an input has been captured within a data-driven model's training coverage.
 
++++ {"type": "table"}
+
 |                         | **In training distribution**                                                                   | **Out of distribution**                                                                       |
 | ----------------------- | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | **On physics surface**  | Both priors apply. Single-expert verdict suffices; fuse trivially.                             | Physics carries the trust. Dynamics are causally consistent; data-driven sees a rare pattern. |
 | **Off physics surface** | Data-driven carries the trust. The pattern is familiar; physics sees an off-manifold residual. | Neither single prior is sufficient. The candidacy contribution lives here.                    |
+
++++
 
 The first three cells are control conditions — one prior is sufficient to underwrite the trust claim. The bottom-right is the experimental condition: no single expert is qualified, and the answer has to come from a joint arbitration apparatus. This cell is operationally rare — the diagonal is where any sensible system already works. That rarity is the point. The diagonal is where the baseline delivers; the bottom-right is where the contribution has to.
 

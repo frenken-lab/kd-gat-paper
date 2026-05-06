@@ -34,6 +34,8 @@ The key innovation distinguishing our work is *adaptive decision-level fusion vi
 
 Additionally, our hardware-aware knowledge distillation pipeline is principally scaled to automotive constraints (ARM Cortex-A7/A53, 256--512 MB RAM, 100 mW power budget), curriculum learning for class imbalance directly addresses the severe data imbalance (up to 927:1 ratios), and multi-dataset evaluation across six publicly available benchmarks demonstrates strong generalization and transferability.
 
++++ {"type": "table"}
+
 :::{table} Comparison of IDS frameworks. Columns highlight detection paradigm, evaluation breadth, and whether fusion is learned. Our approach is the only framework combining heterogeneous graph experts with adaptive fusion across six datasets.
 :label: tbl-comparison
 
@@ -54,3 +56,5 @@ Additionally, our hardware-aware knowledge distillation pipeline is principally 
 | **Proposed** | Auto | GAT+VGAE | Both | DQN adaptive | 6 | Yes | *(this work)* |
 
 :::
+
++++

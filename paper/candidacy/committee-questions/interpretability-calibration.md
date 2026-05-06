@@ -4,11 +4,15 @@ title: "2. Model Interpretability and Calibration"
 
 While working through this section, three axes emerged as a means to evaluate a model: correctness, justification, and explanation. Though related, they are independent — an ideal model satisfies all three.
 
++++ {"type": "table"}
+
 | Axis              | What it is                                                                                     | The question it answers                 |
 | ----------------- | ---------------------------------------------------------------------------------------------- | --------------------------------------- |
 | **Correctness**   | Outcome — did the prediction match the label?                                                  | Did we get this one right?              |
 | **Justification** | Per-prediction warrant — was the apparatus entitled to assert this confidence given the input? | Should we trust this prediction?        |
 | **Explanation**   | Account of how the prediction was reached, configured for a consumer                           | How should I communicate this decision? |
+
++++
 
 Q2.1 investigates when a prediction is _justified_; Q2.2 investigates how to _explain_ a decision and/or a justification. These are complementary — you do not explain away an unjustified prediction, and you do not refuse to explain a justified one.
 
@@ -29,10 +33,14 @@ The distinction matters: reliabilism licenses post-hoc calibration methods (temp
 
 Uncertainty decomposes into two types that call for opposite operational responses [@kendall2017uncertainties]:
 
++++ {"type": "table"}
+
 | Type          | Source                                                             | Reducible? | Operational response                                      |
 | ------------- | ------------------------------------------------------------------ | ---------- | --------------------------------------------------------- |
 | **Aleatoric** | Irreducible data noise — identical byte profiles, different labels | No         | Trust the confidence; defer borderline cases              |
 | **Epistemic** | Model ignorance — OOD inputs, novel attack types                   | Yes        | Abstain via OOD detection [@OODSurvey]; route to fallback |
+
++++
 
 Modern deep networks fail at both in a predictable direction: max-softmax confidence routinely exceeds empirical accuracy, the gap widens with depth [@guo2017calibration], and every post-hoc calibration method degrades under distribution shift — though deep ensembles and MC-dropout degrade most gracefully [@ovadia2019trust]. The structural takeaway is reliabilist: heterogeneous expert redundancy keeps the inference _process_ reliable across shift; a one-shot post-hoc fit on a clean calibration set is a snapshot, not a reliable process.
 
@@ -50,6 +58,8 @@ A calibration guarantee that holds at deployment but not three months later is n
 
 The conceptual move is to treat justification failure as one problem with five faces, not five problems — fit on one held-out split, recalibrated on one cadence:
 
++++ {"type": "table"}
+
 | Failure type      | What goes wrong                                     | Measurement                                                  |
 | ----------------- | --------------------------------------------------- | ------------------------------------------------------------ |
 | **Label**         | Score does not track accuracy on the minority class | Class-conditional ECE; per-class reliability diagrams        |
@@ -57,6 +67,8 @@ The conceptual move is to treat justification failure as one problem with five f
 | **Cross-process** | Orthogonal experts contradict each other            | Inter-expert disagreement as label-free recalibration signal |
 | **Bayesian**      | An estimator inside the apparatus is uncertain      | Online conformal cadence on estimator confidence radius      |
 | **Deployment**    | Deployed objective drifts from training objective   | Drift detection + online recalibration                       |
+
++++
 
 Fitting the five failure types separately risks inconsistent coverage thresholds — a conformal abstain rule calibrated on a clean split and a drift detector calibrated on a shifted split can simultaneously fire and suppress each other on the same input, voiding the operational coverage guarantee at exactly the moment a safety case needs it. The contribution is the claim that these five share a single calibration apparatus, fit jointly and recalibrated on one schedule — and that treating them as separate problems, which the field does, breaks the guarantee at the place that matters most.
 
@@ -72,12 +84,16 @@ The standard XAI move when two explainers disagree is to pick the more faithful 
 
 For any prediction, two explainers can diverge across each of the three axes from Q2.1. Grouping by Hamming weight gives the full disagreement space:
 
++++ {"type": "table"}
+
 | Axes in disagreement | Count | What it looks like                                          |
 | -------------------- | ----- | ----------------------------------------------------------- |
 | 0                    | 1     | Total alignment                                             |
 | 1                    | 3     | One axis diverges — the standard XAI-disagreement cases     |
 | 2                    | 3     | Two axes diverge — agreement on the third is often unearned |
 | 3                    | 1     | Nothing in common                                           |
+
++++
 
 A real ensemble of $n$ experts pushes pairwise-divergence states to $2^{3\binom{n}{2}}$; enumeration doesn't scale, so the question reduces to: which structural conditions make disagreement informative rather than noise?
 
@@ -101,11 +117,15 @@ Both the epistemic literature (Aumann [@aumann1976agreeing], Krogh–Vedelsby am
 
 Cross-reference fusion confidence (Q2.1) with explainer agreement to locate the failed condition:
 
++++ {"type": "table"}
+
 | Fusion confidence | Explainer agreement | Failed condition                            | Action                                                                         |
 | ----------------- | ------------------- | ------------------------------------------- | ------------------------------------------------------------------------------ |
 | High              | High                | None                                        | Surface to operator                                                            |
 | High              | Low                 | Explainers disagree despite held confidence | Sanity checks [@adebayo2018sanity]; Rashomon partial order [@partialorder2023] |
 | Low               | High                | Experts agree on uncertainty                | Human review — honest epistemic uncertainty                                    |
 | Low               | Low                 | Resolvability                               | Conformal abstain / safety shield (Q4.1)                                       |
+
++++
 
 Of the three conditions, _independence_ is built (Q1.1/Q1.2 orthogonality), _boundedness_ is in progress (Q2.1 joint calibration), and _resolvability_ is the open gap — the abstain rule exists but the Rashomon partial order is not yet wired. Until it is, the pipeline can diagnose which condition failed on any input; it cannot yet guarantee every failure resolves to a principled action.

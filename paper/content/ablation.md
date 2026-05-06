@@ -35,11 +35,15 @@ _Awaiting data export for Knowledge Distillation ablation table._
 
 To further characterize how knowledge transfers between teacher and student networks, we compute Centered Kernel Alignment (CKA) between all pairs of teacher and student layers. High CKA values indicate that corresponding layers learn similar representations despite the $20\times$ parameter reduction.
 
++++ {"type": "iframe"}
+
 :::{iframe} https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/cka.html
 :label: fig-cka
 :width: 100%
 CKA similarity between teacher and student GAT layers. Hover for exact values.
 :::
+
++++
 
 ### GAT Training Strategy
 
@@ -49,6 +53,8 @@ _Awaiting data export for GAT training strategy ablation table._
 
 ### Bandit Fusion vs. Baseline Strategies
 
++++ {"type": "table"}
+
 :::{table} VGAE Anomaly Detection Threshold Analysis
 :label: tbl-vgae-threshold
 
@@ -56,3 +62,5 @@ _Awaiting data export for GAT training strategy ablation table._
 ```
 
 :::
+
++++

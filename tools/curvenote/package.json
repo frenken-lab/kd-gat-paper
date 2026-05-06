@@ -1,0 +1,11 @@
+{
+  "name": "kd-gat-curvenote-build",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Build the candidacy as a single Article in its curvenote.com Project via api.curvenote.com.",
+  "type": "module",
+  "dependencies": {
+    "@curvenote/schema": "^0.12.18",
+    "js-yaml": "^4.1.0"
+  }
+}

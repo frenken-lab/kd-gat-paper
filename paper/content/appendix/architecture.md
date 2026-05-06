@@ -15,34 +15,21 @@ This section provides specific parameter budgets for the three-model student ens
 
 ### Total Parameter Budget
 
-From the CAN bus latency constraint (7 ms hard limit [@ARM-Cortex-A7-TRM]), the total onboard parameter budget is:
+Conventional teacher-student ratios (2×, 5×, 10×, 100×) ignore the binding constraint here: a hardware ceiling that fixes the feasible student size. The CAN bus operates at 100 Hz, leaving a 7 ms hard latency limit per inference on ARM Cortex-A7 [@ARM-Cortex-A7-TRM] after headroom for context switches and interrupts. At 50 MFLOP/s safe throughput with a 0.7 sparsity factor, this caps the per-window budget at:
 
-$$
-N_{\text{onboard, total}} = 173\text{ K parameters (FP32)}
-$$
+```{math}
+:label: eq-flops-budget
+\begin{aligned}
+\text{FLOPs}_{\max} &= 7 \text{ ms} \times 50 \text{ MFLOP/s} \,/\, 0.7 \;\approx\; 5 \times 10^5 \text{ FLOPs} \\
+N_{\text{onboard, total}} &\approx 173\text{ K parameters (FP32)}
+\end{aligned}
+```
 
 Using the empirical distillation scaling law with target compression ratio $\kappa \approx 20$:
 
 $$
 N_{t,\text{model}} \approx 20 \times N_{s,\text{model}} \quad \text{for each model}
 $$
-
-### Heterogeneous Model Allocation
-
-Student ensemble members are not equally sized. The GAT classifier and VGAE autoencoder perform primary detection tasks and receive larger parameter budgets, while the DQN fusion model aggregates their outputs and receives reduced allocation:
-
-:::{table} Parameter Budget Allocation Across Student and Teacher Ensembles
-:label: tbl-model-allocation
-
-| Model | Student | Teacher | Compression |
-|-------|---------|---------|-------------|
-| GAT Classifier | 55 K | 1.100 M | $20\times$ |
-| VGAE Autoencoder | 86 K | 1.710 M | ${\approx}20\times$ |
-| Fusion Agent | 32 K | 687 K | ${\approx}21\times$ |
-| **Total (Onboard)** | **173 K** | --- | --- |
-| **Total (Offline)** | --- | **3.497 M** | --- |
-
-:::
 
 ### Model Architecture Details
 

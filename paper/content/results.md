@@ -10,6 +10,8 @@ title: "Results and Discussion"
 
 Our approach demonstrates consistent improvements across all datasets, with particularly significant gains on highly imbalanced datasets. Compared to KD-GAT, we achieve an average improvement of 2.09% in accuracy and 16.22% in F1-score. The most substantial improvements occur on challenging datasets S02 and S04, where F1-scores improve by 55.25% and 30.64% respectively, indicating superior handling of severe class imbalance.
 
++++ {"type": "table"}
+
 :::{table} Test Performance on HCRL Car-Hacking Dataset
 :label: tbl-main-results
 
@@ -17,11 +19,19 @@ Our approach demonstrates consistent improvements across all datasets, with part
 ```
 :::
 
++++
+
++++ {"type": "iframe"}
+
 :::{iframe} https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/results-table.html
 :label: fig-results-table
 :width: 100%
 Interactive results table. Click column headers to sort; use the filter to search models.
 :::
+
++++
+
++++ {"type": "table"}
 
 :::{table} Cross-Scenario Test Results
 :label: tbl-test-scenarios
@@ -29,6 +39,8 @@ Interactive results table. Click column headers to sort; use the filter to searc
 ```{include} ../../_build/tables/test_scenarios.md
 ```
 :::
+
++++
 
 ### Discussion
 

@@ -10,11 +10,15 @@ This section covers fundamental concepts of the CAN protocol, GNNs, VGAE, DQN, a
 
 The CAN is a robust serial protocol enabling real-time communication between ECUs in vehicles. In a CAN bus, nodes broadcast messages, while receivers filter and process relevant ones. Each CAN data frame includes a Start-of-Frame, Arbitration, Control, Data, CRC, Acknowledgment, and End-of-Frame field.
 
++++ {"type": "figure"}
+
 :::{figure} https://frenken-lab.github.io/kd-gat-paper/assets/images/CANframe.svg
 :label: fig-can-frame
 :width: 100%
 Structure of a standard CAN 2.0B data frame. The 29-bit arbitration field determines message priority, while the 0--8 byte data field carries the payload used for feature extraction in our graph construction pipeline.
 :::
+
++++
 
 ### Graph Neural Networks
 

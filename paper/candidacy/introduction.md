@@ -62,6 +62,8 @@ Building on the current framework, we propose the following extensions to addres
 
 10. **Cross-Domain Generalization ([](#subsec:CrossD)):** Validation on other network IDS datasets and environments, proving domain-agnostic effectiveness of the framework approach beyond the automotive domain.
 
++++ {"type": "table"}
+
 :::{table} Contributions Addressing each Fundamental Problem
 :label: tab:contributions
 
@@ -85,11 +87,13 @@ Building on the current framework, we propose the following extensions to addres
 ◉ = primary contribution, ◐ = secondary contribution.
 :::
 
++++
+
 ### The methodological thesis: calibration as the unifying axis
 
-The four committee-question domains — physics-informed dynamics (Q1), interpretability and calibration (Q2), federated optimization (Q3), reinforcement learning (Q4) — appear to address four independent topics. They do not. Each reduces to a calibration question on a different axis. Q1 asks when to trust a physics prior — when its competence gates are calibrated against benign training data. Q2 asks when to trust a classifier confidence — when its softmax is calibrated under class imbalance and when the inter-branch disagreement signal can substitute for a label. Q3 asks when curriculum and federation drift those calibrations off their training baselines. Q4 asks when a reward proxy and a bandit confidence radius can be trusted at deployment without ground-truth labels.
+The four committee-question domains — physics-informed dynamics (Q1), interpretability and calibration (Q2), federated optimization (Q3), reinforcement learning (Q4) — appear to address four independent topics. They do not. Each reduces to a calibration question on a different axis. Q1 asks when to trust a physics prior whose competence gates fit to regime, signal, and residual on benign data. Q2 reframes justification failure as one problem with five faces — *Label* (class-conditional miscalibration under imbalance), *Input* (the apparatus is unqualified on this sample), *Cross-process* (orthogonal experts contradict each other), *Bayesian* (an internal estimator's confidence radius is itself uncertain), and *Deployment* (the operating distribution drifts from training). Q3 asks when curriculum and federation push those fits off their training baselines. Q4 asks when a reward proxy and a bandit confidence radius can be trusted at deployment without ground-truth labels. The structural prerequisite that lets these axes share an apparatus is *channel orthogonality* (Q1.2): the data-driven branch reads raw bytes directly, bypassing the physics estimation chain, so inter-branch disagreement is diagnostic rather than correlated noise.
 
-The methodological position of this work is that the classifier softmax, the per-expert competence gates, the inter-branch disagreement signal, the bandit's UCB confidence radius, and the reward proxy are not five separate calibration problems but one apparatus that requires *joint* correction on a single held-out natural-distribution split. Treating them as independent loops, as the field does, breaks the operational coverage guarantee the ensemble would otherwise deliver. The thesis-level contribution is the joint-calibration apparatus that holds them together; the four committee questions are the axes against which it is stress-tested. Per-axis derivations live in [](committee-questions/index.md) and are referenced from each subsection of [](proposed-research.md).
+The methodological position is that Q2.1's five failure types, Q1's per-expert competence gates, Q4's bandit UCB radius, and Q4's reward proxy are not separate calibration problems but one apparatus, fit jointly on a single held-out natural-distribution split and recalibrated on one schedule. Fitting them independently — as the field does — lets a conformal abstain rule and a drift detector simultaneously fire and suppress each other on the same input, voiding the operational coverage guarantee where it matters. Q1.1's phase diagram (in/out training × on/off physics surface) localizes the contribution to the bottom-right cell, where neither single prior is qualified and joint arbitration is the only remaining move. The thesis-level contribution is that joint-calibration apparatus; the four committee questions are the axes against which it is stress-tested. Per-axis derivations live in [](committee-questions/index.md) and are referenced from each subsection of [](proposed-research.md).
 
 ### Ensemble Architecture: Multi-Expert Model Selection
 
@@ -105,6 +109,8 @@ In summary, each expert targets a distinct attack surface: GAT captures structur
 
 We propose the first unified framework to reconcile the distinct paradigms of graph topology, physical dynamics, and temporal rhythm into a single coherent defense. This synthesis is both robust and trustworthy through explainability. Finally distilling the multi-expert ensemble in its lightweight form bridges the gap between high-performance deep learning and the resource constraints of edge computing.
 
++++ {"type": "table"}
+
 :::{table} Expert Coverage Across Detection Dimensions
 :label: tab:ensemble_experts
 
@@ -119,8 +125,12 @@ We propose the first unified framework to reconcile the distinct paradigms of gr
 ◉ = primary strength, ◐ = partial coverage, ○ = weak, — = not applicable.
 :::
 
++++
+
 **Emergent properties.** Detection dimensions interact with deployment-relevant properties that cannot be reduced to per-expert ratings. *Generalization to unknown attacks* arises primarily from the distributional and physical dimensions: VGAE flags any deviation from learned normal topology regardless of attack mechanism, while PINN rejects physically infeasible states without requiring attack-specific training. Relational and temporal dimensions are more dependent on training coverage but contribute complementary signals when novel attacks perturb message patterns or timing. *Interpretability* similarly varies by dimension: GAT attention weights and fusion policy weights are directly inspectable, PINN provides physics-grounded explanations via constraint violations, while VGAE's latent-space anomaly scores require post-hoc analysis. The adaptive fusion agent amplifies these properties by learning *which expert to trust* for each sample, providing a decision audit trail that no single expert offers alone.
 
+
++++ {"type": "figure"}
 
 :::{figure} https://frenken-lab.github.io/kd-gat-paper/assets/images/Framework_Fig.svg
 :label: fig-framework
@@ -128,3 +138,5 @@ We propose the first unified framework to reconcile the distinct paradigms of gr
 
 Graph Fusion Framework
 :::
+
++++
