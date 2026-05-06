@@ -1,4 +1,4 @@
-.PHONY: data validate validate-inputs validate-semantic figures tables site dev dev-myst candidacy-site candidacy-dev candidacy-pdf candidacy-astro tmlr tmlr-anon preview deploy sync bib test all clean watch-tables pre-commit pre-commit-install lint lint-sync
+.PHONY: data validate validate-inputs validate-semantic figures tables site dev dev-myst candidacy-site candidacy-dev candidacy-astro tmlr tmlr-anon preview deploy sync sync-editor bib test all clean watch-tables pre-commit pre-commit-install lint lint-sync lint-editor
 
 data:
 	uv run python tools/pull_data.py
@@ -49,9 +49,6 @@ candidacy-site: figures tables _static/site.bundle.css
 candidacy-dev:
 	myst start --config myst.candidacy.yml
 
-candidacy-pdf: figures tables
-	myst build --pdf --config myst.candidacy.yml
-
 # Self-hosted Astro build of the candidacy site. Reads _build/site/ produced
 # by candidacy-site and emits flat HTML to _build/astro/. See tools/site/README.md.
 candidacy-astro: candidacy-site
@@ -74,9 +71,50 @@ deploy: tmlr
 	cp -r _build/submission/assets/* tmlr_do_not_modify/assets/ 2>/dev/null || true
 	@echo "Push to main to deploy via GitHub Pages"
 
+# Pull editor changes from curvenote.com into the repo. DESTRUCTIVE — overwrites
+# files in paper/from-editor/ with whatever's on curvenote.com. Aborts if working
+# tree is dirty.
+#
+# Runs from inside paper/from-editor/, which has its own curvenote.yml (with
+# id + remote). Do NOT run curvenote work push / clone / pull from the repo
+# root — bunx writes back to the loaded myst.yml AND to myst.candidacy.yml,
+# stripping committee/exports blocks. See memory project_curvenote_cli_writeback.
 sync:
-	bunx curvenote pull
-	@echo "Review changes with: git diff"
+	@if [ ! -f paper/from-editor/curvenote.yml ]; then \
+	  echo "ERROR: paper/from-editor/curvenote.yml not present."; \
+	  echo "       Create a Project at https://editor.curvenote.com/@<user>/<slug>,"; \
+	  echo "       then \`bunx -y curvenote@0.14.3 clone <project-url> paper/from-editor/\`."; \
+	  exit 1; \
+	fi
+	@if ! git diff --quiet || ! git diff --cached --quiet; then \
+	  echo "ERROR: working tree has uncommitted changes."; \
+	  echo "       curvenote pull overwrites local files. Commit or stash first."; \
+	  exit 1; \
+	fi
+	cd paper/from-editor && bunx -y curvenote@0.14.3 pull --yes
+	@echo "Done. Review changes with: git diff paper/from-editor/"
+
+# Push the candidacy as 7 Articles (one per TOC section) to the curvenote.com
+# editor Project via api.curvenote.com. Idempotent: reuses named blocks and
+# deletes stale ones from prior builds.
+#
+# CURVENOTE_TOKEN must be exported (we source ~/.env.local before running).
+sync-editor: lint-editor
+	@if [ ! -f paper/from-editor/curvenote.yml ]; then \
+	  echo "ERROR: paper/from-editor/curvenote.yml not present (clone the curvenote.com Project first)."; \
+	  exit 1; \
+	fi
+	@if [ -z "$$CURVENOTE_TOKEN" ] && [ -f $$HOME/.env.local ]; then \
+	  set -a; . $$HOME/.env.local; set +a; \
+	fi; \
+	cd tools/curvenote && bun install --silent && cd - >/dev/null; \
+	bun tools/curvenote/buildv2.mjs
+
+# Lint: check that all table/figure/iframe directives in the candidacy source
+# have +++ {"type":"..."} wrappers. Without them the editor silently drops them.
+lint-editor:
+	cd tools/curvenote && bun install --silent && cd - >/dev/null
+	bun tools/curvenote/buildv2.mjs --lint
 
 bib:
 	uv run python tools/validate/inputs/bib.py

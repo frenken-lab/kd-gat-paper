@@ -14,6 +14,7 @@
  */
 
 const DRY_RUN = process.argv.slice(2).includes('--dry-run');
+const LINT = process.argv.slice(2).includes('--lint');
 
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
@@ -44,8 +45,7 @@ const TOC = cfg?.project?.toc;
 const TITLE = cfg?.project?.title || 'Candidacy';
 if (!TOC) die(`No project.toc in ${CANDIDACY_YML}.`);
 
-const ARTICLE_NAME = 'candidacy';
-console.log(`Project: ${PROJECT}  Article: "${ARTICLE_NAME}"  (${TITLE})`);
+console.log(`Project: ${PROJECT}  (${TITLE})`);
 
 // ── pure layer ────────────────────────────────────────────────────────────────
 
@@ -116,21 +116,24 @@ function expandIncludes(md, baseDir, depth = 0) {
   return out.join('\n');
 }
 
-function assembleMarkdown(entries, level = 1) {
-  const out = [];
-  for (const entry of entries) {
-    if (!entry.file) continue;
-    const abs = resolve(REPO_ROOT, entry.file);
-    if (!existsSync(abs)) { console.warn(`  ! TOC file not found: ${entry.file}`); continue; }
-    const raw = readFileSync(abs, 'utf8');
-    const fm = readFrontmatter(raw);
-    let body = expandIncludes(stripFrontmatter(raw), dirname(abs));
-    if (level > 1) body = demoteHeadings(body, level - 1);
-    const title = entry.title || fm.title || entry.file;
-    out.push(`${'#'.repeat(level)} ${title}\n\n${body.trim()}`);
-    if (Array.isArray(entry.children)) out.push(assembleMarkdown(entry.children, level + 1));
+// Assemble one top-level TOC entry's full content, inlining children with demoted headings.
+// Returns { title, markdown }.
+function assembleEntry(entry, level = 1) {
+  const abs = resolve(REPO_ROOT, entry.file);
+  if (!existsSync(abs)) { console.warn(`  ! TOC file not found: ${entry.file}`); return { title: entry.title || entry.file, markdown: '' }; }
+  const raw = readFileSync(abs, 'utf8');
+  const fm = readFrontmatter(raw);
+  let body = expandIncludes(stripFrontmatter(raw), dirname(abs));
+  if (level > 1) body = demoteHeadings(body, level - 1);
+  const title = entry.title || fm.title || entry.file;
+  const parts = [body.trim()];
+  if (Array.isArray(entry.children)) {
+    for (const child of entry.children) {
+      const { markdown } = assembleEntry(child, level + 1);
+      if (markdown) parts.push(markdown);
+    }
   }
-  return out.join('\n\n');
+  return { title, markdown: parts.join('\n\n') };
 }
 
 // Split assembled markdown on +++ separators into typed atoms.
@@ -291,11 +294,30 @@ function chunkProse(atoms, maxChars = 8000) {
   return out;
 }
 
-// Stable Content block name for an atom. Fits Curvenote's name regex:
-// /^[a-z0-9]{1}[a-z0-9-]{1,48}[a-z0-9]{1}$/ (3-50 chars).
-function atomName(type, n) {
-  const prefix = { prose: 'p', table: 't', iframe: 'i', figure: 'f' }[type] ?? 'x';
-  return `candidacy-${prefix}${String(n).padStart(3, '0')}`;
+// Stable Content block name for an atom, namespaced by article index.
+// Pattern: /^[a-z0-9]{1}[a-z0-9-]{1,48}[a-z0-9]{1}$/ (3-50 chars).
+// e.g. c01p000, c02t001
+function atomName(articleN, type, n) {
+  const p = { prose: 'p', table: 't', iframe: 'i', figure: 'f' }[type] ?? 'x';
+  return `c${String(articleN).padStart(2, '0')}${p}${String(n).padStart(3, '0')}`;
+}
+
+// Check prose atoms for unwrapped table/figure/iframe directives.
+// Any :::{table|figure|iframe} inside a prose atom means the source file is
+// missing a +++ {"type":"..."} wrapper — the editor will silently drop it.
+function lintEntries(entries) {
+  const issues = [];
+  for (const { title, atoms, artIdx } of entries) {
+    for (const atom of atoms) {
+      if (atom.type !== 'prose') continue;
+      for (const line of atom.content.split('\n')) {
+        if (/^:{3,}\{(table|figure|iframe)\}/.test(line)) {
+          issues.push(`  [${String(artIdx).padStart(2, '0')}] "${title}": unwrapped ${line.trim()}`);
+        }
+      }
+    }
+  }
+  return issues;
 }
 
 // ── effectful layer ───────────────────────────────────────────────────────────
@@ -401,7 +423,7 @@ async function pushRef(key) {
 }
 
 async function deleteOthers(kind, keep) {
-  const { items } = await api('GET', `/blocks/${PROJECT}?kind=${kind}`);
+  const { items } = await api('GET', `/blocks/${PROJECT}?kind=${kind}&limit=500`);
   const targets = (items || []).filter(b => !keep.has(b.id.block));
   if (!targets.length) { console.log(`  ${kind}: nothing to delete`); return; }
   let ok = 0;
@@ -415,30 +437,43 @@ async function deleteOthers(kind, keep) {
 
 // ── main ──────────────────────────────────────────────────────────────────────
 
-console.log('\nAssembling markdown from TOC...');
-const rawBody = assembleMarkdown(TOC);
-const body = sanitize(rawBody);
-console.log(`  body: ${body.length} chars (raw: ${rawBody.length})`);
+// Assemble all entries upfront so we can collect bib keys before any network calls.
+console.log(`\nTOC: ${TOC.length} top-level entries → ${TOC.length} Articles`);
+const entries = TOC.map((entry, i) => {
+  const { title, markdown } = assembleEntry(entry);
+  const sanitized = sanitize(markdown);
+  const atoms = chunkProse(parseBlocks(sanitized));
+  return { entry, title, sanitized, atoms, artIdx: i + 1 };
+});
 
-const atoms = chunkProse(parseBlocks(body));
-const typeCounts = atoms.reduce((a, { type }) => ({ ...a, [type]: (a[type] || 0) + 1 }), {});
-console.log(`  atoms: prose=${typeCounts.prose ?? 0}, table=${typeCounts.table ?? 0}, iframe=${typeCounts.iframe ?? 0}, figure=${typeCounts.figure ?? 0}`);
-
-const keys = bibKeys(body);
+const allMarkdown = entries.map(e => e.sanitized).join('\n');
+const keys = bibKeys(allMarkdown);
 console.log(`  cite keys: ${keys.length}`);
 
-if (DRY_RUN) {
-  console.log('\n--dry-run — first 8 atoms:');
-  for (const a of atoms.slice(0, 8)) {
-    console.log(`  [${a.type}] ${a.content.slice(0, 100).replace(/\n/g, '↵')}`);
+if (DRY_RUN || LINT) {
+  if (DRY_RUN) {
+    console.log('\n--dry-run — per-article atom counts:');
+    for (const { title, atoms, artIdx } of entries) {
+      const tc = atoms.reduce((a, { type }) => ({ ...a, [type]: (a[type] || 0) + 1 }), {});
+      console.log(`  [${String(artIdx).padStart(2, '0')}] "${title}" — prose=${tc.prose ?? 0} table=${tc.table ?? 0} iframe=${tc.iframe ?? 0} figure=${tc.figure ?? 0}`);
+    }
+    const dumpPath = '/tmp/candidacy-v2-sanitized.md';
+    await Bun.write(dumpPath, allMarkdown);
+    console.log(`\nFull sanitized body → ${dumpPath}`);
   }
-  const dumpPath = '/tmp/candidacy-v2-sanitized.md';
-  await Bun.write(dumpPath, body);
-  console.log(`\nFull sanitized body → ${dumpPath}`);
+  const issues = lintEntries(entries);
+  if (issues.length) {
+    console.error(`\nLint: ${issues.length} unwrapped directive(s) — add +++ {"type":"..."} wrapper:`);
+    for (const issue of issues) console.error(issue);
+    process.exit(1);
+  }
+  console.log('\nLint: OK');
+  if (DRY_RUN) process.exit(0);
   process.exit(0);
 }
 
-// Auth
+// ── auth ──────────────────────────────────────────────────────────────────────
+
 console.log('\nAuthenticating...');
 const session = await fetch(`${API}/login`, {
   method: 'POST',
@@ -447,101 +482,95 @@ const session = await fetch(`${API}/login`, {
 if (!session) die('Failed to obtain session JWT from /login.');
 HDR = { Authorization: `Bearer ${session}`, 'Content-Type': 'application/json', 'X-ClientName': 'kd-gat-buildv2' };
 
-// Pre-load block cache to minimise round-trips during findOrCreate
 console.log('\nLoading block cache...');
 await loadBlockCache();
 
-// Upsert Reference blocks for all cited bib keys
+// ── references ────────────────────────────────────────────────────────────────
+
 console.log(`\nUpserting ${keys.length} Reference blocks...`);
-const citeMap = {};
 let refCreated = 0, refReused = 0;
 for (const key of keys) {
   const wasInCache = blockCache.has(bibKeyToName(key));
-  citeMap[key] = await pushRef(key);
+  await pushRef(key);
   if (wasInCache) refReused++; else refCreated++;
 }
 console.log(`  References: ${refCreated} created, ${refReused} reused`);
 
-// Find-or-create canonical Article
-console.log('\nFinding/creating Article...');
-const { items: arts } = await api('GET', `/blocks/${PROJECT}?kind=Article`);
-let article = (arts || []).find(a => a.name === ARTICLE_NAME);
-if (article) {
-  console.log(`  found  Article "${ARTICLE_NAME}" (${article.id.block})`);
-} else {
-  article = await api('POST', `/blocks/${PROJECT}`, { kind: 'Article', name: ARTICLE_NAME, title: TITLE });
-  console.log(`  created Article "${ARTICLE_NAME}" (${article.id.block})`);
+// ── per-section Articles ───────────────────────────────────────────────────────
+
+const keepArticles = new Set();
+const keepContent = new Set();
+let totalContentBlocks = 0;
+
+for (const { title, atoms, artIdx } of entries) {
+  const artName = `cand-${String(artIdx).padStart(2, '0')}`;
+  const tc = atoms.reduce((a, { type }) => ({ ...a, [type]: (a[type] || 0) + 1 }), {});
+  console.log(`\n── Article ${artIdx}/${entries.length}: "${title}" ──`);
+  console.log(`   atoms: prose=${tc.prose ?? 0} table=${tc.table ?? 0} iframe=${tc.iframe ?? 0} figure=${tc.figure ?? 0}`);
+
+  const articleId = await findOrCreate('Article', artName, { title });
+  keepArticles.add(articleId);
+
+  const atomRefs = [];
+  const typeCounters = {};
+  for (const atom of atoms) {
+    const n = typeCounters[atom.type] ?? 0;
+    typeCounters[atom.type] = n + 1;
+    const name = atomName(artIdx, atom.type, n);
+    let pmJson;
+    switch (atom.type) {
+      case 'table':  pmJson = gfmTableToPM(atom.content); break;
+      case 'iframe': pmJson = iframeToPM(atom.content);   break;
+      case 'figure': pmJson = figureToPM(atom.content);   break;
+      default:       pmJson = proseToPM(atom.content); break;
+    }
+    if (!pmJson) {
+      console.warn(`   ! skipping ${name}: ${atom.content.slice(0, 60).replace(/\n/g, '↵')}`);
+      continue;
+    }
+    const pmSz = JSON.stringify(pmJson).length;
+    process.stdout.write(`   [${atom.type}] ${name} (${pmSz}b) → `);
+    try {
+      const ref = await pushContent(name, pmJson);
+      atomRefs.push(ref);
+      keepContent.add(ref.blockId);
+      console.log(`${ref.blockId} v${ref.version}`);
+    } catch (e) {
+      console.error(`FAILED: ${e.message.slice(0, 120)}`);
+      console.error(`   content: ${atom.content.slice(0, 120).replace(/\n/g, '↵')}`);
+    }
+  }
+  totalContentBlocks += atomRefs.length;
+
+  // Publish Article version with all atom children in order.
+  const order = [];
+  const childrenPublished = {};
+  const childrenDraft = {};
+  for (const ref of atomRefs) {
+    const cid = `${ref.blockId}-${ref.version}`;
+    order.push(cid);
+    childrenPublished[cid] = { id: cid, src: { project: PROJECT, block: ref.blockId, version: ref.version, draft: null }, style: null };
+    childrenDraft[cid] = { id: cid, src: { project: PROJECT, block: ref.blockId, version: ref.version, draft: ref.editableDraft }, style: null };
+  }
+  await api('POST', `/blocks/${PROJECT}/${articleId}/versions`, { order, children: childrenPublished });
+  const published = await api('GET', `/blocks/${PROJECT}/${articleId}`);
+  console.log(`   Article v${published.latest_version}, ${order.length} children`);
+
+  // Article draft must be created AFTER a published version exists; otherwise
+  // parent=null and the editor refuses to render it.
+  const aDraft = await api('POST', `/drafts/${PROJECT}/${articleId}`, { kind: 'Article', data: { children: {} } });
+  await api('PATCH', `/blocks/${PROJECT}/${articleId}`, { default_draft: aDraft.id.draft });
+  await api('PATCH', `/drafts/${PROJECT}/${articleId}/${aDraft.id.draft}`, { data: { children: childrenDraft } });
+  console.log(`   Article draft ${aDraft.id.draft} bound`);
 }
 
-// Process atoms → named Content blocks
-console.log('\nProcessing atoms...');
-const typeCounters = {};
-const atomRefs = [];
+// ── cleanup ────────────────────────────────────────────────────────────────────
 
-for (const atom of atoms) {
-  const n = typeCounters[atom.type] ?? 0;
-  typeCounters[atom.type] = n + 1;
-  const name = atomName(atom.type, n);
-
-  let pmJson;
-  switch (atom.type) {
-    case 'table':  pmJson = gfmTableToPM(atom.content); break;
-    case 'iframe': pmJson = iframeToPM(atom.content);   break;
-    case 'figure': pmJson = figureToPM(atom.content);   break;
-    default:       pmJson = proseToPM(atom.content); break;
-  }
-
-  if (!pmJson) {
-    console.warn(`  ! skipping ${name} (no PM output): ${atom.content.slice(0, 60).replace(/\n/g, '↵')}`);
-    continue;
-  }
-
-  const pmSz = JSON.stringify(pmJson).length;
-  process.stdout.write(`  [${atom.type}] ${name} (${pmSz}b) → `);
-  try {
-    const ref = await pushContent(name, pmJson);
-    atomRefs.push(ref);
-    console.log(`block ${ref.blockId} v${ref.version}`);
-  } catch (e) {
-    console.error(`FAILED: ${e.message.slice(0, 120)}`);
-    console.error(`  content preview: ${atom.content.slice(0, 120).replace(/\n/g, '↵')}`);
-  }
-}
-
-console.log(`\n  Content blocks written: ${atomRefs.length}`);
-
-// Compose Article version with all atom children in order
-console.log('\nPublishing Article version...');
-const order = [];
-const childrenPublished = {};
-const childrenDraft = {};
-for (const ref of atomRefs) {
-  const cid = `${ref.blockId}-${ref.version}`;
-  order.push(cid);
-  childrenPublished[cid] = { id: cid, src: { project: PROJECT, block: ref.blockId, version: ref.version, draft: null }, style: null };
-  childrenDraft[cid] = { id: cid, src: { project: PROJECT, block: ref.blockId, version: ref.version, draft: ref.editableDraft }, style: null };
-}
-await api('POST', `/blocks/${PROJECT}/${article.id.block}/versions`, { order, children: childrenPublished });
-const published = await api('GET', `/blocks/${PROJECT}/${article.id.block}`);
-console.log(`  Article v${published.latest_version}, ${order.length} children`);
-
-// Wire editable Article default_draft
-// Article draft must be created AFTER a published version exists; otherwise
-// parent=null and the editor refuses to render it.
-console.log('Wiring Article draft...');
-const aDraft = await api('POST', `/drafts/${PROJECT}/${published.id.block}`, { kind: 'Article', data: { children: {} } });
-await api('PATCH', `/blocks/${PROJECT}/${published.id.block}`, { default_draft: aDraft.id.draft });
-await api('PATCH', `/drafts/${PROJECT}/${published.id.block}/${aDraft.id.draft}`, { data: { children: childrenDraft } });
-console.log(`  Article draft ${aDraft.id.draft} bound as default_draft`);
-
-// Cleanup: delete Article/Content blocks not produced by this run
-const keepContent = new Set(atomRefs.map(r => r.blockId));
 console.log('\nCleaning up stale blocks...');
-await deleteOthers('Article', new Set([article.id.block]));
+await deleteOthers('Article', keepArticles);
 await deleteOthers('Content', keepContent);
 
 console.log('\nDone.');
-console.log(`  Project: ${PROJECT}`);
-console.log(`  Article: ${published.id.block}  (v${published.latest_version})`);
-console.log(`  Content: ${atomRefs.length} blocks`);
-console.log('  Editor:  https://editor.curvenote.com (open the project to verify)');
+console.log(`  Project:  ${PROJECT}`);
+console.log(`  Articles: ${entries.length} (one per TOC section)`);
+console.log(`  Content:  ${totalContentBlocks} blocks`);
