@@ -111,6 +111,22 @@ title: Bandit fusion mechanism
 
 ---
 
+## Thesis Argument Structure (GSN)
+
+<!-- TODO: walk through what's done vs what's open. The hollow diamonds are the punch list:
+G1 = coverage void on CAN data (asserted, needs derivation), G3 = Mondrian abstain rate under
+K7 imbalance (asserted, needs empirical bound or mechanism swap), and two composition theorems
+(S-thesis: coverage + compression; S-N02-instance: Mondrian + safety shield + joint apparatus).
+This slide is the segue into Timeline — the diamonds are the work the dissertation closes. -->
+
+```iframe
+src: https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/gsn-thesis.html
+height: 600
+title: kd-gat thesis argument — GSN safety case
+```
+
+---
+
 ## Timeline
 
 <!-- TODO: semester-by-semester plan. Be honest about dependencies (federated work needs federated data). -->

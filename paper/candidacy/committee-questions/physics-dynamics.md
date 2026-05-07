@@ -50,7 +50,7 @@ $$
 
 - **Operating conditions** ($\mathcal{V}_{\text{regime}}$): The bicycle model is only a good approximation inside the linear-tire region — $|\alpha_f|, |\alpha_r| \le 4°$ on dry asphalt. Outside that envelope the residual is model-error-dominated, not attack-dominated [@Chen2024CADD]. This is the knuckleball gate: it catches regime breakdown before the physics branch makes a call it has no business making.
 
-- **Uncertainty** ($\mathcal{V}_{\text{signal}}$, on the cumulative noise covariance from $s_t = h(z_t) + \eta_t$): Tier 1 (DBC) collapses $\Sigma_\eta$ to sensor noise; tier 3 (ByCAN) inflates it by the 80.21% slicing-accuracy bias [@ByCAN] that the Gaussian posterior reading then misrepresents. The gate fires when that inflation makes the confidence number unreliable — not when the signal is noisy, but when the noise model itself is wrong. This is the drift gate.
+- **Uncertainty** ($\mathcal{V}_{\text{signal}}$, on the cumulative noise covariance from $s_t = h(z_t) + \eta_t$): Tier 1 (DBC) collapses $\Sigma_\eta$ to sensor noise; tier 3 (ByCAN) inflates it by the 80.21% slicing-accuracy bias [@bycan_2024] that the Gaussian posterior reading then misrepresents. The gate fires when that inflation makes the confidence number unreliable — not when the signal is noisy, but when the noise model itself is wrong. This is the drift gate.
 
 - **Model fidelity** ($\mathcal{V}_{\text{residual}}$): The gate fires when the residual is implausible _given the regime_, not just large. A large residual in a hard cornering maneuver is expected; the same residual on a straight highway is not. This operationalizes Q2.1's epistemic/aleatoric decomposition at runtime — regime-conditioned plausibility, not absolute magnitude.
 

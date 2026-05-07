@@ -1,4 +1,4 @@
-.PHONY: data validate validate-inputs validate-semantic figures tables site dev dev-myst candidacy-site candidacy-dev candidacy-astro tmlr tmlr-anon preview deploy sync sync-editor bib test all clean watch-tables pre-commit pre-commit-install lint-editor slides speceditor
+.PHONY: data validate validate-inputs validate-semantic validate-gsn gsn gsn-render gsn-figure-data figures tables site dev dev-myst candidacy-site candidacy-dev candidacy-astro tmlr tmlr-anon preview deploy sync sync-editor bib test all clean watch-tables pre-commit pre-commit-install lint-editor slides speceditor
 
 data:
 	uv run python tools/pull_data.py
@@ -13,11 +13,30 @@ validate-inputs: bib
 validate-semantic:
 	cd tools/validate && bun install --silent && bun lint.mjs
 
+# Layer 3 — GSN schema + gap inventory over data/gsn/gsn-dag.yaml.
+# Walks the GSN-conformant graph from C-thesis, validates SupportedBy/InContextOf
+# permitted-target rules, scope counts, and orphan-Strategy detection. Prints
+# the current gap inventory. See data/gsn/DAG.md and GSN_SCHEMA.md.
+validate-gsn gsn:
+	uv run python tools/gsn/walker.py
+
+# Convert gsn-dag.yaml to SvelteFlow-compatible JSON (data/gsn/gsn-flow.json)
+# for inspection / commit. Validates first.
+gsn-render:
+	uv run python tools/gsn/render.py
+
+# Same conversion, written directly into the gsn-thesis figure folder so
+# `make figures` can pick it up. `make figures` depends on this — touching
+# data/gsn/gsn-dag.yaml triggers a fresh figure build.
+gsn-figure-data: data/gsn/gsn-dag.yaml tools/gsn/render.py
+	uv run python tools/gsn/render.py --output interactive/src/figures/diagrams/gsn-thesis/data.json
+
 # Meta: run all validation layers. Single entry point for CI + pre-commit.
-validate: validate-inputs validate-semantic
+validate: validate-inputs validate-semantic validate-gsn
 
 # FIGURE=name builds only one figure. FORCE=1 bypasses the mtime cache.
-figures: data
+# Depends on gsn-figure-data so the gsn-thesis diagram has fresh data.json.
+figures: data gsn-figure-data
 	cd interactive && bun install && FIGURE="$(FIGURE)" FORCE="$(FORCE)" bun run build
 
 tables: data

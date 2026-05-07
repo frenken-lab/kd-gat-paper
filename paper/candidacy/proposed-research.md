@@ -47,7 +47,7 @@ Physics-informed ML encodes physical laws as ODE/PDE residual penalties [@Wu2024
 
 #### PINN architecture and training
 
-The PINN is a compact MLP trained on vehicle dynamics from ByCAN-extracted [@ByCAN] CAN signals plus EKF state estimation. Architecture, training objective, and anomaly score are in [](#tab:pinn-arch); the physics term decomposes as $L_{\text{physics}} = L_{v_x} + L_{v_y} + L_{\dot{\psi}}$, each subterm a bicycle-model ODE residual (full derivation in Appendix [](#app:pinn-physics)).
+The PINN is a compact MLP trained on vehicle dynamics from ByCAN-extracted [@bycan_2024] CAN signals plus EKF state estimation. Architecture, training objective, and anomaly score are in [](#tab:pinn-arch); the physics term decomposes as $L_{\text{physics}} = L_{v_x} + L_{v_y} + L_{\dot{\psi}}$, each subterm a bicycle-model ODE residual (full derivation in Appendix [](#app:pinn-physics)).
 
 +++ {"type": "table"}
 
@@ -245,7 +245,7 @@ where three of the four terms are processing artifacts with distinct exploitable
 Five deliverables operationalise the threat model:
 
 1. **Physics-aware adversarial training.** Generate physically plausible attacks (residuals matching the bicycle model under nominal Pacejka parameters) and adversarial-train the PINN against them. No prior CAN-IDS work uses an adversary that respects vehicle dynamics.
-2. **Slicing-template attestation.** Treat the ByCAN template as a security artefact — signed, version-controlled, validated against OBD-II at deployment. Engineering recommendation absent from [@ByCAN; @Pese2019LibreCAN; @Ozdemir2024IVNSurvey].
+2. **Slicing-template attestation.** Treat the ByCAN template as a security artefact — signed, version-controlled, validated against OBD-II at deployment. Engineering recommendation absent from [@bycan_2024; @Pese2019LibreCAN; @Ozdemir2024IVNSurvey].
 3. **Innovation-sequence monitoring as a fusion-state feature.** Use EKF innovation residuals as an additional feature in the fusion state of [](#subsec:DQN); converts the estimator's internal belief into an attack signal — a single-component change.
 4. **Regime-conditioned plausibility bands.** Replace static $\pm 40°$ bounds with regime-conditioned ones (bounded by $\dot{\psi}$ and $v_x$). No retrain required.
 5. **Empirical stability bounds (no certification claim).** Compute Lipschitz constants on GAT attention against the @zugner2018adversarial perturbation set — empirical stability data shared with [](#subsec:XAI) deliverable 4, not certified robustness. Certified randomised smoothing on graph models is an open area; ISO 26262 ASIL C/D certification is out of dissertation scope.

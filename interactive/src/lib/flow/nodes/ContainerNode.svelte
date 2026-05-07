@@ -9,9 +9,24 @@
   const shape = $derived(data.shape as string | undefined);
   const line = $derived((data.line as 'solid' | 'dashed' | undefined) ?? 'dashed');
   const padding = $derived(data.padding as string | undefined);
-  const isSvgShape = $derived(shape === 'trapezoid-r' || shape === 'trapezoid-l');
-  const borderRadius = $derived(shape === 'rectangle' ? '0' : '10px');
+  const isSvgShape = $derived(
+    shape === 'trapezoid-r' || shape === 'trapezoid-l' || shape === 'parallelogram'
+  );
+  // GSN shapes share ContainerNode: circle / stadium / oval = high border-radius;
+  // parallelogram = SVG polygon (see polygon block below).
+  const borderRadius = $derived(
+    shape === 'rectangle'
+      ? '0'
+      : shape === 'circle' || shape === 'oval'
+        ? '50%'
+        : shape === 'stadium'
+          ? '9999px'
+          : '10px'
+  );
+  // GSN: hollow-diamond decorator on undeveloped Goals/Strategies.
+  const undeveloped = $derived(Boolean(data.undeveloped));
   const skew = 0.05;
+  const xskew = 0.1; // horizontal skew for parallelogram (Strategy)
 </script>
 
 <Handle type="target" position={Position.Left} />
@@ -31,11 +46,16 @@
 >
   {#if isSvgShape && w && h}
     {@const s = h * skew}
+    {@const xs = w * xskew}
     {@const svgH = h + 2 * s}
     {@const pts =
       shape === 'trapezoid-r'
         ? `0,0 ${w},${s} ${w},${h + s} 0,${svgH}`
-        : `0,${s} ${w},0 ${w},${svgH} 0,${h + s}`}
+        : shape === 'trapezoid-l'
+          ? `0,${s} ${w},0 ${w},${svgH} 0,${h + s}`
+          : // parallelogram (GSN Strategy): top and bottom horizontal,
+            // left and right slanted at +xs (top) / 0 (bottom).
+            `${xs},0 ${w},0 ${w - xs},${h} 0,${h}`}
     <svg
       class="shape-svg"
       width={w}
@@ -54,6 +74,10 @@
   {/if}
   {#if data.label}
     <span class="label" style={data.labelStyle as string}>{data.label as string}</span>
+  {/if}
+  {#if undeveloped}
+    <!-- GSN hollow-diamond decorator: signals "claim awaiting further support" -->
+    <span class="undeveloped-mark" aria-label="undeveloped"></span>
   {/if}
 </div>
 
@@ -91,5 +115,20 @@
       -apple-system,
       sans-serif;
     z-index: 1;
+  }
+
+  /* GSN undeveloped decorator — hollow diamond at bottom-center of node.
+     Visually signals "claim awaiting further support" per SCSC GSN v3 §1:2.1.4. */
+  .undeveloped-mark {
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    width: 12px;
+    height: 12px;
+    transform: translateX(-50%) rotate(45deg);
+    background: white;
+    border: 1px solid currentColor;
+    z-index: 2;
+    pointer-events: none;
   }
 </style>

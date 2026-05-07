@@ -91,7 +91,7 @@ For every entry, verified: title, author, year, venue, entry type against CrossR
 | ARMCortexA7 | NOT FOUND | — | ARM technical reference manual; no DOI |
 | AutomotiveEdge | NOT FOUND | — | Cannot identify specific arXiv paper by Stocker/Smajic/Riesen |
 | BlackBoxRisk | NOT FOUND | — | Industry report (Futurum Group); no DOI |
-| ByCAN | `10.1109/jiot.2024.3435833` | CrossRef | None (title has "(CAN)" in published version) |
+| bycan_2024 | `10.1109/jiot.2024.3435833` | CrossRef | None (title has "(CAN)" in published version) |
 | CFGNNExplainer | `10.48550/arXiv.2102.03322` | arXiv | AISTATS 2022; PMLR has no DOI |
 | ClassImbalance | `10.3233/ida-2002-6504` | CrossRef | None |
 | CounterfactualExplainability | NOT FOUND | — | Author mismatch with closest candidate; needs manual check |

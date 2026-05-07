@@ -1,3 +1,24 @@
+/* Figure-height variables. Single source of truth for every iframe height
+   on docs, candidacy, slides, TMLR. Per-figure classes (.tall-figure,
+   .gsn-figure, .slide iframe) read these via var(); media queries can
+   redefine them for narrower viewports or print without touching every
+   selector below. story.css's slide rules use --figure-h-slide with a
+   70vh fallback so standalone slide builds still work without this file. */
+:root {
+  --figure-h-default: 400px;
+  --figure-h-tall: 600px;
+  --figure-h-gsn: 800px;
+  --figure-h-slide: 70vh;
+}
+
+@media print {
+  :root {
+    --figure-h-default: 320px;
+    --figure-h-tall: 480px;
+    --figure-h-gsn: 600px;
+  }
+}
+
 /* article-theme wraps every iframe in a padding-bottom:60% aspect-ratio
    container suited to YouTube embeds. That breaks our content-sized
    figures (forces 60% of body width as height regardless of content,
@@ -14,15 +35,19 @@ div.relative.inline-block:has(> iframe) {
 div.relative.inline-block > iframe {
   position: static !important;
   width: 100% !important;
-  height: 400px !important;
+  height: var(--figure-h-default) !important;
 }
 
-/* Per-figure tall override. Apply with `:class: tall-figure` on the
-   {iframe} directive — article-theme passes the class through to the
-   outer wrapper. Use sparingly for figures that genuinely need >400px
-   even on cross-origin builds where autoResize can't reach. */
+/* Per-figure overrides. Apply with `:class: tall-figure` (or `gsn-figure`)
+   on the {iframe} directive — article-theme passes the class through to
+   the outer wrapper. Use sparingly for figures that genuinely need extra
+   height even on cross-origin builds where autoResize can't reach. */
 .tall-figure div.relative.inline-block > iframe {
-  height: 600px !important;
+  height: var(--figure-h-tall) !important;
+}
+
+.gsn-figure div.relative.inline-block > iframe {
+  height: var(--figure-h-gsn) !important;
 }
 
 /* Algorithm blocks — styled admonitions for pseudocode */

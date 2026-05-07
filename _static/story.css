@@ -49,7 +49,9 @@ html:has(.slide-full) {
 .slide iframe,
 .slide figure {
   width: 100%;
-  height: 70vh;
+  /* Pulled from custom.css's :root when bundled; fallback to 70vh keeps
+     standalone slide builds (without custom.css) working. */
+  height: var(--figure-h-slide, 70vh);
   border: none;
   border-radius: 8px;
 }

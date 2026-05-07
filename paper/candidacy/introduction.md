@@ -103,6 +103,22 @@ axes: Q1 (physics prior competence gates), Q2 (joint calibration apparatus and 2
 Q3 (curriculum and federation perturbations to calibration), Q4 (fusion policy reward proxy and
 bandit confidence radius at deployment).
 
+:::{iframe} https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/gsn-thesis.html
+:label: fig-gsn-thesis
+:width: 100%
+:class: gsn-figure
+Thesis argument as a GSN safety case (Goal Structuring Notation, SCSC v3 2021). Goals
+(rectangles) are claims; Strategies (parallelograms) decompose Goals into sub-claims; Solutions
+(circles) cite evidence; Contexts (stadiums) attach the ASIL / regulatory / dataset
+preconditions K1–K9. Hollow diamonds mark *undeveloped* nodes — work that closes the thesis.
+Three open items remain on the critical path: **G1** the coverage-void claim (N03) needs to be
+derived on CAN data; **G3** the Mondrian abstain-rate bound (N50) needs an empirical envelope
+under K7 imbalance; and the two composition theorems — *S-thesis* (coverage + deployable
+compression at the thesis layer) and *S-N02-instance* (Mondrian + safety shield + joint
+apparatus + abstain bound at the instance layer) — need to be written. Source of truth:
+`data/gsn/gsn-dag.yaml`; render pipeline: `make gsn-figure-data && make figures FIGURE=gsn-thesis`.
+:::
+
 ### Ensemble Architecture
 
 Each expert targets a structurally distinct attack surface. GAT captures relational violations
