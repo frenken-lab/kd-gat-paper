@@ -102,7 +102,7 @@ jobs:
         with: { python-version: "3.12" }
       - uses: actions/download-artifact@v4
         with: { name: figures, path: _build/figures/ }
-      - run: pip install pyyaml polars great-tables altair huggingface_hub ipykernel jupyter-server
+      - run: pip install pyyaml polars great-tables altair huggingface_hub ipykernel jupyter-server colloquium
       - name: Build candidacy MyST site
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
@@ -120,7 +120,7 @@ jobs:
           cp _build/figures/*.html _build/html/assets/html/submission/
       - name: Build and copy slides
         run: |
-          uv run python tools/slides/build.py presentations/candidacy.md _build/slides
+          python tools/slides/build.py presentations/candidacy.md _build/slides
           mkdir -p _build/html/slides
           cp _build/slides/candidacy.html _build/html/slides/
       - uses: actions/configure-pages@v4
