@@ -1,4 +1,4 @@
-.PHONY: data validate validate-inputs validate-semantic figures tables site dev dev-myst candidacy-site candidacy-dev candidacy-astro tmlr tmlr-anon preview deploy sync sync-editor bib test all clean watch-tables pre-commit pre-commit-install lint lint-sync lint-editor slides
+.PHONY: data validate validate-inputs validate-semantic figures tables site dev dev-myst candidacy-site candidacy-dev candidacy-astro tmlr tmlr-anon preview deploy sync sync-editor bib test all clean watch-tables pre-commit pre-commit-install lint-editor slides
 
 data:
 	uv run python tools/pull_data.py
@@ -141,13 +141,3 @@ pre-commit-install:
 
 pre-commit:
 	pre-commit run --all-files
-
-# Prose lint — Vale + MLPaper rules (STYLE.md §3 R4 + §4 B1-B8) + proselint + write-good.
-# Install Vale: https://vale.sh/docs/install (binary; brew/scoop/apt). First run needs `make lint-sync`.
-lint:
-	@command -v vale >/dev/null 2>&1 || { echo "vale not found. Install: https://vale.sh/docs/install"; exit 1; }
-	vale paper/content/ paper/candidacy/
-
-lint-sync:
-	@command -v vale >/dev/null 2>&1 || { echo "vale not found. Install: https://vale.sh/docs/install"; exit 1; }
-	vale sync

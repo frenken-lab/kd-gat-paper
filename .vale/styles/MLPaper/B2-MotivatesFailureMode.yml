@@ -1,9 +1,0 @@
-extends: existence
-message: "STYLE.md B2 — self-justifying. The reader can connect problem to solution; do not foreclose."
-link: paper/STYLE.md
-level: warning
-ignorecase: true
-tokens:
-  - 'exactly the failure mode that motivates'
-  - 'precisely the failure mode'
-  - 'the failure mode that motivates'

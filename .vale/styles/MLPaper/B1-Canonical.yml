@@ -1,9 +1,0 @@
-extends: existence
-message: "STYLE.md B1 — '%s' is academic puffery. Usually means 'standard' or 'most-cited'; both are usually deletable."
-link: paper/STYLE.md
-level: warning
-ignorecase: true
-tokens:
-  - 'the canonical \w+'
-  - 'canonical decomposition'
-  - 'canonical formulation'

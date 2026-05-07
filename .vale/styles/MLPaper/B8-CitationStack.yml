@@ -1,7 +1,0 @@
-extends: existence
-message: "STYLE.md B8 — five-or-more citation stack. Citation laundering: looks like evidence, isn't. Each citation should carry a distinct claim."
-link: paper/STYLE.md
-level: warning
-# Match a stack of 5+ Pandoc-style cites: [@a; @b; @c; @d; @e] (with possible flags).
-tokens:
-  - '\[@[\w:-]+(?:\s*;\s*@[\w:-]+){4,}\]'

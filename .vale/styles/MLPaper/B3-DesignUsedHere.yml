@@ -1,9 +1,0 @@
-extends: existence
-message: "STYLE.md B3 — self-promotion in answer to a substantive question. Reframe without marketing."
-link: paper/STYLE.md
-level: warning
-ignorecase: true
-tokens:
-  - 'directly motivates the (design|approach|method) used here'
-  - 'the framework already exposes'
-  - 'our (framework|approach|method) (already )?(provides|offers|exposes)'

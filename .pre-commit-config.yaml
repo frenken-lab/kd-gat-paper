@@ -54,12 +54,3 @@ repos:
         entry: bash -c 'cd interactive && bunx prettier --check src/'
         files: '^interactive/src/'
         pass_filenames: false
-
-      # Vale prose lint — STYLE.md §3 R4 + §4 B1-B8 codified under .vale/styles/MLPaper/.
-      # Skip silently if vale isn't installed (OSC login node, fresh clone before
-      # `make lint-sync`). CI installs vale and runs `make lint`.
-      - id: vale
-        name: vale (prose lint)
-        language: system
-        entry: bash -c 'command -v vale >/dev/null 2>&1 && vale "$@" || true' --
-        files: '^paper/(content|candidacy)/.*\.md$'

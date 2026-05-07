@@ -1,0 +1,18 @@
+version: 1
+project:
+  title: candidacy
+  description: ''
+  github: https://github.com/frenken-lab/kd-gat-paper
+  authors:
+    - userId: Yp1WiFdZgofofhtHJN8vR6sOz4r2
+      nameParsed:
+        literal: Robert Frenken
+        given: Robert
+        family: Frenken
+      name: Robert Frenken
+      corresponding: false
+      roles: []
+      affiliations: []
+      id: contributors-generated-uid-0
+  id: CrQIZM9ggj9JPO6OwSMX
+  remote: CrQIZM9ggj9JPO6OwSMX

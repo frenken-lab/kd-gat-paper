@@ -1,9 +1,0 @@
-extends: existence
-message: "STYLE.md B5 — corporate-speak. Anthropomorphism without payoff."
-link: paper/STYLE.md
-level: warning
-ignorecase: true
-tokens:
-  - 'communicates? \w+ honestly'
-  - 'honestly to downstream consumers?'
-  - 'downstream consumers?'
