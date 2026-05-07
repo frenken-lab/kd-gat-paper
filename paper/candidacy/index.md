@@ -7,4 +7,4 @@ abstract: |
 
 This report presents the current framework for robust intrusion detection on the Controller Area Network (CAN) bus and outlines proposed research extensions. The [Introduction](candidacy/introduction.md) motivates the work through three deployment challenges and details both current contributions and proposed extensions. Subsequent sections cover the [background](content/background.md), [methodology](content/methodology.md), [experimental setup](content/experiments.md), [results](content/results.md), [ablation studies](content/ablation.md), and [explainability analysis](content/explainability.md). [Proposed Research](candidacy/proposed-research.md) details five research directions, and the report concludes with a [broader impact](candidacy/broader-impact.md) assessment and [discussion](content/conclusion.md).
 
-[Candidacy talk slides](pathname:///slides/candidacy.html) are available as a standalone presentation.
+[Candidacy talk slides](https://frenken-lab.github.io/kd-gat-paper/slides/candidacy.html) are available as a standalone presentation.
