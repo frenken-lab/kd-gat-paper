@@ -108,15 +108,17 @@ div.relative.inline-block > iframe {
   color: #0066cc;
 }
 
-/* Expand body content into the vacated right outline column (hide_outline: true).
-   book-theme uses article-grid; the outline track (body-outset-end → page-inset-end)
-   exists in the grid template whether or not anything occupies it — tracks don't
-   collapse when empty. Double-class selector (0,0,2,0) beats the article-grid
-   default col-body assignment (0,0,1,0). Scoped to article.article-grid so it
-   targets only the inner content article, not the outer <main class="article-grid">. */
+/* Expand body content to fill the vacated right columns (hide_outline: true).
+   book-theme grid: body-outset-end → page-inset-end is the outline column (208px at
+   1440px); page-inset-end → page-end is the gutter between outline and page margin.
+   Both are empty when hide_outline: true — extend to page-end to reclaim both tracks.
+   Measured at 1440px: sidebar left=49px (page-start), content right lands at 1391px,
+   leaving ~49px right margin — symmetric with the left page margin. Double-class
+   selector (0,0,2,0) beats the article-grid default col-body (0,0,1,0). Scoped to
+   article.article-grid to target only the inner content article. */
 @media (min-width: 1024px) {
   article.article-grid > *:not(.col-screen) {
-    grid-column-end: page-inset-end;
+    grid-column-end: page-end;
   }
 }
 
