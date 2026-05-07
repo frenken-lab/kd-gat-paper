@@ -1055,6 +1055,11 @@ test = [
     { name = "pytest" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "ipykernel" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "altair", marker = "extra == 'notebooks'", specifier = ">=5" },
@@ -1073,6 +1078,9 @@ requires-dist = [
     { name = "vl-convert-python", marker = "extra == 'notebooks'" },
 ]
 provides-extras = ["test", "notebooks"]
+
+[package.metadata.requires-dev]
+dev = [{ name = "ipykernel", specifier = ">=7.2.0" }]
 
 [[package]]
 name = "lark"

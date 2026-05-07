@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "bun build.js",
+    "build:widget": "vite build --config vite.config.widget.js",
     "preview": "vite preview",
     "test": "vitest run --config vitest.config.ts",
     "lint": "eslint src",
