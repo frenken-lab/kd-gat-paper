@@ -1,16 +1,15 @@
 ---
 title: KD-GAT — Candidacy Talk
 author: Robert Frenken
-institution: The Ohio State University
+date: "2026"
 bibliography: paper/references/own.bib
-figure_captions: false
 ---
 
 # KD-GAT
 
 ### Adaptive Fusion of Graph-Based Ensembles for Automotive Intrusion Detection
 
-Robert Frenken · Candidacy · 2026
+Robert Frenken · The Ohio State University · Candidacy · 2026
 
 ---
 

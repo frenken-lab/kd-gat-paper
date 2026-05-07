@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
-"""Build HTML tables from raw CSVs + YAML spec.
+"""Build HTML + GFM tables from raw CSVs + YAML spec.
 
 Reads tools/tables/spec.yaml, loads each CSV with polars, merges literature
-baselines, applies formatting + per-cell highlighting, writes
-_build/tables/{name}.md as great-tables HTML.
+baselines, applies formatting + per-cell highlighting. Writes two files
+per table to _build/tables/:
 
-Distill (TMLR Beyond PDF), the MyST site, and curve.space all render raw
-HTML tables, so a single render path covers every consumer. The TMLR
-serializer (tools/tmlr/build.mjs) copies these files through verbatim.
+  {name}.md      great-tables HTML — for the MyST site, curve.space deploy,
+                 and TMLR serializer (which copies through verbatim).
+  {name}.gfm.md  GFM markdown table — for the curvenote editor pusher
+                 (tools/curvenote/build.mjs), which can't push raw HTML
+                 because @curvenote/schema's mdast→PM parser has no handler
+                 for the `html` token. The GFM form maps to PM `table` /
+                 `table_row` / `table_cell` nodes natively.
 
 Usage:
     uv run python tools/tables/build.py
@@ -29,8 +33,8 @@ STYLES_PATH = ROOT / "styles.yml"
 OUT_DIR = ROOT / "_build" / "tables"
 
 _styles = yaml.safe_load(STYLES_PATH.read_text())
-FILL_GREEN = _styles["fills"]["green"]    # best-in-column
-FILL_BLUE = _styles["fills"]["blue"]      # near-best (>= 99% of column max)
+FILL_GREEN = _styles["fills"]["green"]  # best-in-column
+FILL_BLUE = _styles["fills"]["blue"]  # near-best (>= 99% of column max)
 ACCENT_BLUE = _styles["palette"]["blue"]  # our-model accent border
 
 
@@ -117,6 +121,46 @@ def render_html_table(
     return gt.as_raw_html() + "\n"
 
 
+def render_gfm_table(
+    df: pl.DataFrame,
+    columns: dict[str, str],
+    formats: dict[str, str],
+    bold_models: set[str],
+    separator_at: int | None,
+) -> str:
+    """GFM markdown table parallel to the HTML render. No fill colors / row
+    groups — markdown can't carry them. Only structure + inline-bold for
+    our-model rows. Used by the curvenote editor pusher; @curvenote/schema's
+    mdast→PM parser handles `table`/`tableRow`/`tableCell` natively, but
+    silently drops raw `<table>` HTML."""
+    if df.is_empty():
+        return "_No data available._\n"
+
+    keys = [k for k in columns if k in df.columns]
+    metric_keys = [k for k in keys if k != "model" and formats.get(k)]
+    decimals = {k: _decimals_from_format(formats[k]) for k in metric_keys}
+
+    def fmt(k: str, v) -> str:
+        if v is None or v == "":
+            return ""
+        if k in metric_keys:
+            try:
+                return f"{float(v):.{decimals[k]}f}"
+            except (ValueError, TypeError):
+                return str(v)
+        return str(v)
+
+    lines = ["| " + " | ".join(columns[k] for k in keys) + " |"]
+    lines.append("| " + " | ".join("---" for _ in keys) + " |")
+    for row in df.iter_rows(named=True):
+        is_ours = row.get("model") in bold_models
+        cells = [fmt(k, row.get(k)) for k in keys]
+        if is_ours:
+            cells = [f"**{c}**" if c else c for c in cells]
+        lines.append("| " + " | ".join(cells) + " |")
+    return "\n".join(lines) + "\n"
+
+
 def build_table(name: str, spec: dict) -> None:
     source = ROOT / "data" / spec["source"]
     df = load_csv(source)
@@ -144,11 +188,14 @@ def build_table(name: str, spec: dict) -> None:
 
     cols = spec.get("columns", {})
     fmts = spec.get("format", {})
-    out = render_html_table(df, cols, fmts, bold_models, separator_at)
 
-    out_path = OUT_DIR / f"{name}.md"
-    out_path.write_text(out)
-    print(f"  {name}: {df.height} rows -> {out_path.relative_to(ROOT)}")
+    html_path = OUT_DIR / f"{name}.md"
+    html_path.write_text(render_html_table(df, cols, fmts, bold_models, separator_at))
+
+    gfm_path = OUT_DIR / f"{name}.gfm.md"
+    gfm_path.write_text(render_gfm_table(df, cols, fmts, bold_models, separator_at))
+
+    print(f"  {name}: {df.height} rows -> {html_path.relative_to(ROOT)} (+ .gfm.md)")
 
 
 def main() -> None:
