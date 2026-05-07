@@ -23,7 +23,6 @@ df = (
             repo_type="dataset",
         )
     )
-    .to_pandas()
 )
 ```
 
