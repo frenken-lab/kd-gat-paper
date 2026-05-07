@@ -1,5 +1,6 @@
 # Build outputs
 _build/
+tools/speceditor/dist/
 _figures/
 _static/site.bundle.css
 
