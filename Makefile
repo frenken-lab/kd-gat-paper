@@ -1,4 +1,4 @@
-.PHONY: data validate validate-inputs validate-semantic figures tables site dev dev-myst candidacy-site candidacy-dev candidacy-astro tmlr tmlr-anon preview deploy sync sync-editor bib test all clean watch-tables pre-commit pre-commit-install lint lint-sync lint-editor
+.PHONY: data validate validate-inputs validate-semantic figures tables site dev dev-myst candidacy-site candidacy-dev candidacy-astro tmlr tmlr-anon preview deploy sync sync-editor bib test all clean watch-tables pre-commit pre-commit-install lint lint-sync lint-editor slides
 
 data:
 	uv run python tools/pull_data.py
@@ -115,6 +115,9 @@ sync-editor: lint-editor
 lint-editor:
 	cd tools/curvenote && bun install --silent && cd - >/dev/null
 	bun tools/curvenote/buildv2.mjs --lint
+
+slides:
+	uv run python tools/slides/build.py presentations/candidacy.md _build/slides
 
 bib:
 	uv run python tools/validate/inputs/bib.py
