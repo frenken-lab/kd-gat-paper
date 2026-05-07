@@ -102,7 +102,7 @@ jobs:
         with: { python-version: "3.12" }
       - uses: actions/download-artifact@v4
         with: { name: figures, path: _build/figures/ }
-      - run: pip install pyyaml polars great-tables altair huggingface_hub ipykernel jupyter-server colloquium
+      - run: pip install pyyaml polars great-tables altair huggingface_hub ipykernel jupyter-server colloquium anywidget
       - name: Build candidacy MyST site
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
