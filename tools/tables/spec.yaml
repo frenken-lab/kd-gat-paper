@@ -1,7 +1,20 @@
-# Table specifications — defines how raw CSVs become paper tables.
-# Run: python tools/tables/build.py
-# Output: _build/tables/*.md (great-tables HTML, included by content/*.md
-# via {include}; the TMLR serializer copies them through verbatim).
+# Table specifications — defines how raw CSVs (or inline rows) become
+# paper tables.
+#   Run: python tools/tables/build.py
+#   Output: _build/tables/<name>.md (great-tables HTML, included by
+#     content/*.md via {include}; the TMLR serializer copies them through
+#     verbatim).
+#
+# Per-spec flags:
+#   kind: harvey_balls   Categorical coverage matrix from inline `rows`.
+#                        Default (omitted) = numeric path with CSV `source`.
+#   editor: true|false   Default true. When true, build.py also emits
+#                        <name>.gfm.md, which tools/curvenote/buildv2.mjs
+#                        prefers when expanding {include} for the editor
+#                        push (api.curvenote.com's PM schema can't render
+#                        raw HTML). Set false to skip the GFM emit when a
+#                        table doesn't need to round-trip through the
+#                        editor surface.
 
 main_results:
   title: "Test Performance on HCRL Car-Hacking Dataset"
@@ -52,3 +65,45 @@ vgae_threshold:
     value: Value
   format:
     value: "{:.6f}"
+
+# Categorical coverage matrix. Cells take "primary" | "secondary" | "" and
+# render as Unicode glyphs (●/◐) colored per column (one role color per
+# challenge, sourced from styles.yml). Hand-authored data lives inline
+# under `rows:` keyed by row_groups.key; row entries are positional in
+# the `columns:` insertion order, so the column declaration is the row
+# schema.
+contributions:
+  title: "Contributions Addressing Each Fundamental Challenge"
+  label: tbl-contributions
+  kind: harvey_balls
+  columns:
+    contribution: Contribution
+    brittleness: Brittleness
+    resources: Resources
+    explainability: Explainability
+  spanner:
+    label: "Challenge Addressed"
+    over: [brittleness, resources, explainability]
+  row_groups:
+    - {key: current,  label: "Current Framework"}
+    - {key: proposed, label: "Proposed Extensions"}
+    - {key: summary,  label: " "}     # blank-ish header; row carries the name
+  highlight_section: summary
+  # Row entries: [contribution, brittleness, resources, explainability]
+  rows:
+    current:
+      - ["GAT + VGAE Ensemble",                primary,   "",       secondary]
+      - ["Adaptive Fusion (DQN / Bandit)",     primary,   "",       primary  ]
+      - ["Curriculum Learning",                primary,   "",       ""       ]
+      - ["Knowledge Distillation",             "",        primary,  ""       ]
+      - ["Cross-Dataset Evaluation",           secondary, "",       secondary]
+      - ["Attention & Fusion Visualization",   "",        "",       primary  ]
+    proposed:
+      - ["PINN Physics Module",                primary,   "",       primary  ]
+      - ["CWD Temporal Detector",              primary,   "",       ""       ]
+      - ["Intelligent KD (Scaling Laws)",      "",        primary,  ""       ]
+      - ["Advanced XAI (LIME, SHAP, TCAV)",    secondary, "",       primary  ]
+      - ["Cross-Domain Validation",            primary,   "",       secondary]
+    summary:
+      - ["Integrated Framework",               primary,   primary,  primary  ]
+

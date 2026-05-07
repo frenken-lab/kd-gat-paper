@@ -4,9 +4,10 @@ version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
     "anywidget>=0.11.0",
-    "bibtexparser",
+    "bibtexparser>=2.0.0b9",  # tools/validate/inputs/bib.py uses the v2 API (Library, parse_file, fields_dict)
     "colloquium>=0.2.1",
     "great-tables>=0.16",
+    "gt-extras>=0.0.8",
     "huggingface-hub>=1.12.0",
     "polars",
     "pyyaml",

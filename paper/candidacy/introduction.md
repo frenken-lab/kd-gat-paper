@@ -4,139 +4,122 @@ title: "Introduction"
 
 ## Introduction
 
-Modern vehicles rely on networks of electronic control units (ECUs) to manage everything from engine functions to advanced driver assistance systems (ADAS). Communication between ECUs is typically handled by the Controller Area Network (CAN) protocol, valued for its reliability and cost-effectiveness in in-vehicle networks (IVNs). However, CAN lacks built-in security mechanisms like encryption and authentication, as it was designed under the assumption of a closed, isolated network. With the introduction of on-board diagnostics (OBD) ports and wireless connectivity (e.g., Wi-Fi, cellular, V2X), access to the CAN bus has expanded significantly, opening new attack surfaces. Attacks may now originate from both physical interfaces (OBD-II, USB) and remote channels (Bluetooth, mobile networks), allowing adversaries to inject malicious messages and potentially disrupt or take control of safety-critical vehicle systems.
-
-To counter these threats, intrusion detection systems (IDS) for CAN have become an area of active research. Traditional IDS approaches fall into two main categories: packet-based and window-based methods. Packet-based IDSs analyze individual CAN messages for quick detection, but cannot capture context or correlations across packets, limiting their effectiveness against complex attacks such as spoofing or replay. Window-based IDSs consider sequences of packets, enabling better detection of such attack patterns, but often face challenges with detection delays and performance under low-volume or replay attacks. Recent efforts address these limitations with statistical approaches using graph models, advanced machine learning techniques such as deep convolutional neural networks (DCNNs), and lightweight classifiers. Other studies leverage temporal or dynamic graph features for high-accuracy detection of diverse attack types. Despite strong results---for example, graph neural network (GNN) and variational autoencoder (VAE)-based systems achieving over 97% accuracy---key challenges remain that prevent real-world deployment.
+Modern vehicles expose their Controller Area Network (CAN) bus to external attack surfaces through
+OBD-II ports, Bluetooth, cellular, and V2X interfaces. CAN was designed without encryption or
+authentication; injected messages are indistinguishable from legitimate traffic at the protocol
+level. Intrusion detection systems (IDS) for CAN are a necessary defense layer. Despite GNN- and
+VAE-based systems achieving over 97% accuracy in controlled settings, three deployment failures
+block real-world adoption and remain jointly unsolved.
 
 ### Motivation: The Deployment Gap
 
-CAN intrusion detection reveals a fundamental tension in adversarial learning: high accuracy on known attack types often correlates with brittle generalization to diverse, imbalanced, and resource-constrained settings. We identify three core challenges that motivate our work:
+Each failure is a form of miscalibration of model confidence under shifted or boundary-adjacent
+inputs — a framing that determines what counts as a solution.
 
-**Challenge 1: Model Brittleness---No Single Model Captures All Attack Patterns.** A critical vulnerability in current IDS design is the "specialist weakness" phenomenon: individual deep learning models achieve high accuracy on known attacks but are vulnerable to unseen attack types or attacks focusing on a structural weakness of a model's architecture [@OODFailures; @OODSurvey; @OODDetection]. Different attacks exploit distinct vulnerabilities requiring different detection mechanisms. Structural anomalies (e.g., message flooding) require relational awareness, where graph-based approaches excel, but can miss isolated point anomalies [@Islam]. Behavioral anomalies (e.g., signal spoofing) require learning normal signal distributions with methods such as autoencoders, but struggle with coordinated attacks [@VGAE]. Temporal anomalies (e.g., replay attacks) require understanding state transitions, which neither method alone can fully capture [@Han]. Additionally, severe class imbalance (benign-to-attack ratios of 36:1 to 927:1) compounds this problem. While weighted loss functions improve overall accuracy, they fail on minority classes when models lack diversity [@ClassImbalance; @RareEventDetection]. Single models cannot overcome this without excessive overfitting; heterogeneous ensembles with complementary inductive biases naturally handle rare events better [@EnsembleLearning].
+**Brittleness** is label- and input-conditional miscalibration: class-conditional confidence
+collapses on minority attack classes (36:1 to 927:1 imbalance), and no single inductive bias is
+competent across all attack surfaces simultaneously. Structural anomalies require relational
+awareness (GAT); distributional anomalies require generative topology modeling (VGAE); temporal
+anomalies require cross-window reasoning (CWD); physical implausibility requires dynamics
+grounding (PINN). A model with only one of these biases produces systematically miscalibrated
+confidence on the attack types it was not designed for [@OODFailures; @EnsembleLearning].
 
-**Challenge 2: Resource Constraints---Models Must Fit on Embedded Devices.** Models developed under academic research using GPU-scaling need to significantly downsize to meet the limited onboard resources of production vehicles. Automotive gateways allocate $<$50W total power (IDS: $<$100mW), use ARM Cortex-A7/A53 processors with 256--512 MB RAM, and require $<$50--100ms latency for real-time response [@EdgeComputing; @AutomotiveEdge; @IVNRealtimeConstraints]. Recent surveys on edge AI for autonomous vehicles document this deployment gap: while research achieves state-of-the-art accuracy, practical deployment requires 10--100x model compression without acceptable accuracy loss [@EdgeComputing; @AutomotiveEdge; @MLSystemsBook].
+**Resource constraint** is capacity-gap miscalibration: the viable teacher-student compression
+ratio is not a free parameter but a function of task complexity [@Busbridge2025]. The hardware
+budget — ARM Cortex-A7/A53, under 100mW, 50–100ms latency — fixes the student ceiling at ~173K
+parameters. A 68× compression ratio sits inside the feasible region for binary CAN detection but
+would fall outside it for fine-grained attack typing. This cannot be corrected post-hoc.
 
-**Challenge 3: Model Opaqueness---Black-Box Models Reduce Trust and Adoption.** Highly accurate models face systematic rejection in safety-critical systems because users cannot understand or verify decisions. ISO 26262 (automotive functional safety) mandates verification and validation of safety-critical functions [@ISO26262Part1; @ISO26262SafetyCase]. IDS functions typically receive ASIL C/D classification, requiring comprehensive verification of failure modes, where black-box AI models on their own cannot satisfy [@ISO26262SafetyCase]. The NIST AI Risk Management Framework explicitly requires explainability as a core characteristic of trustworthy AI [@NISTAIRisk]. Beyond regulation, industry adoption faces the "trust paradox": organizations systematically choose less accurate but interpretable models over superior black-box alternatives [@Trustworthiness; @ModelInterpretability; @TrustAI]. Users like fleet operators must be able to audit unexplained decisions or distinguish genuine alerts from noise. A model that has low transparency will decrease adoption rates in industry settings [@BlackBoxRisk].
+**Opacity** is input- and cross-process miscalibration: confidence is high but unverifiable,
+either because the input falls outside the apparatus's qualified regime or because independent
+experts contradict each other without a principled tie-break. ISO 26262 ASIL C/D mandates
+verifiable failure-mode analysis; black-box models cannot satisfy it [@ISO26262Part1]. Industry
+adoption compounds this: operators choose interpretable models over accurate opaque ones even at
+accuracy cost [@Trustworthiness].
 
-These three challenges are often addressed independently. This work takes the position that these challenges are *interdependent*: an ensemble that adaptively fuses complementary experts can be more robust (through diverse inductive biases), more efficient (through knowledge distillation scaled to hardware constraints), and more interpretable (through learned weighting patterns and component-level analysis) than a single monolithic model.
+These three failures are interdependent because their calibration mechanisms share an input space.
+Calibrating brittleness, resource constraint, and opacity independently — on separate data splits,
+with separate mechanisms — allows a conformal abstain rule and a drift detector to simultaneously
+fire and suppress on the same sample, voiding operational coverage at the decision boundary under
+a novel attack. The joint fix requires fitting all trust thresholds on the same held-out
+natural-distribution split against a single operational rejection bound.
 
 ### Technical Approach
 
-To address these challenges, we propose a multi-stage graph neural network (GNN)-based framework that combines a Variational Graph Autoencoder (VGAE) for unsupervised anomaly detection with a Graph Attention Network (GAT) for supervised attack classification. A fusion agent---evaluated as both a Deep Q-Network (DQN) and a Neural-LinUCB contextual bandit---learns to adaptively weight these experts on a per-sample basis, selecting the most informative representation for each message context. Each ensemble component (GAT, VGAE, fusion) is individually distilled into a lightweight student model via knowledge distillation, while a curriculum learning training strategy improves robustness under severe class imbalance.
-
-Key design decisions reflect this framing:
-
-1. **Complementary Experts**: VGAE excels at detecting structural deviations and out-of-distribution anomalies (robustness to unknown attacks), while GAT excels at learning message-level relationships and fine-grained classification (high accuracy on known attacks). Their combination mitigates the single-model brittleness problem.
-
-2. **Sample-Specific Fusion**: Rather than fixed static fusion (e.g., averaging), the fusion agent learns when each expert is most reliable. We evaluate both a DQN and a Neural-LinUCB contextual bandit for this role. The adaptive weighting improves accuracy on imbalanced datasets and provides interpretability: the learned policy reveals which expert dominates for each attack type, enabling operators to understand model behavior.
-
-3. **Hardware-Aware Knowledge Distillation**: The ensemble is distilled into a student model using logit-level and latent-space KD, achieving a $\sim$20$\times$ parameter reduction (designed from automotive hardware constraints) while retaining detection performance. This principled compression bridges the gap between high-accuracy models and resource-constrained automotive gateways.
-
-4. **Curriculum Learning for Imbalance**: Progressive curriculum transitions from balanced to imbalanced sampling, improving minority-class recall without sacrificing overall performance---critical for rare-attack detection in practice.
+We propose a heterogeneous multi-expert ensemble (GAT + VGAE, extended to PINN + CWD) with a
+learned fusion policy (DQN or Neural-LinUCB bandit), hardware-aware knowledge distillation, and
+curriculum learning. The GAT+VGAE branch reads raw CAN bytes independently of the physics
+estimation chain — _channel orthogonality_ — so inter-branch disagreement is diagnostic rather
+than correlated noise. The fusion policy learns per-sample expert weights; the distilled student
+is sized jointly with the hardware budget; calibration is applied jointly across all trust
+mechanisms on a single split.
 
 ### Current Contributions
 
-The main contributions of this research are as follows:
+1. **Multi-Expert Ensemble**: GAT + VGAE with complementary inductive biases, outperforming
+   single-model and averaging baselines on class-imbalanced CAN data.
 
-1. **Robust Multi-Expert Ensemble**: We propose a two-stage framework combining VGAE and GAT with complementary strengths. VGAE performs unsupervised representation learning and anomaly scoring, while GAT refines attack classification. This combination demonstrates superior performance on class-imbalanced datasets compared to single-model or simple averaging approaches.
+2. **Adaptive Fusion (DQN + Neural-LinUCB)**: Sample-specific fusion weights, with the bandit
+   formulation suited to per-window independent classification. Learned policies provide
+   interpretability through weighting-pattern visualization.
 
-2. **Adaptive Decision-Level Fusion**: Unlike static fusion strategies, we introduce both a DQN-based policy and a Neural-LinUCB contextual bandit that learn sample-specific weights for VGAE and GAT, enabling graceful degradation and principled model selection. The bandit formulation is particularly suited to CAN IDS since each graph window is classified independently. The learned policies provide interpretability through visualization of weighting patterns across attack types and model inputs.
+3. **Hardware-Aware Knowledge Distillation**: ~20× parameter reduction to ARM Cortex-A7/A53
+   constraints while retaining detection performance.
 
-3. **Hardware-Aware Knowledge Distillation**: We develop a resource-aware KD pipeline scaled to automotive hardware constraints (ARM Cortex-A7/A53, 256--512MB RAM, 100mW power budget), achieving $\sim$20$\times$ parameter reduction while retaining strong detection performance. This principled approach to model compression bridges the research-to-practice deployment gap.
+4. **Curriculum Learning for Class Imbalance**: Progressive curriculum improving minority-class
+   recall at 927:1 imbalance without overall accuracy loss.
 
-4. **Curriculum Learning for Class Imbalance**: We design a curriculum that progressively increases class imbalance during training, improving recall on minority attack classes without sacrificing overall accuracy. Experiments demonstrate particular gains on highly imbalanced datasets (927:1 benign-to-attack ratios).
-
-5. **Comprehensive Cross-Dataset Evaluation**: We conduct extensive experiments on six publicly available CAN intrusion datasets, including the newly released can-train-and-test benchmark. Our results demonstrate consistent improvements over prior graph-based methods and strong generalization across diverse vehicle platforms and attack types [@Lampe2024cantrainandtest].
+5. **Cross-Dataset Evaluation**: Six public CAN datasets including can-train-and-test
+   [@Lampe2024cantrainandtest], with consistent generalization across vehicle platforms.
 
 ### Proposed Extensions
 
-Building on the current framework, we propose the following extensions to address remaining open challenges:
+Building on the current framework, the dissertation proposes:
 
-6. **Physics-Informed Anomaly Validation ([](#subsec:PINN)):** An optional PINN module as an ensemble component that validates physical feasibility of vehicle state. Provides inherent explainability via physics constraint violations, improves learning with deep learning methods, and maintains graceful degradation when dynamics are unavailable.
+6. **PINN Physics Module**: Nonlinear bicycle model (Pacejka tire forces) as a fourth expert,
+   providing physically-grounded anomaly scores and interpretable constraint-violation explanations.
 
-7. **Modular Ensemble Scaling ([](#subsec:DQN)):** Extension of adaptive fusion (DQN or contextual bandit) from two experts (GAT+VGAE) to four experts (GAT+VGAE+PINN+CWD), with graceful operation when one or more models are unavailable at inference.
+7. **Four-Expert Adaptive Fusion**: Scaling the simplex fusion policy from N=2 to N=4 experts
+   with a continuous-simplex actor, resolving the K^N action-space blowup at discrete grid size.
 
-8. **Intelligent Knowledge Distillation ([](#subsec:IntelKD)):** Incorporation of automotive hardware constraints and scaling law principles to intelligently design both teacher and student models.
+8. **Intelligent Knowledge Distillation**: Teacher-student design governed by the capacity-gap
+   law, with teacher-assistant chains when the compression ratio exceeds the feasible region.
 
-9. **Advanced Explainable AI ([](#subsec:XAI)):** Integration of reliable techniques like LIME [@Ribeiro2016LIME] and SHAP [@SHAP], alongside an exploration of recent XAI research including counterfactual analysis [@CounterfactualExplainability], concept activation vectors (TCAV) [@TCAV], and prototype-based learning [@PrototypeLearning].
+9. **Advanced XAI**: 2×2 confidence × explainer-agreement diagnostic (SHAP + CF-GNNExplainer)
+   composing with the conformal abstain into a stricter selective-prediction rule.
 
-10. **Cross-Domain Generalization ([](#subsec:CrossD)):** Validation on other network IDS datasets and environments, proving domain-agnostic effectiveness of the framework approach beyond the automotive domain.
+10. **Cross-Domain Validation**: One out-of-domain stress test (SWaT SCADA) to validate the
+    graph-IDS-with-physics-prior pattern beyond automotive CAN.
 
-+++ {"type": "table"}
+### The Methodological Thesis
 
-:::{table} Contributions Addressing each Fundamental Problem
-:label: tab:contributions
+The thesis-level contribution is an **operational rejection bound**: a distribution-free,
+class-conditional conformal coverage guarantee on the PINN-active input subset, composing the
+PINN composite trust score $\lambda_{\text{physics}}(s_t)$ with Mondrian conformal prediction.
+This bound is novel because it requires joint calibration — fitting the physics trust gates,
+fusion policy thresholds, and conformal predictor on the same held-out split — which the field
+does not currently do. The four committee question domains stress-test the apparatus on its four
+axes: Q1 (physics prior competence gates), Q2 (joint calibration apparatus and 2×2 diagnostic),
+Q3 (curriculum and federation perturbations to calibration), Q4 (fusion policy reward proxy and
+bandit confidence radius at deployment).
 
-| **Contribution** | **Brittleness** | **Resources** | **Explainability** |
-|---|---|---|---|
-| *Current Framework* | | | |
-| GAT + VGAE Ensemble | ◉ | | ◐ |
-| Adaptive Fusion (DQN / Bandit) | ◉ | | ◉ |
-| Curriculum Learning | ◉ | | |
-| Knowledge Distillation | | ◉ | |
-| Cross-Dataset Evaluation | ◐ | | ◐ |
-| Attention & Fusion Visualization | | | ◉ |
-| *Proposed Extensions* | | | |
-| PINN Physics Module | ◉ | | ◉ |
-| CWD Temporal Detector | ◉ | | |
-| Intelligent KD (Scaling Laws) | | ◉ | |
-| Advanced XAI (LIME, SHAP, TCAV) | ◐ | | ◉ |
-| Cross-Domain Validation | ◉ | | ◐ |
-| **Integrated Framework** | ◉ | ◉ | ◉ |
+### Ensemble Architecture
 
-◉ = primary contribution, ◐ = secondary contribution.
-:::
-
-+++
-
-### The methodological thesis: calibration as the unifying axis
-
-The four committee-question domains — physics-informed dynamics (Q1), interpretability and calibration (Q2), federated optimization (Q3), reinforcement learning (Q4) — appear to address four independent topics. They do not. Each reduces to a calibration question on a different axis. Q1 asks when to trust a physics prior whose competence gates fit to regime, signal, and residual on benign data. Q2 reframes justification failure as one problem with five faces — *Label* (class-conditional miscalibration under imbalance), *Input* (the apparatus is unqualified on this sample), *Cross-process* (orthogonal experts contradict each other), *Bayesian* (an internal estimator's confidence radius is itself uncertain), and *Deployment* (the operating distribution drifts from training). Q3 asks when curriculum and federation push those fits off their training baselines. Q4 asks when a reward proxy and a bandit confidence radius can be trusted at deployment without ground-truth labels. The structural prerequisite that lets these axes share an apparatus is *channel orthogonality* (Q1.2): the data-driven branch reads raw bytes directly, bypassing the physics estimation chain, so inter-branch disagreement is diagnostic rather than correlated noise.
-
-The methodological position is that Q2.1's five failure types, Q1's per-expert competence gates, Q4's bandit UCB radius, and Q4's reward proxy are not separate calibration problems but one apparatus, fit jointly on a single held-out natural-distribution split and recalibrated on one schedule. Fitting them independently — as the field does — lets a conformal abstain rule and a drift detector simultaneously fire and suppress each other on the same input, voiding the operational coverage guarantee where it matters. Q1.1's phase diagram (in/out training × on/off physics surface) localizes the contribution to the bottom-right cell, where neither single prior is qualified and joint arbitration is the only remaining move. The thesis-level contribution is that joint-calibration apparatus; the four committee questions are the axes against which it is stress-tested. Per-axis derivations live in [](committee-questions/index.md) and are referenced from each subsection of [](proposed-research.md).
-
-### Ensemble Architecture: Multi-Expert Model Selection
-
-Automotive anomaly detection requires robust detection across diverse attack vectors distributed across temporal sequences, structural message relationships, payload dynamics, and unknown attack variants. Rather than relying on a single detection paradigm, we design a multi-expert ensemble with adaptive fusion. The current framework implements GAT and VGAE with DQN/bandit-weighted fusion; proposed extensions add PINN and CWD to form a four-expert ensemble. This section justifies each expert selection based on complementary strengths.
-
-1. **Graph Attention Networks (GAT):** Message-ID relationships are crucial; adversarial attacks often exploit inter-node communication patterns. GAT excels at capturing structural anomalies where there are unusual transitions between ECUs. GAT's attention mechanism learns which message pairs are anomalous, providing precision against targeted injection attacks. GAT weaknesses: long time frames.
-2. **Variational Graph Autoencoders (VGAE):** Beyond structure, message frequency distributions and aggregate statistics carry anomaly signals. VGAE operates on the latent generative structure of the message graph, learning a probabilistic model of "normal" CAN topology. Unlike GAT's discriminative attention, VGAE's probabilistic framework excels at detecting out-of-distribution anomalies and unknown attacks. VGAE's weakness: physical grounding, minute structural changes.
-3. **Physics-Informed Neural Networks (PINN):** Vehicle dynamics follow well-understood kinematic and dynamic equations. A PINN trained on bicycle dynamics equations detects attacks violating physical laws. In addition, PINNs provide interpretability and generalization to other vehicle models. Weakness: PINN requires extracted state variables and a valid dynamics model; which may not always be available.
-4. **Cross-Window Temporal Detector (CWD):** Developed in parallel work, the CWD model captures multi-scale temporal anomalies by operating on compact window-level statistics (15-D feature vector) over recent $K$ windows. CWD's transformer attention learns which time windows are anomalous relative to historical context, detecting attacks that may pass individual-window GAT/VGAE checks but create temporal inconsistencies. Weakness: Small structural attacks.
-5. **Adaptive Fusion:** A DQN or contextual bandit learns sample-dependent weights, up-weighting experts based on attack type and signal quality. This adaptive weighting allows experts to contribute in their respective strengths and defer in their respective blind spots.
-
-In summary, each expert targets a distinct attack surface: GAT captures structural violations, VGAE detects distributional anomalies, PINN enforces physical feasibility, and CWD identifies temporal disruptions.
-
-We propose the first unified framework to reconcile the distinct paradigms of graph topology, physical dynamics, and temporal rhythm into a single coherent defense. This synthesis is both robust and trustworthy through explainability. Finally distilling the multi-expert ensemble in its lightweight form bridges the gap between high-performance deep learning and the resource constraints of edge computing.
-
-+++ {"type": "table"}
+Each expert targets a structurally distinct attack surface. GAT captures relational violations
+(ECU message-ID transitions). VGAE detects distributional deviations from learned normal topology.
+PINN enforces physical feasibility via bicycle-model residuals. CWD identifies temporal
+disruptions across windows. No two-expert subset covers all four dimensions, which is the design
+justification for the four-expert ensemble rather than a preference for complexity.
 
 :::{table} Expert Coverage Across Detection Dimensions
 :label: tab:ensemble_experts
 
 | **Expert** | **Status** | **Relational** | **Distributional** | **Temporal** | **Physical** |
-|---|---|---|---|---|---|
-| **GAT** | Current | ◉ | ○ | ○ | — |
-| **VGAE** | Current | ◐ | ◉ | ○ | — |
-| **PINN** | Proposed | ○ | ○ | ◐ | ◉ |
-| **CWD** | Proposed | ○ | ○ | ◉ | — |
+| ---------- | ---------- | -------------- | ------------------ | ------------ | ------------ |
+| **GAT**    | Current    | ◉              | ○                  | ○            | —            |
+| **VGAE**   | Current    | ◐              | ◉                  | ○            | —            |
+| **PINN**   | Proposed   | ○              | ○                  | ◐            | ◉            |
+| **CWD**    | Proposed   | ○              | ○                  | ◉            | —            |
 
-**Dimensions:** Relational = message-ID transition patterns and edge-level attention; Distributional = statistical deviations from learned normal (byte profiles, reconstruction error); Temporal = cross-window sequential patterns (replay, drift, periodicity); Physical = violations of vehicle dynamics constraints.
 ◉ = primary strength, ◐ = partial coverage, ○ = weak, — = not applicable.
 :::
-
-+++
-
-**Emergent properties.** Detection dimensions interact with deployment-relevant properties that cannot be reduced to per-expert ratings. *Generalization to unknown attacks* arises primarily from the distributional and physical dimensions: VGAE flags any deviation from learned normal topology regardless of attack mechanism, while PINN rejects physically infeasible states without requiring attack-specific training. Relational and temporal dimensions are more dependent on training coverage but contribute complementary signals when novel attacks perturb message patterns or timing. *Interpretability* similarly varies by dimension: GAT attention weights and fusion policy weights are directly inspectable, PINN provides physics-grounded explanations via constraint violations, while VGAE's latent-space anomaly scores require post-hoc analysis. The adaptive fusion agent amplifies these properties by learning *which expert to trust* for each sample, providing a decision audit trail that no single expert offers alone.
-
-
-+++ {"type": "figure"}
-
-:::{figure} https://frenken-lab.github.io/kd-gat-paper/assets/images/Framework_Fig.svg
-:label: fig-framework
-:width: 100%
-
-Graph Fusion Framework
-:::
-
-+++

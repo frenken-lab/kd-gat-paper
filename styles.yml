@@ -27,6 +27,11 @@ roles:
   normal: blue # Normal traffic class
   attack: red # Attack traffic class
   attention: purple # Attention mechanism (scores, weights)
+  # Three core deployment challenges (used by tbl-contributions to color the
+  # per-column Harvey balls in tools/tables/build.py kind=harvey_balls).
+  challenge_brittleness: red # robustness failure
+  challenge_resources: green # compute / power constraint
+  challenge_explainability: purple # interpretability
 
 # Light fills (for node backgrounds in diagrams)
 # 15% opacity of the base color over white
