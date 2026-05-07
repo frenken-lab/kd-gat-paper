@@ -11,6 +11,9 @@ F1 macro mean per variant across the KD-GAT ablation groups, pulled live from th
 
 ```{code-cell} python
 :tags: [remove-input]
+import warnings
+warnings.filterwarnings("ignore", message="IProgress not found")
+
 from huggingface_hub import hf_hub_download
 import polars as pl
 import altair as alt
