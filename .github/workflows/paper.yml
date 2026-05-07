@@ -118,6 +118,11 @@ jobs:
         run: |
           mkdir -p _build/html/assets/html/submission
           cp _build/figures/*.html _build/html/assets/html/submission/
+      - name: Build and copy slides
+        run: |
+          uv run python tools/slides/build.py presentations/candidacy.md _build/slides
+          mkdir -p _build/html/slides
+          cp _build/slides/candidacy.html _build/html/slides/
       - uses: actions/configure-pages@v4
       - uses: actions/upload-pages-artifact@v3
         with: { path: _build/html/ }
