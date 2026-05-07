@@ -2,19 +2,20 @@ import pathlib
 
 import ipywidgets as w
 import yaml
-from IPython.display import display
 
 ROLES = ["", "vgae", "gat", "kd", "neutral"]
+_DESC = {"description_width": "auto"}
 
 
-class SpecEditorIPyw:
+class SpecEditorIPyw(w.VBox):
     """ipywidgets-based spec.yaml editor — works on any JupyterLab (no anywidget needed)."""
 
     def __init__(self, spec_path: str | pathlib.Path):
         self._path = pathlib.Path(spec_path)
         self._load_spec()
         self._pending: dict[str, dict] = {}
-        self._build_ui()
+        children = self._build_ui()
+        super().__init__(children=children)
 
     # ------------------------------------------------------------------
     # Internal state
@@ -28,25 +29,37 @@ class SpecEditorIPyw:
     # UI construction
     # ------------------------------------------------------------------
 
-    def _build_ui(self) -> None:
+    def _build_ui(self) -> list:
         comp_ids = list(self._spec.get("components", {}).keys())
 
         # --- component editor ---
         self._comp_sel = w.Dropdown(
-            options=comp_ids, description="Component:", layout=w.Layout(width="320px")
+            options=comp_ids,
+            description="Component:",
+            style=_DESC,
+            layout=w.Layout(width="320px"),
         )
-        self._label_in = w.Text(description="Label:", layout=w.Layout(width="320px"))
+        self._label_in = w.Text(
+            description="Label:",
+            style=_DESC,
+            layout=w.Layout(width="320px"),
+        )
         self._role_sel = w.Dropdown(
-            options=ROLES, description="Role:", layout=w.Layout(width="320px")
+            options=ROLES,
+            description="Role:",
+            style=_DESC,
+            layout=w.Layout(width="320px"),
         )
         self._apply_btn = w.Button(
-            description="Apply", button_style="info", layout=w.Layout(width="90px")
+            description="Apply",
+            button_style="info",
+            layout=w.Layout(width="90px"),
         )
         self._pending_lbl = w.Label("", layout=w.Layout(margin="0 0 0 8px"))
 
         self._comp_sel.observe(self._on_comp_change, names="value")
         self._apply_btn.on_click(self._on_apply)
-        self._on_comp_change(None)
+        self._sync_comp_fields()
 
         comp_section = w.VBox(
             [
@@ -61,10 +74,16 @@ class SpecEditorIPyw:
 
         # --- bridge editor ---
         self._bridge_from = w.Dropdown(
-            options=comp_ids, description="From:", layout=w.Layout(width="220px")
+            options=comp_ids,
+            description="From:",
+            style=_DESC,
+            layout=w.Layout(width="220px"),
         )
         self._bridge_to = w.Dropdown(
-            options=comp_ids, description="To:", layout=w.Layout(width="220px")
+            options=comp_ids,
+            description="To:",
+            style=_DESC,
+            layout=w.Layout(width="220px"),
         )
         self._add_btn = w.Button(description="+ Add", layout=w.Layout(width="70px"))
         self._bridge_rows = w.VBox([])
@@ -87,15 +106,17 @@ class SpecEditorIPyw:
         self._save_btn.on_click(self._on_save)
         self._reload_btn.on_click(self._on_reload)
 
-        self._root = w.VBox(
-            [comp_section, bridge_section, w.HBox([self._save_btn, self._reload_btn, self._status])]
-        )
+        return [
+            comp_section,
+            bridge_section,
+            w.HBox([self._save_btn, self._reload_btn, self._status]),
+        ]
 
     # ------------------------------------------------------------------
     # Component callbacks
     # ------------------------------------------------------------------
 
-    def _on_comp_change(self, _) -> None:
+    def _sync_comp_fields(self) -> None:
         comp_id = self._comp_sel.value
         if not comp_id:
             return
@@ -104,6 +125,9 @@ class SpecEditorIPyw:
         self._label_in.value = pending.get("label", comp.get("label", comp_id))
         role = pending.get("role", comp.get("role", ""))
         self._role_sel.value = role if role in ROLES else ""
+
+    def _on_comp_change(self, change: dict) -> None:
+        self._sync_comp_fields()
 
     def _on_apply(self, _) -> None:
         comp_id = self._comp_sel.value
@@ -132,7 +156,7 @@ class SpecEditorIPyw:
             rm.on_click(lambda _, idx=i: self._remove_bridge(idx))
             rows.append(w.HBox([lbl, rm]))
         self._bridge_rows.children = (
-            rows if rows else [w.Label("No bridges.", layout=w.Layout(color="#aaa"))]
+            rows if rows else [w.HTML('<span style="color: #aaa">No bridges.</span>')]
         )
 
     def _on_add_bridge(self, _) -> None:
@@ -163,7 +187,7 @@ class SpecEditorIPyw:
         self._pending = {}
         self._pending_lbl.value = ""
         self._status.value = "Reloaded."
-        self._on_comp_change(None)
+        self._sync_comp_fields()
         self._refresh_bridges()
 
     def save(self) -> None:
@@ -171,6 +195,3 @@ class SpecEditorIPyw:
 
     def reload(self) -> None:
         self._on_reload(None)
-
-    def _ipython_display_(self, **kwargs) -> None:
-        display(self._root)
