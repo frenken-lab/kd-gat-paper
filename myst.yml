@@ -48,7 +48,7 @@ project:
         - file: paper/content/appendix/figures.md
 
 site:
-  template: article-theme
+  template: book-theme
   options:
     hide_outline: true
     style: _static/custom.css

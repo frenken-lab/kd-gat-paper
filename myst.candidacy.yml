@@ -58,7 +58,7 @@ project:
     - file: paper/candidacy/appendix-combined.md
 
 site:
-  template: article-theme
+  template: book-theme
   options:
     hide_outline: true
     # article-theme declares `style: <file>` (singular). Plural `css:` is

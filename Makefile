@@ -37,7 +37,7 @@ dev:
 dev-myst:
 	myst start
 
-# Bundled stylesheet for the candidacy site. article-theme's `style:` option
+# Bundled stylesheet for the candidacy site. book-theme's `style:` option
 # only takes one file; we concat our two source CSS files into a single
 # bundle so curvenote/scms picks them up.
 _static/site.bundle.css: _static/custom.css _static/story.css
