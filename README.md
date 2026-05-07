@@ -4,7 +4,7 @@ MyST Markdown paper with interactive SveltePlot figures. Three build targets fro
 
 | Target        | Config               | Output                   | Deployed to                                                 |
 | ------------- | -------------------- | ------------------------ | ----------------------------------------------------------- |
-| **Paper**     | `myst.yml`           | TMLR Distill-layout site | CI artifact (anonymous submission zip)                      |
+| **Paper**     | `myst.yml`           | TMLR Distill-layout site | Built locally via `make tmlr` (CI build suppressed)         |
 | **Candidacy** | `myst.candidacy.yml` | Superset report (web)    | [GitHub Pages](https://frenken-lab.github.io/kd-gat-paper/) |
 
 The candidacy build includes all paper content plus extended sections (introduction, CWD background, proposed research, broader impact, physics appendix).
@@ -63,8 +63,7 @@ paper/references/   data/csv/   interactive/src/
 | [Bun](https://bun.sh) | JS runtime + package manager (replaces Node + npm; runs all builds, dev servers, and tests) | `curl -fsSL https://bun.sh/install \| bash` |
 | Docker | TMLR Jekyll preview (`make preview`) | https://docs.docker.com/get-docker/ |
 | [overmind](https://github.com/DarthSim/overmind) | optional — drives `make dev` (5-process orchestrator) | `go install github.com/DarthSim/overmind/v2@latest` |
-| [entr](https://eradman.com/entrproject/) | optional — table + lint watchers used by `make dev` | `apt install entr` / `brew install entr` |
-| [Vale](https://vale.sh) | optional — prose lint (`make lint`) | https://vale.sh/docs/install |
+| [entr](https://eradman.com/entrproject/) | optional — table watcher used by `make dev` | `apt install entr` / `brew install entr` |
 
 The Bun installer adds `~/.bun/bin` to your PATH on the line it prints — open a new shell or `source` that line before continuing.
 
@@ -77,15 +76,9 @@ cd interactive && bun install      # Figure dependencies (Svelte, Vite, SveltePl
 cd ../tools/tmlr && bun install    # TMLR serializer dependencies (mdast-util-to-markdown, chokidar)
 ```
 
-First run creates `interactive/bun.lockb` and `tools/tmlr/bun.lockb`. **Commit those lockfiles.** Existing `package-lock.json` files can be removed once `bun.lockb` is in place across machines.
+First run creates `interactive/bun.lock` and `tools/tmlr/bun.lock`. **Commit those lockfiles.**
 
-### 3. (Optional) Install Vale styles
-
-```bash
-make lint-sync   # Downloads remote Vale style packages used by .vale.ini
-```
-
-### 4. Verify
+### 3. Verify
 
 ```bash
 make test        # Runs the TMLR serializer test suite (29 tests, ~200 ms)
@@ -95,10 +88,10 @@ make site        # Builds the paper site into _build/site/
 
 If `make test` fails with `bun: command not found`, the Bun installer didn't extend your PATH — open a fresh shell or `source ~/.bashrc`.
 
-### 5. Day-to-day
+### 4. Day-to-day
 
 ```bash
-make dev         # Five-process dev loop (myst + figures + tables + vale + Distill preview)
+make dev         # Four-process dev loop (myst + figures + tables + Distill preview)
                  # Requires overmind + entr; falls back to instructions if missing.
 make dev-myst    # Just myst start (when overmind isn't available)
 ```
@@ -117,7 +110,6 @@ make dev            # Orchestrated dev (overmind): myst + vite (figures HMR) + t
 make dev-myst       # Myst only (prose live reload; iframes hit prod URLs); when overmind isn't installed
 make tmlr           # Build TMLR Beyond PDF submission (into tmlr_do_not_modify/)
 make tmlr-anon      # Build anonymous TMLR submission (into kit)
-make submission-zip # Flat anonymous submission.zip for OpenReview upload
 
 # Candidacy build
 make candidacy-site # Build candidacy report site
@@ -196,17 +188,16 @@ Data flows from the [KD-GAT](https://github.com/frenken-lab/KD-GAT) evaluation a
 | Target                                                       | What                            | How                                             |
 | ------------------------------------------------------------ | ------------------------------- | ----------------------------------------------- |
 | [GitHub Pages](https://frenken-lab.github.io/kd-gat-paper/) | Candidacy report (MyST site)    | `myst build --html` + `deploy-pages` in CI      |
-| TMLR submission                                              | Anonymous self-contained folder | `tools/tmlr/build.mjs`, uploaded as CI artifact |
+| TMLR submission                                              | Anonymous self-contained folder | `make tmlr` locally — not built in CI           |
 
-Figures require iframe isolation (Svelte apps need `<script>` execution). The candidacy site hosts figures via GitHub Pages URLs (iframes). The TMLR build rewrites all iframe paths to `assets/html/submission/` so no external URLs leak into the anonymous submission.
+Figures require iframe isolation (Svelte apps need `<script>` execution). The candidacy site hosts figures via GitHub Pages URLs (iframes). The TMLR build (when run locally) rewrites all iframe paths to `assets/html/submission/` so no external URLs leak into the anonymous submission.
 
 ## CI Pipeline
 
 ```
 validate (schemas + bib)
-  └─ figures (Svelte build)
-       ├─ build (MyST → Distill → tmlr-submission artifact)
-       └─ deploy-pages (MyST candidacy → GitHub Pages)
+test (interactive vitest)
+  └─ figures (Svelte build) → deploy-pages (MyST candidacy → GitHub Pages)
 ```
 
-All jobs run on `ubuntu-latest`. Figures are shared across downstream jobs via artifacts.
+All jobs run on `ubuntu-latest`. Figures are shared across downstream jobs via artifacts. TMLR submission build is suppressed in CI — run `make tmlr` locally when needed.

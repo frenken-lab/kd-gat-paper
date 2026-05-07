@@ -31,9 +31,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
-        with: { bun-version: latest }
+        with: { bun-version: 1.3.13 }
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
+      - uses: astral-sh/setup-uv@v3
+        with: { version: "0.10.4" }
 
       # Build tables before work push — `{include} _build/tables/<n>.md`
       # directives in candidacy markdown resolve at myst-build time, and
@@ -42,8 +44,8 @@ jobs:
       # local build: candidacy iframes use absolute GitHub Pages URLs.
       - name: Build tables
         run: |
-          pip install pyyaml polars great-tables
-          python tools/tables/build.py
+          uv sync --frozen
+          uv run python tools/tables/build.py
 
       # Activate candidacy config — same swap pattern as candidacy-site
       # in paper.yml. With project.id already in myst.candidacy.yml, work

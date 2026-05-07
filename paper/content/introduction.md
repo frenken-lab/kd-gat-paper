@@ -4,46 +4,50 @@ title: "Introduction"
 
 ## Introduction
 
-Modern vehicles rely on networks of electronic control units (ECUs) to manage everything from engine functions to advanced driver assistance systems (ADAS). Communication between ECUs is typically handled by the Controller Area Network (CAN) protocol, valued for its reliability and cost-effectiveness in in-vehicle networks (IVNs). However, CAN lacks built-in security mechanisms like encryption and authentication, as it was designed under the assumption of a closed, isolated network. With the introduction of on-board diagnostics (OBD) ports and wireless connectivity (e.g., Wi-Fi, cellular, V2X), access to the CAN bus has expanded significantly, opening new attack surfaces. Attacks may now originate from both physical interfaces (OBD-II, USB) and remote channels (Bluetooth, mobile networks), allowing adversaries to inject malicious messages and potentially disrupt or take control of safety-critical vehicle systems.
+Modern vehicles expose their Controller Area Network (CAN) bus to external attack surfaces through
+OBD-II ports, Bluetooth, cellular, and V2X interfaces. CAN was designed without encryption or
+authentication; injected messages are indistinguishable from legitimate traffic at the protocol
+level, and a successful attack can disrupt safety-critical ECU functions. Intrusion detection
+systems (IDS) for CAN are therefore a necessary defense layer, but three properties required for
+deployment remain jointly unsolved in the literature.
 
-To counter these threats, intrusion detection systems (IDS) for CAN have become an area of active research. Traditional IDS approaches fall into two main categories: packet-based and window-based methods. Packet-based IDSs analyze individual CAN messages for quick detection, but cannot capture context or correlations across packets, limiting their effectiveness against complex attacks such as spoofing or replay. Window-based IDSs consider sequences of packets, enabling better detection of such attack patterns, but often face challenges with detection delays and performance under low-volume or replay attacks. Recent efforts address these limitations with statistical approaches using graph models, advanced machine learning techniques such as deep convolutional neural networks (DCNNs), and lightweight classifiers. Other studies leverage temporal or dynamic graph features for high-accuracy detection of diverse attack types. Despite strong results---for example, graph neural network (GNN) and variational autoencoder (VAE)-based systems achieving over 97% accuracy---key challenges remain that prevent real-world deployment.
+**No single model covers the attack surface.** Structural anomalies (flooding) require relational
+awareness; distributional anomalies (spoofing) require generative modeling of normal topology;
+temporal anomalies (replay) require cross-window state reasoning. No architecture addresses all
+three, and severe class imbalance (36:1 to 927:1) compounds the failure: aggregate accuracy hides
+per-class miscalibration on the minority attack classes that matter most.
 
-### Motivation: The Deployment Gap
+**Models must fit on embedded hardware.** Automotive gateways allocate under 100mW to IDS
+functions on ARM Cortex-A7/A53 processors with 256–512 MB RAM and a 50–100ms latency budget.
+Research-grade models require 10–100× compression to reach this envelope, and compression cannot
+be applied post-hoc without principled teacher-student design.
 
-CAN intrusion detection reveals a fundamental tension in adversarial learning: high accuracy on known attack types often correlates with brittle generalization to diverse, imbalanced, and resource-constrained settings. We identify three core challenges that motivate our work:
+**Black-box models are not deployable.** ISO 26262 assigns ASIL C/D to IDS functions, requiring
+verifiable failure-mode analysis that black-box models cannot satisfy. Industry adoption compounds
+this: operators systematically prefer interpretable models over more accurate opaque ones.
 
-**Challenge 1: No Single Model Captures All Attack Patterns.** Different attacks exploit distinct vulnerabilities requiring different detection mechanisms. Structural anomalies (e.g., message flooding) require relational awareness, where graph-based approaches excel, but can miss isolated point anomalies. Distributional anomalies (e.g., signal spoofing) require learning normal signal distributions, where autoencoders succeed, but struggle with coordinated attacks. Moreover, CAN traffic is heavily class-imbalanced, with malicious frames occurring rarely (ratios of 36:1 to 927:1 across datasets), leading to biased models and poorly calibrated predictions. Single models cannot overcome this without excessive overfitting; heterogeneous ensembles with complementary inductive biases naturally handle rare events better.
-
-**Challenge 2: Models Must Fit on Embedded Devices.** Automotive gateways operate under strict resource constraints: typically ARM Cortex-A7/A53 processors with 256--512 MB RAM, power budgets of ${\sim}100$ mW allocated to IDS, and latency requirements of 50--100ms for real-time response. Academic research operates at GPU scale with models exceeding millions of parameters, but practical deployment requires architectures orders of magnitude smaller. This resource-efficiency challenge is often treated as secondary in the research literature, but represents a critical barrier to real-world adoption.
-
-**Challenge 3: Black-Box Models Reduce Trust and Adoption.** Highly accurate models face systematic rejection in safety-critical systems because operators cannot understand or verify decisions. ISO 26262 automotive functional safety mandates verification and validation of safety-critical functions, where IDS functions typically receive ASIL C--D classification. Black-box AI models alone cannot satisfy this requirement. Beyond regulation, industry adoption faces a trust paradox: organizations systematically choose less accurate but interpretable models over superior black-box alternatives.
-
-These three challenges are often addressed independently. This work takes the position that these challenges are *interdependent*: an ensemble that adaptively fuses complementary experts can be more robust (through diverse inductive biases), more efficient (through knowledge distillation scaled to hardware constraints), and more interpretable (through learned weighting patterns and component-level analysis) than a single monolithic model.
-
-### Technical Approach
-
-To address these challenges, we propose a multi-stage graph neural network (GNN)-based framework that combines a Variational Graph Autoencoder (VGAE) for unsupervised anomaly detection with a Graph Attention Network (GAT) for supervised attack classification. A Deep Q-Network (DQN) learns to adaptively weight these experts on a per-sample basis, selecting the most informative representation for each message context. The ensemble is distilled into a lightweight student model suitable for embedded deployment via knowledge distillation, while a curriculum learning training strategy improves robustness under severe class imbalance.
-
-Key design decisions reflect this framing:
-
-1. **Complementary Experts**: VGAE excels at detecting structural deviations and out-of-distribution anomalies (robustness to unknown attacks), while GAT excels at learning message-level relationships and fine-grained classification (high accuracy on known attacks). Their combination mitigates the single-model brittleness problem.
-
-2. **Sample-Specific Fusion**: Rather than fixed static fusion (e.g., averaging), the DQN learns when each expert is most reliable. This adaptive weighting improves accuracy on imbalanced datasets and provides interpretability: the learned policy reveals which expert dominates for each attack type, enabling operators to understand model behavior.
-
-3. **Hardware-Aware Knowledge Distillation**: The ensemble is distilled into a student model using logit-level and latent-space KD, achieving a ${\sim}20\times$ parameter reduction (designed from automotive hardware constraints) while retaining detection performance. This principled compression bridges the gap between high-accuracy models and resource-constrained automotive gateways.
-
-4. **Curriculum Learning for Imbalance**: Progressive curriculum transitions from balanced to imbalanced sampling, improving minority-class recall without sacrificing overall performance---critical for rare-attack detection in practice.
+We propose a multi-expert ensemble — GAT for relational anomalies, VGAE for distributional
+anomalies — with a DQN fusion policy that learns per-sample expert weights, hardware-aware
+knowledge distillation, and curriculum learning for class imbalance. The key claim is that these
+three properties are not independently optimizable: the fusion policy's learned weights provide
+interpretability only if the underlying experts have complementary rather than correlated
+inductive biases, and the distilled student retains detection performance only if teacher capacity
+is designed jointly with the hardware budget.
 
 ### Contributions
 
-The main contributions of this research are as follows:
+1. **Multi-Expert Ensemble**: GAT + VGAE with complementary inductive biases, demonstrating
+   superior performance on class-imbalanced CAN datasets over single-model and averaging baselines.
 
-1. **Robust Multi-Expert Ensemble**: We propose a two-stage framework combining VGAE and GAT with complementary strengths. VGAE performs unsupervised representation learning and anomaly scoring, while GAT refines attack classification. This combination demonstrates superior performance on class-imbalanced datasets compared to single-model or simple averaging approaches.
+2. **Adaptive Fusion via DQN**: Sample-specific fusion weights learned by a DQN policy, providing
+   both accuracy gains on imbalanced data and interpretability through learned weighting patterns.
 
-2. **Adaptive Decision-Level Fusion via DQN**: Unlike static fusion strategies, we introduce a DQN-based policy that learns sample-specific weights for VGAE and GAT, enabling graceful degradation and principled model selection. The learned policy provides interpretability through visualization of weighting patterns across attack types and model inputs.
+3. **Hardware-Aware Knowledge Distillation**: KD pipeline scaled to ARM Cortex-A7/A53 constraints,
+   achieving ~20× parameter reduction while retaining detection performance.
 
-3. **Hardware-Aware Knowledge Distillation**: We develop a resource-aware KD pipeline scaled to automotive hardware constraints (ARM Cortex-A7/A53, 256--512MB RAM, 100mW power budget), achieving ${\sim}20\times$ parameter reduction while retaining strong detection performance. This principled approach to model compression bridges the research-to-practice deployment gap.
+4. **Curriculum Learning for Imbalance**: Progressive curriculum from balanced to natural sampling,
+   improving minority-class recall at 927:1 imbalance ratios.
 
-4. **Curriculum Learning for Class Imbalance**: We design a curriculum that progressively increases class imbalance during training, improving recall on minority attack classes without sacrificing overall accuracy. Experiments demonstrate particular gains on highly imbalanced datasets (927:1 benign-to-attack ratios).
-
-5. **Comprehensive Cross-Dataset Evaluation**: We conduct extensive experiments on six publicly available CAN intrusion datasets, including the newly released can-train-and-test benchmark. Our results demonstrate consistent improvements over prior graph-based methods and strong generalization across diverse vehicle platforms and attack types [@Lampe2024cantrainandtest].
+5. **Cross-Dataset Evaluation**: Experiments on six public CAN datasets including
+   can-train-and-test [@Lampe2024cantrainandtest], demonstrating consistent generalization across
+   vehicle platforms and attack types.

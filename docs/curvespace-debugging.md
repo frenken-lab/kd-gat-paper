@@ -89,6 +89,6 @@ Each layer revealed a new gate. The right way to debug this is to inspect the CD
 
 ## When to escape curve.space
 
-If you need anything beyond what scms exposes — custom CSS that actually loads, presentation layouts, custom routes, JS bundles, full-bleed pages, anything that fights scms's article-prose layout — the cheapest exit is to deploy a static site to a host that serves flat files (Cloudflare Pages, GitHub Pages, Netlify). The `tools/site/` directory has a minimal Astro scaffold for exactly this case: it consumes the same `_build/site/content/*.json` AST artifacts and emits flat HTML deployable anywhere. See `tools/site/README.md`.
+If you need anything beyond what scms exposes — custom CSS that actually loads, presentation layouts, custom routes, JS bundles, full-bleed pages, anything that fights scms's article-prose layout — the cheapest exit is to deploy a static site to a host that serves flat files (Cloudflare Pages, GitHub Pages, Netlify). The `_build/site/content/*.json` AST artifacts are the input; render them with whatever generator suits (Astro, Eleventy, a hand-rolled walker).
 
 Trade-off: you lose `make sync` / the Curvenote web editor. If nobody actually uses the editor, no loss.

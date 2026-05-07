@@ -13,21 +13,41 @@ Robert Frenken · The Ohio State University · Candidacy · 2026
 
 ---
 
+<!-- columns: 3 -->
+
 ## Motivation
 
-<!-- TODO: stakes opener — CAN bus problem, what's at risk, why now. Pull from candidacy/introduction.md "Motivation: The Deployment Gap". Land on the pain: lab models that won't survive deployment. -->
+```box
+title: Single Model Brittleness:
+tone: accent
+content: |
+  - “specialist weakness” phenomenon: individual deep learning models achieve high accuracy on known attacks but are vulnerable to unseen attack types or attacks focusing on a structural weakness of a model’s architecture
+```
+
+|||
+
+```box
+title: Resource Contraints:
+tone: accent
+content: |
+  - Models developed under academic research using GPU-scaling need to significantly downsize to meet the limited onboard resources of production vehicles
+  - ARM Cortex processors require <<50--100ms latency
+```
+
+|||
+
+```box
+title: Model Opaqueness:
+tone: accent
+content: |
+  -  Highly accurate models face systematic rejection in safety-critical systems because users cannot understand or verify decisions
+```
 
 ---
 
-## The Problem: Graph-Based IDS on CAN
+## CAN Bus Network
 
-<!-- TODO: current framework — VGAE anomaly detector + GAT classifier. What works, where it breaks under deployment shift. -->
-
-```iframe
-src: https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/graph-base.html
-height: 480
-title: Graph base — CAN bus graph structure
-```
+![CAN Bus Network](CAN_BUS.svg)
 
 ---
 
@@ -50,6 +70,36 @@ src: https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/architect
 height: 480
 title: Full architecture diagram
 ```
+
+---
+
+---
+
+## Ablation Results
+
+<!-- TODO: Pull results from graphids empirical docs (quick) later do "pure" pull from hugging face -->
+
+- content table here
+
+---
+
+---
+
+## Main Results
+
+<!-- TODO:  -->
+
+- content table here
+
+---
+
+---
+
+## Dimensionality (UMAP) Analysis
+
+<!-- TODO: Pull results from graphids empirical docs (quick) later do "pure" pull from hugging face -->
+
+- content table here
 
 ---
 

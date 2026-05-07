@@ -2,7 +2,7 @@
 
 MyST paper: "Adaptive Fusion of Graph-Based Ensembles for Automotive IDS". Two build targets from the same source tree:
 
-- **Paper** (`myst.yml`): TMLR submission → CI artifact only
+- **Paper** (`myst.yml`): TMLR submission → built locally with `make tmlr` (CI build suppressed)
 - **Candidacy** (`myst.candidacy.yml`): Superset report → GitHub Pages via `myst build --html`
 
 The candidacy TOC includes all paper content plus `paper/candidacy/` extensions (merged introduction, CWD background, proposed research, broader impact, PINN appendix). Both builds share figures, tables, and references.
@@ -18,7 +18,7 @@ The candidacy TOC includes all paper content plus `paper/candidacy/` extensions 
 | Tables                | **spec.yaml** + `tools/tables/build.py`     | Declarative table specs, booktabs-style, literature baselines                                      |
 | Validation schemas    | **`data/schemas.yaml`**                     | Single source of truth for both export and pull validation                                         |
 | TMLR export           | **AST serializer** (`tools/tmlr/build.mjs`) | mdast-util-to-markdown defaults + Distill overrides (cite, iframe, image, container, admonition)   |
-| CI/CD                 | **GitHub Actions**                          | validate → figures → deploy-pages (candidacy → GitHub Pages) + build (TMLR artifact)               |
+| CI/CD                 | **GitHub Actions**                          | validate → figures → deploy-pages (candidacy → GitHub Pages). TMLR build suppressed in CI; run locally. |
 
 ## Key Commands
 
@@ -33,7 +33,6 @@ make dev-myst      # myst start alone (no figure HMR, no table watcher) — fall
 make tmlr          # Build TMLR submission directly into tmlr_do_not_modify/
 make tmlr-anon     # Build anonymous TMLR submission (into kit, for review-check)
 make preview       # Build submission + Jekyll preview via Docker
-make submission-zip # Flat anonymous submission.zip for OpenReview upload
 make candidacy-site # myst build --site --config myst.candidacy.yml (superset)
 make candidacy-dev  # myst start --config myst.candidacy.yml (live reload)
 make sync          # Pull Curvenote editor changes into paper/from-editor/ (DESTRUCTIVE — see "Editor sync")
@@ -59,7 +58,7 @@ KD-GAT eval artifacts
 | Target               | What                                      | How                                                |
 | -------------------- | ----------------------------------------- | -------------------------------------------------- |
 | **GitHub Pages**     | Candidacy report (MyST site, superset)    | `myst build --html` + `deploy-pages` in CI (config-swap to `myst.candidacy.yml`) |
-| **TMLR submission**  | Self-contained folder (anonymous)         | `tools/tmlr/build.mjs` in CI, uploaded as artifact |
+| **TMLR submission**  | Self-contained folder (anonymous)         | `make tmlr` locally (CI build suppressed)          |
 | **Curvenote editor** | Edit on web → `make sync` to pull changes | Manual (`curvenote pull`)                          |
 
 Figures require iframe isolation (Svelte apps need `<script>` execution). Content files use absolute GitHub Pages URLs for iframes; the TMLR build rewrites all iframe paths to `assets/html/submission/` via `_h_iframe` (extracts filename, rebuilds as relative) — no external URLs leak into the anonymous submission. CI sets `BASE_URL: /${{ github.event.repository.name }}` so MyST resolves assets correctly at the `/kd-gat-paper` subpath.
@@ -82,7 +81,7 @@ One-way pull: edits authored on curvenote.com flow back into `paper/from-editor/
 - Edit content on `editor.curvenote.com`.
 - `make sync` — runs `bunx curvenote pull --yes` from inside `paper/from-editor/`. **DESTRUCTIVE** in scope: overwrites files in `paper/from-editor/`, leaves the rest of the repo alone. Refuses to run on a dirty working tree; commit or stash first.
 
-**Local → remote push** uses `tools/curvenote/push.mjs`, which talks directly to api.curvenote.com (`/blocks` + `/drafts/.../steps` + `/blocks/<A>/versions` with a body). The curvenote CLI's `work push` does NOT do this — it pushes to the public CDN as a Work snapshot, which is a different object that doesn't surface in the editor. The editor reads Block content from a different store, and the only path is the API.
+**Local → remote push** uses `tools/curvenote/buildv2.mjs`, which talks directly to api.curvenote.com (`/blocks` + `/drafts/.../steps` + `/blocks/<A>/versions` with a body). The curvenote CLI's `work push` does NOT do this — it pushes to the public CDN as a Work snapshot, which is a different object that doesn't surface in the editor. The editor reads Block content from a different store, and the only path is the API.
 
 **Critical API gotchas** (every one of these silently produces blank-rendered articles when you get it wrong):
 
@@ -92,7 +91,7 @@ One-way pull: edits authored on curvenote.com flow back into `paper/from-editor/
 4. **Merging a Content draft empties `data.content`** (it moves into the version). To keep an editable surface after publishing, create a new draft: `POST /drafts/<P>/<C>` returns a fresh draft with `parent: 1` that inherits v1's PM JSON. Wire the Article child's `src.draft` at this fresh draft, not the merged one.
 5. The `client` field on steps must be an `int` (not a UUID/string). 42 is fine.
 
-`tools/curvenote/push.mjs` encodes all five. Don't reinvent — extend it.
+`tools/curvenote/buildv2.mjs` encodes all five. Don't reinvent — extend it.
 
 ## Schema Convention
 

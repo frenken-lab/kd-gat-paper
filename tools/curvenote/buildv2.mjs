@@ -13,9 +13,7 @@
  *   bun tools/curvenote/buildv2.mjs --dry-run    # assemble + stats, no network
  */
 
-const DRY_RUN = process.argv.slice(2).includes('--dry-run');
-const LINT = process.argv.slice(2).includes('--lint');
-
+import { parseArgs } from 'node:util';
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -30,22 +28,20 @@ const die = (m) => { console.error(m); process.exit(1); };
 
 // ── config ────────────────────────────────────────────────────────────────────
 
-const TOKEN = process.env.CURVENOTE_TOKEN;
-if (!TOKEN && !DRY_RUN) die('CURVENOTE_TOKEN env var required (source ~/.env.local).');
+function loadConfig() {
+  const editorYml = resolve(REPO_ROOT, 'paper/from-editor/curvenote.yml');
+  if (!existsSync(editorYml)) die(`Missing ${editorYml}.\nRun: bunx -y curvenote@0.14.3 clone <project-url> paper/from-editor/`);
+  const project = yaml.load(readFileSync(editorYml, 'utf8'))?.project?.id;
+  if (!project) die(`No project.id in ${editorYml}.`);
 
-const FROM_EDITOR_YML = resolve(REPO_ROOT, 'paper/from-editor/curvenote.yml');
-if (!existsSync(FROM_EDITOR_YML)) die(`Missing ${FROM_EDITOR_YML}.\nRun: bunx -y curvenote@0.14.3 clone <project-url> paper/from-editor/`);
-const PROJECT = yaml.load(readFileSync(FROM_EDITOR_YML, 'utf8'))?.project?.id;
-if (!PROJECT) die(`No project.id in ${FROM_EDITOR_YML}.`);
-
-const CANDIDACY_YML = resolve(REPO_ROOT, 'myst.candidacy.yml');
-if (!existsSync(CANDIDACY_YML)) die(`Missing ${CANDIDACY_YML}.`);
-const cfg = yaml.load(readFileSync(CANDIDACY_YML, 'utf8'));
-const TOC = cfg?.project?.toc;
-const TITLE = cfg?.project?.title || 'Candidacy';
-if (!TOC) die(`No project.toc in ${CANDIDACY_YML}.`);
-
-console.log(`Project: ${PROJECT}  (${TITLE})`);
+  const candidacyYml = resolve(REPO_ROOT, 'myst.candidacy.yml');
+  if (!existsSync(candidacyYml)) die(`Missing ${candidacyYml}.`);
+  const cfg = yaml.load(readFileSync(candidacyYml, 'utf8'));
+  const toc = cfg?.project?.toc;
+  const title = cfg?.project?.title || 'Candidacy';
+  if (!toc) die(`No project.toc in ${candidacyYml}.`);
+  return { project, toc, title };
+}
 
 // ── pure layer ────────────────────────────────────────────────────────────────
 
@@ -320,93 +316,6 @@ function lintEntries(entries) {
   return issues;
 }
 
-// ── effectful layer ───────────────────────────────────────────────────────────
-
-let HDR;
-
-async function api(method, path, body) {
-  const opts = { method, headers: HDR };
-  if (body !== undefined) opts.body = JSON.stringify(body);
-  const r = await fetch(`${API}${path}`, opts);
-  if (!r.ok) {
-    const t = await r.text();
-    throw new Error(`${method} ${path} → ${r.status} ${t.slice(0, 400)}`);
-  }
-  if (r.status === 204) return null;
-  return r.json();
-}
-
-// One-time cache of existing Content + Reference blocks by name, loaded after auth.
-let blockCache = null;
-
-async function loadBlockCache() {
-  if (blockCache) return;
-  blockCache = new Map();
-  for (const kind of ['Content', 'Reference']) {
-    try {
-      // limit=500 to avoid truncation on large projects; API default may be ~100
-      const { items } = await api('GET', `/blocks/${PROJECT}?kind=${kind}&limit=500`);
-      for (const b of (items || [])) {
-        if (b.name) blockCache.set(b.name, { id: b.id.block, kind });
-      }
-    } catch { /* non-fatal */ }
-  }
-  console.log(`  Block cache loaded: ${blockCache.size} named blocks`);
-}
-
-async function findOrCreate(kind, name, extra = {}) {
-  if (blockCache?.has(name)) return blockCache.get(name).id;
-  try {
-    const b = await api('POST', `/blocks/${PROJECT}`, { kind, name, ...extra });
-    blockCache?.set(name, { id: b.id.block, kind });
-    return b.id.block;
-  } catch (e) {
-    if (!e.message.includes('422')) throw e;
-    // Block already exists (name conflict) but wasn't in the initial cache.
-    // Re-fetch with a high limit to locate it.
-    const { items } = await api('GET', `/blocks/${PROJECT}?kind=${kind}&limit=500`);
-    const found = (items || []).find(b => b.name === name);
-    if (!found) throw new Error(`findOrCreate: 422 but "${name}" not found in ${kind} list`);
-    blockCache?.set(name, { id: found.id.block, kind });
-    return found.id.block;
-  }
-}
-
-async function pushReplaceStep(blockId, draftId, pmJson) {
-  const draft = await api('GET', `/drafts/${PROJECT}/${blockId}/${draftId}`);
-  const state = server.getEditorState('full', draft.data?.content, 0);
-  const step = {
-    stepType: 'replace',
-    from: 0,
-    to: state.doc.content.size,
-    slice: { content: pmJson.content },
-  };
-  await api('POST', `/drafts/${PROJECT}/${blockId}/${draftId}/steps`, {
-    client: 42,
-    version: draft.next_step,
-    steps: [step],
-  });
-}
-
-// Create or reuse a named Content block, push pmJson as a new version.
-// Returns {blockId, version, editableDraft} for use in Article composition.
-// Throws on non-500 errors; on 500 (server-side rejection) logs PM size and rethrows.
-async function pushContent(name, pmJson) {
-  const blockId = await findOrCreate('Content', name);
-  const draft = await api('POST', `/drafts/${PROJECT}/${blockId}`, { kind: 'Content' });
-  try {
-    await pushReplaceStep(blockId, draft.id.draft, pmJson);
-  } catch (e) {
-    const sz = JSON.stringify(pmJson).length;
-    console.error(`  PM JSON size: ${sz} chars`);
-    throw e;
-  }
-  await api('POST', `/drafts/${PROJECT}/${blockId}/${draft.id.draft}/merge`, { version: 0 });
-  const block = await api('GET', `/blocks/${PROJECT}/${blockId}`);
-  const editable = await api('POST', `/drafts/${PROJECT}/${blockId}`, { kind: 'Content' });
-  return { blockId, version: block.latest_version, editableDraft: editable.id.draft };
-}
-
 // Normalize a bib key to a valid Curvenote block name.
 // Pattern: /^[a-z0-9]{1}[a-z0-9-]{1,48}[a-z0-9]{1}$/ (3-50 chars).
 function bibKeyToName(key) {
@@ -414,44 +323,208 @@ function bibKeyToName(key) {
   return `ref-${slug || 'unknown'}`;
 }
 
-// Find-or-create a Reference block for a bib key. Returns "oxa:PROJECT/BLOCK".
-// Uses the original key as the block title for human readability.
-async function pushRef(key) {
-  const name = bibKeyToName(key);
-  const blockId = await findOrCreate('Reference', name, { title: key });
-  return `oxa:${PROJECT}/${blockId}`;
+function assembleEntries(toc) {
+  return toc.map((entry, i) => {
+    const { title, markdown } = assembleEntry(entry);
+    const sanitized = sanitize(markdown);
+    const atoms = chunkProse(parseBlocks(sanitized));
+    return { entry, title, sanitized, atoms, artIdx: i + 1 };
+  });
 }
 
-async function deleteOthers(kind, keep) {
-  const { items } = await api('GET', `/blocks/${PROJECT}?kind=${kind}&limit=500`);
-  const targets = (items || []).filter(b => !keep.has(b.id.block));
-  if (!targets.length) { console.log(`  ${kind}: nothing to delete`); return; }
-  let ok = 0;
-  for (const b of targets) {
-    try { await api('DELETE', `/blocks/${PROJECT}/${b.id.block}`); ok++; } catch (e) {
-      console.warn(`  ! delete ${kind} ${b.id.block}: ${e.message.slice(0, 80)}`);
+// Dispatch map: atom type → PM builder function.
+const ATOM_BUILDERS = { table: gfmTableToPM, iframe: iframeToPM, figure: figureToPM, prose: proseToPM };
+
+// ── CurvenoteClient ───────────────────────────────────────────────────────────
+
+class CurvenoteClient {
+  #project;
+  #hdr;
+  #cache = new Map();
+
+  constructor(project) {
+    this.#project = project;
+  }
+
+  static async create(token, project) {
+    const client = new CurvenoteClient(project);
+    const session = await fetch(`${API}/login`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(r => r.json()).then(j => j.session);
+    if (!session) die('Failed to obtain session JWT from /login.');
+    client.#hdr = { Authorization: `Bearer ${session}`, 'Content-Type': 'application/json', 'X-ClientName': 'kd-gat-buildv2' };
+    console.log('\nLoading block cache...');
+    await client.#loadCache();
+    return client;
+  }
+
+  async #api(method, path, body) {
+    const opts = { method, headers: this.#hdr };
+    if (body !== undefined) opts.body = JSON.stringify(body);
+    const r = await fetch(`${API}${path}`, opts);
+    if (!r.ok) {
+      const t = await r.text();
+      throw new Error(`${method} ${path} → ${r.status} ${t.slice(0, 400)}`);
+    }
+    if (r.status === 204) return null;
+    return r.json();
+  }
+
+  async #loadCache() {
+    for (const kind of ['Content', 'Reference']) {
+      try {
+        const { items } = await this.#api('GET', `/blocks/${this.#project}?kind=${kind}&limit=500`);
+        for (const b of (items || [])) {
+          if (b.name) this.#cache.set(b.name, { id: b.id.block, kind });
+        }
+      } catch { /* non-fatal */ }
+    }
+    console.log(`  Block cache loaded: ${this.#cache.size} named blocks`);
+  }
+
+  hasBlock(name) {
+    return this.#cache.has(name);
+  }
+
+  async findOrCreate(kind, name, extra = {}) {
+    if (this.#cache.has(name)) return this.#cache.get(name).id;
+    try {
+      const b = await this.#api('POST', `/blocks/${this.#project}`, { kind, name, ...extra });
+      this.#cache.set(name, { id: b.id.block, kind });
+      return b.id.block;
+    } catch (e) {
+      if (!e.message.includes('422')) throw e;
+      // Block already exists (name conflict) but wasn't in the initial cache.
+      // Re-fetch with a high limit to locate it.
+      const { items } = await this.#api('GET', `/blocks/${this.#project}?kind=${kind}&limit=500`);
+      const found = (items || []).find(b => b.name === name);
+      if (!found) throw new Error(`findOrCreate: 422 but "${name}" not found in ${kind} list`);
+      this.#cache.set(name, { id: found.id.block, kind });
+      return found.id.block;
     }
   }
-  console.log(`  ${kind}: deleted ${ok}/${targets.length}`);
+
+  async #pushReplaceStep(blockId, draftId, pmJson) {
+    const draft = await this.#api('GET', `/drafts/${this.#project}/${blockId}/${draftId}`);
+    const state = server.getEditorState('full', draft.data?.content, 0);
+    const step = {
+      stepType: 'replace',
+      from: 0,
+      to: state.doc.content.size,
+      slice: { content: pmJson.content },
+    };
+    await this.#api('POST', `/drafts/${this.#project}/${blockId}/${draftId}/steps`, {
+      client: 42,
+      version: draft.next_step,
+      steps: [step],
+    });
+  }
+
+  // Create or reuse a named Content block, push pmJson as a new version.
+  // Returns {blockId, version, editableDraft} for use in Article composition.
+  // Throws on non-500 errors; on 500 (server-side rejection) logs PM size and rethrows.
+  async pushContent(name, pmJson) {
+    const blockId = await this.findOrCreate('Content', name);
+    const draft = await this.#api('POST', `/drafts/${this.#project}/${blockId}`, { kind: 'Content' });
+    try {
+      await this.#pushReplaceStep(blockId, draft.id.draft, pmJson);
+    } catch (e) {
+      const sz = JSON.stringify(pmJson).length;
+      console.error(`  PM JSON size: ${sz} chars`);
+      throw e;
+    }
+    await this.#api('POST', `/drafts/${this.#project}/${blockId}/${draft.id.draft}/merge`, { version: 0 });
+    const block = await this.#api('GET', `/blocks/${this.#project}/${blockId}`);
+    const editable = await this.#api('POST', `/drafts/${this.#project}/${blockId}`, { kind: 'Content' });
+    return { blockId, version: block.latest_version, editableDraft: editable.id.draft };
+  }
+
+  // Find-or-create a Reference block for a bib key. Returns "oxa:PROJECT/BLOCK".
+  async pushRef(key) {
+    const name = bibKeyToName(key);
+    const blockId = await this.findOrCreate('Reference', name, { title: key });
+    return `oxa:${this.#project}/${blockId}`;
+  }
+
+  // Publish an Article version with ordered atom children, then bind a live draft.
+  async publishArticleVersion(articleId, atomRefs) {
+    const order = [];
+    const childrenPublished = {};
+    const childrenDraft = {};
+    for (const ref of atomRefs) {
+      const cid = `${ref.blockId}-${ref.version}`;
+      order.push(cid);
+      childrenPublished[cid] = { id: cid, src: { project: this.#project, block: ref.blockId, version: ref.version, draft: null }, style: null };
+      childrenDraft[cid] = { id: cid, src: { project: this.#project, block: ref.blockId, version: ref.version, draft: ref.editableDraft }, style: null };
+    }
+    await this.#api('POST', `/blocks/${this.#project}/${articleId}/versions`, { order, children: childrenPublished });
+    const published = await this.#api('GET', `/blocks/${this.#project}/${articleId}`);
+    console.log(`   Article v${published.latest_version}, ${order.length} children`);
+
+    // Article draft must be created AFTER a published version exists; otherwise
+    // parent=null and the editor refuses to render it.
+    const aDraft = await this.#api('POST', `/drafts/${this.#project}/${articleId}`, { kind: 'Article', data: { children: {} } });
+    await this.#api('PATCH', `/blocks/${this.#project}/${articleId}`, { default_draft: aDraft.id.draft });
+    await this.#api('PATCH', `/drafts/${this.#project}/${articleId}/${aDraft.id.draft}`, { data: { children: childrenDraft } });
+    console.log(`   Article draft ${aDraft.id.draft} bound`);
+  }
+
+  async deleteOthers(kind, keep) {
+    const { items } = await this.#api('GET', `/blocks/${this.#project}?kind=${kind}&limit=500`);
+    const targets = (items || []).filter(b => !keep.has(b.id.block));
+    if (!targets.length) { console.log(`  ${kind}: nothing to delete`); return; }
+    let ok = 0;
+    for (const b of targets) {
+      try { await this.#api('DELETE', `/blocks/${this.#project}/${b.id.block}`); ok++; } catch (e) {
+        console.warn(`  ! delete ${kind} ${b.id.block}: ${e.message.slice(0, 80)}`);
+      }
+    }
+    console.log(`  ${kind}: deleted ${ok}/${targets.length}`);
+  }
 }
 
-// ── main ──────────────────────────────────────────────────────────────────────
+// ── per-article publish ───────────────────────────────────────────────────────
 
-// Assemble all entries upfront so we can collect bib keys before any network calls.
-console.log(`\nTOC: ${TOC.length} top-level entries → ${TOC.length} Articles`);
-const entries = TOC.map((entry, i) => {
-  const { title, markdown } = assembleEntry(entry);
-  const sanitized = sanitize(markdown);
-  const atoms = chunkProse(parseBlocks(sanitized));
-  return { entry, title, sanitized, atoms, artIdx: i + 1 };
-});
+async function publishArticle(client, { title, atoms, artIdx }, totalCount) {
+  const artName = `cand-${String(artIdx).padStart(2, '0')}`;
+  const tc = atoms.reduce((a, { type }) => ({ ...a, [type]: (a[type] || 0) + 1 }), {});
+  console.log(`\n── Article ${artIdx}/${totalCount}: "${title}" ──`);
+  console.log(`   atoms: prose=${tc.prose ?? 0} table=${tc.table ?? 0} iframe=${tc.iframe ?? 0} figure=${tc.figure ?? 0}`);
 
-const allMarkdown = entries.map(e => e.sanitized).join('\n');
-const keys = bibKeys(allMarkdown);
-console.log(`  cite keys: ${keys.length}`);
+  const articleId = await client.findOrCreate('Article', artName, { title });
 
-if (DRY_RUN || LINT) {
-  if (DRY_RUN) {
+  const atomRefs = [];
+  const typeCounters = {};
+  for (const atom of atoms) {
+    const n = typeCounters[atom.type] ?? 0;
+    typeCounters[atom.type] = n + 1;
+    const name = atomName(artIdx, atom.type, n);
+    const pmJson = (ATOM_BUILDERS[atom.type] ?? proseToPM)(atom.content);
+    if (!pmJson) {
+      console.warn(`   ! skipping ${name}: ${atom.content.slice(0, 60).replace(/\n/g, '↵')}`);
+      continue;
+    }
+    const pmSz = JSON.stringify(pmJson).length;
+    process.stdout.write(`   [${atom.type}] ${name} (${pmSz}b) → `);
+    try {
+      const ref = await client.pushContent(name, pmJson);
+      atomRefs.push(ref);
+      console.log(`${ref.blockId} v${ref.version}`);
+    } catch (e) {
+      console.error(`FAILED: ${e.message.slice(0, 120)}`);
+      console.error(`   content: ${atom.content.slice(0, 120).replace(/\n/g, '↵')}`);
+    }
+  }
+
+  await client.publishArticleVersion(articleId, atomRefs);
+  return { articleId, contentBlockIds: atomRefs.map(r => r.blockId) };
+}
+
+// ── dry-run / lint ────────────────────────────────────────────────────────────
+
+async function runChecks(entries, allMarkdown, dryRun) {
+  if (dryRun) {
     console.log('\n--dry-run — per-article atom counts:');
     for (const { title, atoms, artIdx } of entries) {
       const tc = atoms.reduce((a, { type }) => ({ ...a, [type]: (a[type] || 0) + 1 }), {});
@@ -468,109 +541,66 @@ if (DRY_RUN || LINT) {
     process.exit(1);
   }
   console.log('\nLint: OK');
-  if (DRY_RUN) process.exit(0);
-  process.exit(0);
 }
 
-// ── auth ──────────────────────────────────────────────────────────────────────
+// ── main ──────────────────────────────────────────────────────────────────────
 
-console.log('\nAuthenticating...');
-const session = await fetch(`${API}/login`, {
-  method: 'POST',
-  headers: { Authorization: `Bearer ${TOKEN}` },
-}).then(r => r.json()).then(j => j.session);
-if (!session) die('Failed to obtain session JWT from /login.');
-HDR = { Authorization: `Bearer ${session}`, 'Content-Type': 'application/json', 'X-ClientName': 'kd-gat-buildv2' };
+async function main() {
+  const { values: { 'dry-run': dryRun, lint } } = parseArgs({
+    options: {
+      'dry-run': { type: 'boolean', default: false },
+      lint: { type: 'boolean', default: false },
+    },
+  });
 
-console.log('\nLoading block cache...');
-await loadBlockCache();
+  const token = process.env.CURVENOTE_TOKEN;
+  if (!token && !dryRun && !lint) die('CURVENOTE_TOKEN env var required (source ~/.env.local).');
 
-// ── references ────────────────────────────────────────────────────────────────
+  const { project, toc, title } = loadConfig();
+  console.log(`Project: ${project}  (${title})`);
+  console.log(`\nTOC: ${toc.length} top-level entries → ${toc.length} Articles`);
 
-console.log(`\nUpserting ${keys.length} Reference blocks...`);
-let refCreated = 0, refReused = 0;
-for (const key of keys) {
-  const wasInCache = blockCache.has(bibKeyToName(key));
-  await pushRef(key);
-  if (wasInCache) refReused++; else refCreated++;
-}
-console.log(`  References: ${refCreated} created, ${refReused} reused`);
+  const entries = assembleEntries(toc);
+  const allMarkdown = entries.map(e => e.sanitized).join('\n');
+  const keys = bibKeys(allMarkdown);
+  console.log(`  cite keys: ${keys.length}`);
 
-// ── per-section Articles ───────────────────────────────────────────────────────
-
-const keepArticles = new Set();
-const keepContent = new Set();
-let totalContentBlocks = 0;
-
-for (const { title, atoms, artIdx } of entries) {
-  const artName = `cand-${String(artIdx).padStart(2, '0')}`;
-  const tc = atoms.reduce((a, { type }) => ({ ...a, [type]: (a[type] || 0) + 1 }), {});
-  console.log(`\n── Article ${artIdx}/${entries.length}: "${title}" ──`);
-  console.log(`   atoms: prose=${tc.prose ?? 0} table=${tc.table ?? 0} iframe=${tc.iframe ?? 0} figure=${tc.figure ?? 0}`);
-
-  const articleId = await findOrCreate('Article', artName, { title });
-  keepArticles.add(articleId);
-
-  const atomRefs = [];
-  const typeCounters = {};
-  for (const atom of atoms) {
-    const n = typeCounters[atom.type] ?? 0;
-    typeCounters[atom.type] = n + 1;
-    const name = atomName(artIdx, atom.type, n);
-    let pmJson;
-    switch (atom.type) {
-      case 'table':  pmJson = gfmTableToPM(atom.content); break;
-      case 'iframe': pmJson = iframeToPM(atom.content);   break;
-      case 'figure': pmJson = figureToPM(atom.content);   break;
-      default:       pmJson = proseToPM(atom.content); break;
-    }
-    if (!pmJson) {
-      console.warn(`   ! skipping ${name}: ${atom.content.slice(0, 60).replace(/\n/g, '↵')}`);
-      continue;
-    }
-    const pmSz = JSON.stringify(pmJson).length;
-    process.stdout.write(`   [${atom.type}] ${name} (${pmSz}b) → `);
-    try {
-      const ref = await pushContent(name, pmJson);
-      atomRefs.push(ref);
-      keepContent.add(ref.blockId);
-      console.log(`${ref.blockId} v${ref.version}`);
-    } catch (e) {
-      console.error(`FAILED: ${e.message.slice(0, 120)}`);
-      console.error(`   content: ${atom.content.slice(0, 120).replace(/\n/g, '↵')}`);
-    }
+  if (dryRun || lint) {
+    await runChecks(entries, allMarkdown, dryRun);
+    process.exit(0);
   }
-  totalContentBlocks += atomRefs.length;
 
-  // Publish Article version with all atom children in order.
-  const order = [];
-  const childrenPublished = {};
-  const childrenDraft = {};
-  for (const ref of atomRefs) {
-    const cid = `${ref.blockId}-${ref.version}`;
-    order.push(cid);
-    childrenPublished[cid] = { id: cid, src: { project: PROJECT, block: ref.blockId, version: ref.version, draft: null }, style: null };
-    childrenDraft[cid] = { id: cid, src: { project: PROJECT, block: ref.blockId, version: ref.version, draft: ref.editableDraft }, style: null };
+  console.log('\nAuthenticating...');
+  const client = await CurvenoteClient.create(token, project);
+
+  console.log(`\nUpserting ${keys.length} Reference blocks...`);
+  let refCreated = 0, refReused = 0;
+  for (const key of keys) {
+    const wasInCache = client.hasBlock(bibKeyToName(key));
+    await client.pushRef(key);
+    if (wasInCache) refReused++; else refCreated++;
   }
-  await api('POST', `/blocks/${PROJECT}/${articleId}/versions`, { order, children: childrenPublished });
-  const published = await api('GET', `/blocks/${PROJECT}/${articleId}`);
-  console.log(`   Article v${published.latest_version}, ${order.length} children`);
+  console.log(`  References: ${refCreated} created, ${refReused} reused`);
 
-  // Article draft must be created AFTER a published version exists; otherwise
-  // parent=null and the editor refuses to render it.
-  const aDraft = await api('POST', `/drafts/${PROJECT}/${articleId}`, { kind: 'Article', data: { children: {} } });
-  await api('PATCH', `/blocks/${PROJECT}/${articleId}`, { default_draft: aDraft.id.draft });
-  await api('PATCH', `/drafts/${PROJECT}/${articleId}/${aDraft.id.draft}`, { data: { children: childrenDraft } });
-  console.log(`   Article draft ${aDraft.id.draft} bound`);
+  const keepArticles = new Set();
+  const keepContent = new Set();
+  let totalContentBlocks = 0;
+
+  for (const entry of entries) {
+    const { articleId, contentBlockIds } = await publishArticle(client, entry, entries.length);
+    keepArticles.add(articleId);
+    for (const id of contentBlockIds) keepContent.add(id);
+    totalContentBlocks += contentBlockIds.length;
+  }
+
+  console.log('\nCleaning up stale blocks...');
+  await client.deleteOthers('Article', keepArticles);
+  await client.deleteOthers('Content', keepContent);
+
+  console.log('\nDone.');
+  console.log(`  Project:  ${project}`);
+  console.log(`  Articles: ${entries.length} (one per TOC section)`);
+  console.log(`  Content:  ${totalContentBlocks} blocks`);
 }
 
-// ── cleanup ────────────────────────────────────────────────────────────────────
-
-console.log('\nCleaning up stale blocks...');
-await deleteOthers('Article', keepArticles);
-await deleteOthers('Content', keepContent);
-
-console.log('\nDone.');
-console.log(`  Project:  ${PROJECT}`);
-console.log(`  Articles: ${entries.length} (one per TOC section)`);
-console.log(`  Content:  ${totalContentBlocks} blocks`);
+main().catch(e => { console.error(e.message); process.exit(1); });

@@ -35,7 +35,7 @@ Four loops. Each has a latency budget; the dev orchestration is shaped to hit th
 | L3   | `data/csv/*.csv`, schemas         | Updated chart from new numbers    | <5s       | partial — needs `data.dev.json` (open) |
 | L4   | Anything                          | Distill-rendered TMLR submission  | <30s      | ✓ `tools/tmlr/preview.mjs` (~2s) |
 
-`make dev` orchestrates the lot via overmind + `Procfile.dev` (5 processes: `myst`, `figs`, `tables`, `vale`, `preview`). `make dev-myst` is the no-overmind fallback.
+`make dev` orchestrates the lot via overmind + `Procfile.dev` (4 processes: `myst`, `figs`, `tables`, `preview`). `make dev-myst` is the no-overmind fallback.
 
 ---
 
@@ -53,8 +53,8 @@ Ten components a markdown-driven scientific authoring stack needs, mapped to wha
 | 6 | **Figures** | SveltePlot data figures + SvelteFlow diagrams under `interactive/src/figures/`. Vite + `vite-plugin-singlefile` → self-contained HTML. iframed; TMLR rewrites paths via `_h_iframe`. | — |
 | 7 | **PDF output** | Distill HTML for TMLR (Beyond PDF). Candidacy PDF removed 2026-05-06 — see commit log. | True LaTeX export (not currently demanded); print-quality candidacy PDF if needed later |
 | 8 | **HTML output** | `myst build --site` → article-theme on GitHub Pages (paper); `curvenote deploy` → SPA on rob.curve.space (candidacy) | Self-host alternative to curve.space (tabled until post-candidacy) |
-| 9 | **Editor LSP** | VS Code: `chrisjsewell.myst-lsp` + `errata-ai.vale-server` recommended; `pandocCiter.DefaultBib` covers all bibs; `kd-gat-paper.code-snippets` provides `cp`/`nr`/`eq`/`fig`/`alg` | Neovim equivalents (deferred to dotfiles) |
-| 10 | **Lint / style** | Vale + STYLE.md banlists (`MLPaper/B1..B8`, `MLPaper/R4`), `make lint`, pre-commit hook. Validation see below. | LTeX-LS dictionary verification |
+| 9 | **Editor LSP** | VS Code: `chrisjsewell.myst-lsp` recommended; `pandocCiter.DefaultBib` covers all bibs; `kd-gat-paper.code-snippets` provides `cp`/`nr`/`eq`/`fig`/`alg` | Neovim equivalents (deferred to dotfiles) |
+| 10 | **Lint / style** | STYLE.md banlists (`MLPaper/B1..B8`, `MLPaper/R4`), pre-commit hook. Validation see below. | LTeX-LS dictionary verification |
 
 ---
 
