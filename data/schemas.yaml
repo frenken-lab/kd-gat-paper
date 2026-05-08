@@ -59,11 +59,12 @@ json:
 
   cka:
     type: object
-    required_keys: [matrices, teacher_layers, student_layers]
-    # matrices: {dataset: [n_layers][n_variants]} — per-dataset teacher-student CKA,
-    #           averaged across seeds within each dataset. Missing variants → null cells.
-    # teacher_layers: ["Layer 0", "Layer 1"] — GAT layer labels (Y axis).
-    # student_layers: variant name list (X axis), ordered by VARIANT_ORDER in pull_data.py.
+    required_keys: [matrices, teacher_layers, student_layers, variants]
+    # matrices: {dataset: {variant: [[n_teacher × n_student]] | null}} — per-dataset
+    #           per-variant cross-matrix CKA, averaged across seeds. null = missing variant.
+    # teacher_layers: ["Layer 0", "Layer 1", "Layer 2"] — teacher GAT layer labels (Y axis).
+    # student_layers: ["Layer 0", "Layer 1"] — student model layer labels (X axis).
+    # variants: ordered variant name list, by VARIANT_ORDER in pull_data.py.
     # Source: graphids-data analysis/{dataset}/{group}/{variant}/seed_*/cka.json
 
   attention:
@@ -73,9 +74,12 @@ json:
     # nodes have pre-computed x, y from force layout
 
   results-table:
-    type: array
-    item_keys: [model, group, accuracy, precision, recall, f1, auc]
-    min_items: 3
+    type: object
+    required_keys: [datasets, splits_by_dataset, metrics, rows]
+    # rows: [{variant, group, dataset, split, f1_macro, auroc_macro, accuracy, n_seeds}]
+    # splits_by_dataset: {dataset: [split_name, ...]}  (pooled + per-scenario splits)
+    # split_labels: {split_name: display_label}
+    # variant_labels: {variant: display_label}
 
 # Input schema — HF parquet files (buckeyeguy/graphids-kd-gat ablation bundle,
 # metric=f1_macro; replaced the old buckeyeguy/GraphIDS multi-metric layout

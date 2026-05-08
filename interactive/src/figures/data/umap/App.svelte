@@ -61,8 +61,21 @@
 
   const bounds = $derived(currentData?.bounds ?? { x1: 0, y1: 0, x2: 1, y2: 1 });
 
+  // Subsample per-class points for KDE only — scatter still uses full pointsByType.
+  // KDE quality doesn't improve past ~400 points; this cuts marching-squares cost 4-5×.
+  const DENSITY_SAMPLE = 400;
+  const densityByType = $derived(
+    Object.fromEntries(
+      attackTypes.map(t => {
+        const pts = pointsBrushed[t];
+        if (pts.length <= DENSITY_SAMPLE) return [t, pts];
+        const step = Math.ceil(pts.length / DENSITY_SAMPLE);
+        return [t, pts.filter((_, i) => i % step === 0)];
+      }),
+    ),
+  );
+
   // ─── Reactive controls ────────────────────────────────────────────────────
-  let density = $state({ bandwidth: 20, thresholds: 12 });
   let brush = $state({
     enabled: false,
     x1: null as number | null,
@@ -117,18 +130,6 @@
       {/if}
     </div>
 
-    <!-- KDE control sliders -->
-    <div class="controls sliders">
-      <label>
-        Bandwidth: <strong>{density.bandwidth}px</strong>
-        <input type="range" min={5} max={60} step={1} bind:value={density.bandwidth} />
-      </label>
-      <label>
-        Thresholds: <strong>{density.thresholds}</strong>
-        <input type="range" min={4} max={30} step={1} bind:value={density.thresholds} />
-      </label>
-    </div>
-
     <!-- 2×2 marginal layout: top KDE / main scatter / right KDE -->
     <div class="plot-with-marginal">
       <!-- Panel 1/3: top marginal — 1D KDE along UMAP 1 -->
@@ -148,7 +149,7 @@
           {#each attackTypes as t (t)}
             {#if visible[t]}
               <Line
-                {...densityX({ data: pointsBrushed[t], x: 'x' }, { kernel: 'gaussian' })}
+                {...densityX({ data: densityByType[t], x: 'x' }, { kernel: 'gaussian' })}
                 stroke={colorMap[t]}
                 strokeWidth={1.5} />
             {/if}
@@ -172,11 +173,11 @@
           {#each attackTypes as t (t)}
             {#if visible[t]}
               <Density
-                data={pointsBrushed[t]}
+                data={densityByType[t]}
                 x="x"
                 y="y"
-                bandwidth={density.bandwidth}
-                thresholds={density.thresholds}
+                bandwidth={20}
+                thresholds={6}
                 fill={colorMap[t]}
                 fillOpacity={0.08}
                 stroke={colorMap[t]}
@@ -226,7 +227,7 @@
           {#each attackTypes as t (t)}
             {#if visible[t]}
               <Line
-                {...densityY({ data: pointsBrushed[t], y: 'y' }, { kernel: 'gaussian' })}
+                {...densityY({ data: densityByType[t], y: 'y' }, { kernel: 'gaussian' })}
                 stroke={colorMap[t]}
                 strokeWidth={1.5} />
             {/if}

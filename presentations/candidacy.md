@@ -26,6 +26,7 @@ Robert Frenken · The Ohio State University · Candidacy · 2026
 ## Problem Statement
 
 ---
+
 <!-- columns: 3 -->
 
 ## Motivation
@@ -34,8 +35,10 @@ Robert Frenken · The Ohio State University · Candidacy · 2026
 title: Single Model Brittleness:
 tone: muted
 content: |
-  - “specialist weakness” phenomenon: individual deep learning models achieve high accuracy on known attacks but are vulnerable to unseen attack types or attacks focusing on a structural weakness of a model’s architecture
-  - No single architecture handles structural (flooding), distributional (spoofing), and temporal (replay) anomalies simultaneously; class imbalance up to 927:1 compounds the failure
+  - individual deep learning models achieve high accuracy on known attacks but are vulnerable to unseen attack types or attacks focusing on a structural weakness of a model’s architecture
+  - Axes: In vs Out of Distribution (known vs unknown)
+  - Attack "surfaces": structural, distributional, and temporal
+  - For supervised models, massive class imbalance (eg 927:1) makes training difficult
 ```
 
 |||
@@ -46,7 +49,6 @@ tone: muted
 content: |
   - Models developed under academic research using GPU-scaling need to significantly downsize to meet the limited onboard resources of production vehicles
   - ARM Cortex processors require <<50--100ms latency
-  - Research-grade models require 10–100× compression; the KD student achieves ~20× parameter reduction while retaining detection performance
 ```
 
 |||
@@ -56,7 +58,7 @@ title: Model Opaqueness:
 tone: muted
 content: |
   - Highly accurate models face systematic rejection in safety-critical systems because users cannot understand or verify decisions
-  - ISO 26262 assigns ASIL C/D to IDS functions, requiring verifiable failure-mode analysis — something black-box models cannot satisfy
+  - Standards like ISO 26262 require verifiable failure-mode analysis — something black-box models cannot satisfy
 ```
 
 ---
@@ -67,13 +69,13 @@ content: |
 
 ![CAN Bus Network](CAN_BUS.svg)
 
-*CAN bus topology: ECUs broadcast on a shared bus with no sender authentication — injected messages are indistinguishable from legitimate traffic at the protocol level.*
+_CAN bus topology: ECUs broadcast on a shared bus with no sender authentication — injected messages are indistinguishable from legitimate traffic at the protocol level._
 
 |||
 
 ![CAN Frame](CANframe.svg)
 
-*CAN frame anatomy: 11-bit arbitration ID (attack surface), DLC, and up to 8 bytes of payload — the graph node features are computed from these fields.*
+_CAN frame anatomy: 11-bit arbitration ID (attack surface), DLC, and up to 8 bytes of payload — the graph node features are computed from these fields._
 
 ---
 
@@ -141,9 +143,10 @@ $$
 \right)
 $$
 
-GATv1 applies the nonlinearity *after* the attention parameter, making rankings query-independent. GATv2 applies it *before*, enabling truly dynamic per-node attention — critical for CAN bus graphs where adversarial injection corrupts edge structure and static attention degrades uniformly.
+GATv1 applies the nonlinearity _after_ the attention parameter, making rankings query-independent. GATv2 applies it _before_, enabling truly dynamic per-node attention — critical for CAN bus graphs where adversarial injection corrupts edge structure and static attention degrades uniformly.
 
 **Aggregation:**
+
 $$
 \mathbf{h}_v’ = \sigma\!\left(\sum_{u \in \mathcal{N}(v)} \alpha_{vu} \cdot \mathbf{W}\mathbf{h}_u\right)
 $$
@@ -194,8 +197,9 @@ entropy = -(w * w.clamp_min(1e-9).log()).sum(-1).mean()
 **Three-stage pipeline:**
 
 - **Stage 1 — VGAE:** Unsupervised anomaly detection; reconstruction error $\|A - \hat{A}\|_F^2$ identifies hard normal samples for the Stage 2 curriculum
-- **Stage 2 — GAT:** Supervised classification with curriculum learning and knowledge distillation; GATv2Conv with LSTM jumping knowledge
-- **Stage 3 — Fusion:** DQN or Neural-LinUCB learns per-sample weights $\alpha$ over VGAE + GAT predictions from a 15-dimensional state vector
+- **Stage 2 — GAT:** Supervised classification; GATv2Conv with LSTM jumping knowledge
+- **Stage 3 — Fusion:** Adaptive learning per-sample. $\alpha$ weighting for DQN or Bandit over VGAE + GAT predictions from a 18-dimensional state vector.
+- **Knowledge Distillation:** Each model has its smaller counterpart that would meet on-board resource requirements
 
 |||
 
@@ -213,19 +217,19 @@ title: KD-GAT architecture
 
 _F1 macro (multiclass, pooled across test splits) · n=1 seed · bold = best in axis × dataset_
 
-| Variant | hcrl\_sa | set\_01 | set\_02 | set\_03 | set\_04 |
-|:--------|--------:|--------:|--------:|--------:|--------:|
-| **Loss function** | | | | | |
-| CE | **0.835** | **0.617** | **0.539** | 0.676 | 0.385 |
-| Focal | 0.835 | 0.574 | 0.521 | **0.682** | 0.418 |
-| Weighted CE | **0.835** | 0.569 | 0.533 | 0.681 | **0.570** |
-| **Sampling strategy** | | | | | |
-| None | **0.835** | **0.577** | 0.522 | 0.682 | 0.415 |
-| Curriculum (random) | **0.835** | — | **0.530** | **0.683** | **0.432** |
-| Curriculum (VGAE) | 0.770 | 0.556 | 0.522 | 0.674 | 0.411 |
-| **ID encoding** | | | | | |
-| Hash | **0.835** | **0.574** | 0.507 | **0.685** | 0.389 |
-| Lookup | 0.760 | 0.566 | **0.536** | 0.682 | **0.426** |
+| Variant               |   hcrl_sa |    set_01 |    set_02 |    set_03 |    set_04 |
+| :-------------------- | --------: | --------: | --------: | --------: | --------: |
+| **Loss function**     |           |           |           |           |           |
+| CE                    | **0.835** | **0.617** | **0.539** |     0.676 |     0.385 |
+| Focal                 |     0.835 |     0.574 |     0.521 | **0.682** |     0.418 |
+| Weighted CE           | **0.835** |     0.569 |     0.533 |     0.681 | **0.570** |
+| **Sampling strategy** |           |           |           |           |           |
+| None                  | **0.835** | **0.577** |     0.522 |     0.682 |     0.415 |
+| Curriculum (random)   | **0.835** |         — | **0.530** | **0.683** | **0.432** |
+| Curriculum (VGAE)     |     0.770 |     0.556 |     0.522 |     0.674 |     0.411 |
+| **ID encoding**       |           |           |           |           |           |
+| Hash                  | **0.835** | **0.574** |     0.507 | **0.685** |     0.389 |
+| Lookup                |     0.760 |     0.566 | **0.536** |     0.682 | **0.426** |
 
 ---
 
@@ -235,18 +239,18 @@ _F1 macro (multiclass, pooled across test splits) · n=1 seed · bold = best in 
 
 _F1 macro (multiclass, pooled across test splits) · n=1 seed · bold = best per dataset · — = not yet run_
 
-| Model | hcrl\_sa | set\_01 | set\_02 | set\_03 | set\_04 |
-|:------|--------:|--------:|--------:|--------:|--------:|
-| **Fusion** | | | | | |
-| MoE | **0.997** | 0.546 | 0.522 | 0.682 | **0.878** |
-| MoE (no aux loss) | — | 0.544 | 0.521 | **0.682** | 0.423 |
-| DQN | 0.993 | **0.549** | 0.404 | 0.662 | 0.440 |
-| MLP | 0.852 | **0.574** | **0.522** | 0.680 | 0.424 |
-| Bandit | 0.953 | 0.505 | 0.405 | 0.601 | 0.272 |
-| Weighted avg | 0.781 | 0.422 | 0.516 | 0.657 | 0.417 |
-| **Student** | | | | | |
-| GAT + KD | 0.835 | — | — | — | — |
-| GAT (no KD) | 0.743 | 0.572 | 0.527 | 0.681 | 0.438 |
+| Model             |   hcrl_sa |    set_01 |    set_02 |    set_03 |    set_04 |
+| :---------------- | --------: | --------: | --------: | --------: | --------: |
+| **Fusion**        |           |           |           |           |           |
+| MoE               | **0.997** |     0.546 |     0.522 |     0.682 | **0.878** |
+| MoE (no aux loss) |         — |     0.544 |     0.521 | **0.682** |     0.423 |
+| DQN               |     0.993 | **0.549** |     0.404 |     0.662 |     0.440 |
+| MLP               |     0.852 | **0.574** | **0.522** |     0.680 |     0.424 |
+| Bandit            |     0.953 |     0.505 |     0.405 |     0.601 |     0.272 |
+| Weighted avg      |     0.781 |     0.422 |     0.516 |     0.657 |     0.417 |
+| **Student**       |           |           |           |           |           |
+| GAT + KD          |     0.835 |         — |         — |         — |         — |
+| GAT (no KD)       |     0.743 |     0.572 |     0.527 |     0.681 |     0.438 |
 
 ---
 
@@ -260,17 +264,9 @@ title: UMAP embedding analysis
 
 ---
 
-<!-- columns: 4/6 -->
-
 ## Key Result: Representational Alignment (CKA)
 
 **What CKA measures:** Centered Kernel Alignment scores linear similarity between two sets of layer activations; 1.0 = identical representations.
-
-**Key finding:** High off-diagonal values between teacher layer $k$ and student layer $k$ show the student reproduces the teacher's internal geometry despite the 20× parameter reduction.
-
-**Why it matters:** The student didn't just memorize outputs — it learned the teacher's representational structure. This is genuine knowledge transfer, not label copying, and is the empirical core of the completed work.
-
-|||
 
 ```iframe
 src: https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/cka.html
@@ -301,11 +297,11 @@ title: CKA representational similarity
 
 **When to trust physics vs. data-driven?**
 
-Four-quadrant decision on two axes — *on/off the physics manifold* × *in/out of training distribution*:
+Four-quadrant decision on two axes — _on/off the physics manifold_ × _in/out of training distribution_:
 
-| | In distribution | Out of distribution |
-|---|---|---|
-| **On manifold** | Both apply; trivial fusion | Physics carries the trust |
+|                  | In distribution               | Out of distribution                                |
+| ---------------- | ----------------------------- | -------------------------------------------------- |
+| **On manifold**  | Both apply; trivial fusion    | Physics carries the trust                          |
 | **Off manifold** | Data-driven carries the trust | Neither alone suffices — the research contribution |
 
 **Channel orthogonality is the structural defense:** data-driven reads raw bytes; physics reads dynamics. Simultaneous corruption requires two structurally different attacks, converting a single attack surface into two independent ones.
@@ -357,6 +353,8 @@ $$
 - **Structural fix:** physics provides a channel decoupled from optimization pressure; simultaneous corruption requires structurally different attacks on two independent channels
 
 |||
+
+**Adaptive Weighting per sample:**
 
 ```iframe
 src: https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/fusion.html

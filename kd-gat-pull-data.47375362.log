@@ -1,0 +1,51 @@
+=== kd-gat pull_data ===
+repo: /users/PAS2022/rf15/kd-gat-paper
+node: p0052.ten.osc.edu
+args: <none>
+========================
+Pulling metrics from huggingface.co/datasets/buckeyeguy/graphids-kd-gat
+  ablation_set:    set_01_pre_recalibration_full
+  metric:          f1_macro
+  graphids_sha:    f694f56f5be32c0a0523ce310bc5f129c9f94fd5
+  groups:          ['conv_type', 'fusion', 'gat_loss', 'gat_sampling', 'id_encoding', 'unsupervised']
+  datasets:        ['set_01']
+
+Building 4 CSVs from metrics/ bucket...
+  wrote data/csv/leaderboard.csv (16 rows)
+  wrote data/csv/effect_size.csv (18 rows)
+  wrote data/csv/expected_max.csv (16 rows)
+  wrote data/csv/tie_candidates.csv (8 rows)
+
+Skipped tables (not in metrics bundle):
+  - main_results.csv: f1_macro-only bundle; multi-metric leaderboard not regenerable here
+  - test_results.csv: cross-dataset test scenarios not in this bundle
+  - vgae_threshold.csv: optimal_threshold/youden_j not in this bundle
+
+Building CKA figure from buckeyeguy/graphids-data...
+  found 39 cka.json files (excluding teacher)
+  2 GAT layers, 8 variants, 5 datasets
+  wrote interactive/src/figures/data/cka/data.json
+
+Building UMAP figure from buckeyeguy/graphids-data (group=gat_loss, variant=ce, seed=42)...
+  found 5 datasets: ['hcrl_sa', 'set_01', 'set_02', 'set_03', 'set_04']
+  hcrl_sa: 1873 × 96 → UMAP 2D ...
+    metrics: {'overlap_integral': 0.029476, 'wasserstein_2d': 8.7817, 'energy_distance': 4.0794}
+  set_01: 2000 × 96 → UMAP 2D ...
+    metrics: {'overlap_integral': 0.015156, 'wasserstein_2d': 7.9602, 'energy_distance': 8.9627}
+  set_02: 2000 × 96 → UMAP 2D ...
+    metrics: {'overlap_integral': 0.046227, 'wasserstein_2d': 7.9813, 'energy_distance': 7.8072}
+  set_03: 2000 × 96 → UMAP 2D ...
+    metrics: {'overlap_integral': 0.006903, 'wasserstein_2d': 10.361, 'energy_distance': 17.4987}
+  set_04: 2000 × 96 → UMAP 2D ...
+    metrics: {'overlap_integral': 0.48568, 'wasserstein_2d': 3.7819, 'energy_distance': 1.3227}
+  wrote interactive/src/figures/data/umap/data.json
+
+Still skipped figures (artifacts not yet available in graphids-data):
+  - attention: attention_weights.npz absent from most runs in graphids-data
+  - attention-heatmap: aggregated attention not in current exports
+  - reconstruction: per-component decomposition not in current exports
+  - fusion: dqn_policy with per-graph labels not in graphids-data
+
+Validating output...
+  OK: 8 CSV, 6 JSON validated
+=== done ===

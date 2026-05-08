@@ -8,8 +8,10 @@ Outputs:
   data/csv/
     leaderboard.csv, effect_size.csv, expected_max.csv, tie_candidates.csv
   interactive/src/figures/data/cka/data.json
-    Per-dataset heatmaps: {dataset: [n_layers × n_variants]} teacher-student CKA,
-    averaged across seeds within each dataset. Missing variants → null cells.
+    Per-dataset per-variant cross-matrix CKA:
+    {matrices: {dataset: {variant: [[n_teacher × n_student]] | null}},
+     teacher_layers, student_layers, variants}
+    Averaged across seeds. Requires cka.json with teacher_{i}_student_{j} keys.
   interactive/src/figures/data/umap/data.json
     Per-dataset UMAP projections: {dataset: {points, bounds, metrics}},
     using UMAP_GROUP/UMAP_VARIANT/UMAP_SEED for each dataset.
@@ -139,12 +141,14 @@ def write_json(path: Path, data: object, *, dry_run: bool = False) -> None:
 
 
 def build_cka_figure(dry_run: bool = False) -> None:
-    """Collect cka.json per (dataset, group, variant, seed) and build per-dataset matrices.
+    """Collect cka.json per (dataset, group, variant, seed) and build per-dataset per-variant matrices.
 
-    Each cka.json contains {layer_0: float, layer_1: float} — teacher-student CKA
-    per corresponding GAT layer. Values are averaged across seeds within each dataset.
-    Output: {matrices: {dataset: [[...], [...]]}, teacher_layers, student_layers}
-    Missing variants in a dataset (e.g. curriculum_random absent in set_01) → null cells.
+    Each cka.json contains {teacher_{i}_student_{j}: float} — full cross-matrix CKA
+    between all teacher and student GAT layers, averaged across seeds within each dataset.
+    Output: {matrices: {dataset: {variant: [[n_teacher × n_student]] | null}},
+             teacher_layers, student_layers, variants}
+    Missing variants → null. Requires cka.json produced by the fixed compute_cka
+    (cross-matrix keys); old layer_{i} format is not supported.
     """
     print(f"\nBuilding CKA figure from {ANALYSIS_REPO_ID}...")
 
@@ -174,40 +178,53 @@ def build_cka_figure(dry_run: bool = False) -> None:
         )
 
     df = pl.DataFrame(records)
-    layer_cols = sorted(c for c in df.columns if c.startswith("layer_"))
-    n_layers = len(layer_cols)
+
+    # Cross-matrix keys: teacher_{i}_student_{j}
+    cross_cols = sorted(c for c in df.columns if c.startswith("teacher_") and "student_" in c)
+    if not cross_cols:
+        print("  no teacher_i_student_j keys found — cka.json may be old format; skipping")
+        return
+
+    # Infer axis sizes from key names
+    teacher_indices = sorted({int(c.split("_")[1]) for c in cross_cols})
+    student_indices = sorted({int(c.split("_")[3]) for c in cross_cols})
+    n_teacher, n_student = len(teacher_indices), len(student_indices)
     datasets = sorted(df["dataset"].unique().to_list())
-    print(f"  {n_layers} GAT layers, {df['variant'].n_unique()} variants, {len(datasets)} datasets")
+    print(
+        f"  {n_teacher}×{n_student} cross-matrix, "
+        f"{df['variant'].n_unique()} variants, {len(datasets)} datasets"
+    )
 
     # Canonical variant order across all datasets
     present = set(df["variant"].to_list())
     ordered = [v for v in VARIANT_ORDER if v in present]
     ordered += sorted(present - set(ordered))
-    order_map = {v: i for i, v in enumerate(ordered)}
 
-    matrices: dict[str, list] = {}
+    matrices: dict[str, dict] = {}
     for dataset in datasets:
         sub = df.filter(pl.col("dataset") == dataset)
-        agg = sub.group_by("variant").agg([pl.col(c).mean().round(4).alias(c) for c in layer_cols])
-        agg = (
-            agg.with_columns(
-                pl.col("variant")
-                .map_elements(lambda v: order_map.get(v, 999), return_dtype=pl.Int32)
-                .alias("_order")
+        agg = sub.group_by("variant").agg([pl.col(c).mean().round(4).alias(c) for c in cross_cols])
+        variant_rows = {row["variant"]: row for row in agg.to_dicts()}
+        matrices[dataset] = {
+            v: (
+                [
+                    [
+                        round(float(variant_rows[v][f"teacher_{i}_student_{j}"]), 4)
+                        for j in student_indices
+                    ]
+                    for i in teacher_indices
+                ]
+                if v in variant_rows
+                else None
             )
-            .sort("_order")
-            .drop("_order")
-        )
-        variant_vals = {row["variant"]: row for row in agg.to_dicts()}
-        matrices[dataset] = [
-            [round(float(variant_vals[v][lc]), 4) if v in variant_vals else None for v in ordered]
-            for lc in layer_cols
-        ]
+            for v in ordered
+        }
 
     cka_data = {
         "matrices": matrices,
-        "teacher_layers": [f"Layer {i}" for i in range(n_layers)],
-        "student_layers": ordered,
+        "teacher_layers": [f"Layer {i}" for i in teacher_indices],
+        "student_layers": [f"Layer {j}" for j in student_indices],
+        "variants": ordered,
     }
     write_json(FIGURES_DIR / "cka" / "data.json", cka_data, dry_run=dry_run)
 

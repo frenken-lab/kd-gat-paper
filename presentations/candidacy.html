@@ -1,0 +1,2741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KD-GAT — Candidacy Talk</title>
+
+<!-- KaTeX for LaTeX math -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.js"></script>
+
+<!-- Chart.js for inline charts -->
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+
+<!-- highlight.js for code syntax highlighting -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css">
+<script defer src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
+
+<style>
+/* Colloquium Default Theme */
+
+/* ===== Custom Properties ===== */
+:root {
+    --colloquium-bg: #ffffff;
+    --colloquium-text: #1a1a2e;
+    --colloquium-heading: #16213e;
+    --colloquium-accent: #0f3460;
+    --colloquium-link: #e94560;
+    --colloquium-code-bg: #f4f4f8;
+    --colloquium-code-text: #1a1a2e;
+    --colloquium-muted: #6b7280;
+    --colloquium-border: #e5e7eb;
+    --colloquium-progress-bg: #e5e7eb;
+    --colloquium-progress-fill: #0f3460;
+
+    --colloquium-font-body: "Inter", "Helvetica Neue", Arial, sans-serif;
+    --colloquium-font-heading: "Inter", "Helvetica Neue", Arial, sans-serif;
+    --colloquium-font-mono: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+
+    /* 16:9 reference dimensions — slides are authored at this size and scaled */
+    --colloquium-slide-width: 1280;
+    --colloquium-slide-height: 720;
+    --colloquium-slide-padding: 60px;
+}
+
+/* ===== Reset & Base ===== */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: var(--colloquium-font-body);
+    color: var(--colloquium-text);
+    background: #000;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ===== Slide Container — 16:9 scaling ===== */
+/* The deck is a fixed 1280x720 canvas that gets CSS-transformed to fit the viewport */
+.colloquium-deck {
+    width: 1280px;
+    height: 720px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform-origin: 0 0;
+    background: var(--colloquium-bg);
+    overflow: hidden;
+}
+
+.slide {
+    display: none;
+    flex-direction: column;
+    justify-content: flex-start;
+    width: 1280px;
+    height: 720px;
+    padding: var(--colloquium-slide-padding);
+    position: absolute;
+    top: 0;
+    left: 0;
+    overflow: visible;
+    font-size: 24px;
+    line-height: 1.5;
+    background: var(--colloquium-bg);
+}
+
+.slide.active {
+    display: flex;
+}
+
+/* ===== Typography ===== */
+.slide h1 {
+    font-family: var(--colloquium-font-heading);
+    font-size: 2.2em;
+    font-weight: 700;
+    color: var(--colloquium-heading);
+    margin-bottom: 0.4em;
+    line-height: 1.2;
+}
+
+.slide h2 {
+    font-family: var(--colloquium-font-heading);
+    font-size: 1.6em;
+    font-weight: 600;
+    color: var(--colloquium-heading);
+    margin-bottom: 0.5em;
+    line-height: 1.3;
+}
+
+.slide h3 {
+    font-family: var(--colloquium-font-heading);
+    font-size: 1.2em;
+    font-weight: 600;
+    color: var(--colloquium-heading);
+    margin-bottom: 0.4em;
+}
+
+.slide p {
+    margin-bottom: 0.8em;
+}
+
+.slide p:last-child {
+    margin-bottom: 0;
+}
+
+.slide strong {
+    font-weight: 600;
+}
+
+.slide em {
+    font-style: italic;
+}
+
+/* ===== Lists ===== */
+.slide ul, .slide ol {
+    margin-bottom: 0.8em;
+    padding-left: 1.4em;
+}
+
+.slide li {
+    margin-bottom: 0.3em;
+}
+
+.slide li::marker {
+    color: var(--colloquium-accent);
+}
+
+/* ===== Links ===== */
+.slide a {
+    color: var(--colloquium-link);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s;
+}
+
+.slide a:hover {
+    border-bottom-color: var(--colloquium-link);
+}
+
+/* ===== Code ===== */
+.slide code {
+    font-family: var(--colloquium-font-mono);
+    font-size: 0.85em;
+    background: var(--colloquium-code-bg);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.slide pre {
+    background: var(--colloquium-code-bg);
+    border-radius: 8px;
+    padding: 1em 1.2em;
+    margin-bottom: 0.8em;
+    overflow-x: hidden;
+    font-size: 0.75em;
+    line-height: 1.5;
+}
+
+.slide pre code {
+    background: none;
+    padding: 0;
+    font-size: inherit;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* ===== Images ===== */
+.slide img {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 4px;
+    object-fit: contain;
+}
+
+.slide .slide-content {
+    flex: 1;
+    min-height: 0;
+    overflow: visible;
+}
+
+.slide .slide-content img {
+    max-height: calc(720px - var(--colloquium-slide-padding) * 2 - 100px);
+    display: block;
+}
+
+.slide figure.colloquium-figure {
+    margin: 0 auto 0.8em;
+    max-width: 100%;
+    width: fit-content;
+}
+
+.slide figure.colloquium-figure > img {
+    display: block;
+}
+
+.slide figure.colloquium-figure > figcaption {
+    margin-top: 0.45em;
+    font-size: 0.6em;
+    line-height: 1.35;
+    color: var(--colloquium-muted);
+}
+
+.slide.figure-caption,
+.slide.figure-captions {
+    counter-reset: colloquium-figure;
+}
+
+.slide.figure-caption figure.colloquium-figure,
+.slide.figure-captions figure.colloquium-figure {
+    counter-increment: colloquium-figure;
+}
+
+.slide.figure-caption figure.colloquium-figure > figcaption::before,
+.slide.figure-captions figure.colloquium-figure > figcaption::before {
+    content: "Figure " counter(colloquium-figure) ": ";
+    color: var(--colloquium-heading);
+    font-weight: 600;
+}
+
+/* ===== Box ===== */
+.colloquium-box {
+    border-radius: 18px;
+    padding: 0.85em 1em;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.colloquium-box--accent {
+    background: var(--colloquium-accent);
+    color: white;
+}
+
+.colloquium-box--muted {
+    background: var(--colloquium-code-bg);
+    color: var(--colloquium-text);
+}
+
+.colloquium-box--surface {
+    background: color-mix(in srgb, var(--colloquium-bg) 85%, white 15%);
+    color: var(--colloquium-text);
+    border: 1px solid var(--colloquium-border);
+}
+
+.colloquium-box--align-center {
+    text-align: center;
+}
+
+.colloquium-box--align-right {
+    text-align: right;
+}
+
+.colloquium-box-title {
+    font-weight: 700;
+    margin-bottom: 0.35em;
+}
+
+.colloquium-box-content > :first-child {
+    margin-top: 0;
+}
+
+.colloquium-box-content > :last-child {
+    margin-bottom: 0;
+}
+
+.colloquium-box ul,
+.colloquium-box ol {
+    margin-bottom: 0;
+    padding-left: 1.25em;
+}
+
+.colloquium-box li::marker {
+    color: var(--colloquium-accent);
+}
+
+.colloquium-box--compact .colloquium-box-title {
+    margin-bottom: 0.25em;
+}
+
+.colloquium-box--compact .colloquium-box-content p {
+    margin: 0.3em 0;
+}
+
+.colloquium-box--compact ul,
+.colloquium-box--compact ol {
+    margin-top: 0.35em;
+    margin-bottom: 0;
+    padding-left: 1.2em;
+}
+
+.colloquium-box--compact li {
+    margin-bottom: 0.08em;
+    line-height: 1.14;
+}
+
+.colloquium-box--compact li + li {
+    margin-top: 0.02em;
+}
+
+.colloquium-box--accent li::marker {
+    color: white;
+}
+
+.colloquium-box--accent a,
+.colloquium-box--accent strong,
+.colloquium-box--accent em,
+.colloquium-box--accent code {
+    color: inherit;
+}
+
+.colloquium-box--accent code {
+    background: color-mix(in srgb, black 12%, transparent);
+}
+
+/* ===== Charts ===== */
+.colloquium-chart-container {
+    width: 100%;
+    height: 400px;
+    margin: 0.5em 0;
+}
+
+.slide .slide-content img.colloquium-chart-print {
+    display: none;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    max-height: none;
+}
+
+/* ===== Tables ===== */
+.slide table {
+    border-collapse: collapse;
+    margin-bottom: 0.8em;
+    font-size: 0.85em;
+    width: 100%;
+}
+
+.slide th, .slide td {
+    border: 1px solid var(--colloquium-border);
+    padding: 0.4em 0.7em;
+    text-align: left;
+}
+
+.slide th {
+    background: var(--colloquium-code-bg);
+    font-weight: 600;
+}
+
+/* ===== Blockquotes ===== */
+.slide blockquote {
+    border-left: 4px solid var(--colloquium-accent);
+    padding-left: 1em;
+    margin-bottom: 0.8em;
+    color: var(--colloquium-muted);
+    font-style: italic;
+}
+
+/* ===== Horizontal Rule ===== */
+.slide hr {
+    border: none;
+    border-top: 2px solid var(--colloquium-border);
+    margin: 1em 0;
+}
+
+/* ===== Math (KaTeX) ===== */
+.slide .katex-display {
+    margin: 0.8em 0;
+    overflow-x: hidden;
+    overflow-x: clip;
+    overflow-y: visible;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    width: 100%;
+    touch-action: pan-y;
+    overscroll-behavior-x: none;
+}
+
+.slide .katex-display .katex {
+    max-width: 100%;
+    pointer-events: none;
+}
+
+.slide .katex-display::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+}
+
+/* ===== Layout: Title Slide ===== */
+.slide--title {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.slide--title.active {
+    display: flex;
+}
+
+.slide--title h1 {
+    font-size: 2.8em;
+    margin-bottom: 0.3em;
+}
+
+.slide--title .slide-content {
+    flex: 0 0 auto;
+}
+
+.slide--title .slide-content p {
+    font-size: 1.1em;
+    color: var(--colloquium-muted);
+}
+
+/* Shared title-slide components */
+.colloquium-title-eyebrow {
+    font-size: 0.72em;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--colloquium-accent);
+    margin-bottom: 1.1em;
+}
+
+.colloquium-title-rule {
+    width: 84px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--colloquium-accent);
+    margin-bottom: 1.4em;
+}
+
+.colloquium-title-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15em;
+}
+
+.colloquium-title-meta p {
+    margin: 0;
+    color: var(--colloquium-muted);
+}
+
+.colloquium-title-name {
+    font-size: 1.55em;
+    font-weight: 500;
+    color: var(--colloquium-heading);
+}
+
+.colloquium-title-note {
+    font-size: 0.9em;
+    line-height: 1.45;
+    color: var(--colloquium-muted);
+    max-width: 26em;
+}
+
+/* ===== Layout: Title Left ===== */
+.slide--title-left {
+    justify-content: center;
+    align-items: flex-start;
+    text-align: left;
+    padding: 72px 84px 60px;
+}
+
+.slide--title-left.active {
+    display: flex;
+}
+
+.slide--title-left h1 {
+    max-width: 980px;
+    font-size: 3em;
+    line-height: 1.02;
+    letter-spacing: -0.05em;
+    margin-bottom: 0.95em;
+}
+
+.slide--title-left .slide-content {
+    flex: 0 0 auto;
+    max-width: 560px;
+}
+
+.slide--title-left .slide-content > * + * {
+    margin-top: 1em;
+}
+
+/* ===== Layout: Title Sidebar ===== */
+.slide--title-sidebar {
+    padding: 72px 84px 60px;
+}
+
+.slide--title-sidebar.active {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    column-gap: 56px;
+    align-content: center;
+    align-items: start;
+}
+
+.slide--title-sidebar h1 {
+    grid-column: 1;
+    align-self: start;
+    max-width: 760px;
+    font-size: 2.9em;
+    line-height: 1.03;
+    letter-spacing: -0.045em;
+    text-align: left;
+    margin: 0;
+}
+
+.slide--title-sidebar .slide-content {
+    grid-column: 2;
+    align-self: start;
+    position: relative;
+    padding: 0 0 24px 28px;
+}
+
+.slide--title-sidebar .slide-content::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 24px;
+    left: 0;
+    width: 3px;
+    border-radius: 999px;
+    background: var(--colloquium-accent);
+}
+
+.slide--title-sidebar .slide-content > * + * {
+    margin-top: 1em;
+}
+
+.slide--title-sidebar.title-sidebar-rule-full .slide-content {
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+}
+
+.slide--title-sidebar.title-sidebar-rule-full .slide-content::before {
+    bottom: 0;
+}
+
+/* Title-sidebar uses grid, so vertical positioning maps to align-content. */
+.slide--title-sidebar.valign-top.active {
+    align-content: start;
+}
+
+.slide--title-sidebar.valign-center.active {
+    align-content: center;
+}
+
+.slide--title-sidebar.valign-bottom.active {
+    align-content: end;
+}
+
+/* ===== Layout: Title Banner ===== */
+.slide--title-banner {
+    justify-content: flex-start;
+    align-items: flex-start;
+    text-align: left;
+    padding: 72px 84px 60px;
+}
+
+.slide--title-banner.active {
+    display: flex;
+}
+
+.slide--title-banner h1 {
+    max-width: 980px;
+    font-size: 3em;
+    line-height: 1.02;
+    letter-spacing: -0.05em;
+    margin-bottom: 0.45em;
+}
+
+.slide--title-banner .slide-content {
+    flex: 1;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    max-width: 620px;
+}
+
+.slide--title-banner .slide-content > * + * {
+    margin-top: 1em;
+}
+
+/* ===== Layout: Section Break ===== */
+.slide--section-break {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background: var(--colloquium-accent);
+    color: #ffffff;
+}
+
+.slide--section-break.active {
+    display: flex;
+}
+
+.slide--section-break h2 {
+    color: #ffffff;
+    font-size: 2.2em;
+}
+
+.slide--section-break .slide-content {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+/* ===== Layout: Two Column ===== */
+.slide--two-column .slide-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2em;
+    align-items: start;
+    width: 100%;
+}
+
+/* ===== Layout: Image Left ===== */
+.slide--image-left .slide-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2em;
+    align-items: center;
+    width: 100%;
+}
+
+.slide--image-left .slide-content img {
+    max-height: 500px;
+}
+
+/* ===== Layout: Image Right ===== */
+.slide--image-right .slide-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2em;
+    align-items: center;
+    width: 100%;
+}
+
+.slide--image-right .slide-content img {
+    max-height: 500px;
+    order: 2;
+}
+
+/* ===== Layout: Code ===== */
+.slide--code pre {
+    font-size: 0.7em;
+    max-height: 500px;
+}
+
+/* ===== Utility: Title Position ===== */
+.title-top.active { justify-content: flex-start; }
+.title-center.active { justify-content: center; align-items: center; text-align: center; }
+.title-hidden h1, .title-hidden h2 { display: none; }
+
+/* ===== Utility: Text Alignment ===== */
+.align-left.active { text-align: left; }
+.align-center.active { text-align: center; }
+.align-right.active { text-align: right; }
+
+.align-center.active .slide-content > img,
+.align-center.active .slide-content > p > img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.align-left.active .slide-content > img,
+.align-left.active .slide-content > p > img {
+    display: block;
+    margin-right: auto;
+}
+
+.align-right.active .slide-content > img,
+.align-right.active .slide-content > p > img {
+    display: block;
+    margin-left: auto;
+}
+
+/* ===== Utility: Vertical Alignment ===== */
+.valign-top.active { justify-content: flex-start; }
+.valign-center.active { justify-content: center; }
+.valign-bottom.active { justify-content: flex-end; }
+
+/* ===== Utility: Columns ===== */
+.colloquium-grid {
+    display: grid;
+    gap: 2em;
+    align-items: stretch;
+    width: 100%;
+}
+
+/* ===== Utility: Rows ===== */
+.colloquium-rows {
+    display: grid;
+    gap: 0.9em;
+    width: 100%;
+    min-height: 0;
+    flex: 1;
+}
+
+.colloquium-row {
+    min-height: 0;
+}
+
+/* Images in grid layouts: fit within the available content height */
+.colloquium-grid img {
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    max-height: calc(720px - var(--colloquium-slide-padding) * 2 - 100px);
+    object-fit: contain;
+}
+
+.colloquium-rows img {
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.colloquium-grid > .col,
+.colloquium-rows > .colloquium-row {
+    min-width: 0;
+    min-height: 0;
+    overflow: visible;
+}
+
+.slide .slide-content:has(> figure.colloquium-figure:first-child:last-child),
+.slide .colloquium-grid > .col:has(> figure.colloquium-figure:first-child:last-child),
+.slide .colloquium-row:has(> figure.colloquium-figure:first-child:last-child) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.colloquium-grid > .col > :last-child,
+.colloquium-rows > .colloquium-row > :last-child {
+    margin-bottom: 0;
+}
+
+/* Standalone images inside grid cells should fit the cell by default. */
+.slide .colloquium-grid > .col > p:first-child:last-child:has(> img),
+.slide .colloquium-row > p:first-child:last-child:has(> img) {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+
+.slide.img-valign-top .colloquium-grid > .col > p:first-child:last-child:has(> img),
+.slide.img-valign-top .colloquium-row > p:first-child:last-child:has(> img) {
+    align-items: flex-start;
+}
+
+.slide.img-valign-center .colloquium-grid > .col > p:first-child:last-child:has(> img),
+.slide.img-valign-center .colloquium-row > p:first-child:last-child:has(> img) {
+    align-items: center;
+}
+
+.slide.img-valign-bottom .colloquium-grid > .col > p:first-child:last-child:has(> img),
+.slide.img-valign-bottom .colloquium-row > p:first-child:last-child:has(> img) {
+    align-items: flex-end;
+}
+
+.slide.img-valign-center .slide-content:has(> figure.colloquium-figure:first-child:last-child),
+.slide.img-valign-center .colloquium-grid > .col:has(> figure.colloquium-figure:first-child:last-child),
+.slide.img-valign-center .colloquium-row:has(> figure.colloquium-figure:first-child:last-child) {
+    justify-content: center;
+}
+
+.slide.img-valign-bottom .slide-content:has(> figure.colloquium-figure:first-child:last-child),
+.slide.img-valign-bottom .colloquium-grid > .col:has(> figure.colloquium-figure:first-child:last-child),
+.slide.img-valign-bottom .colloquium-row:has(> figure.colloquium-figure:first-child:last-child) {
+    justify-content: flex-end;
+}
+
+.slide .slide-content > figure.colloquium-figure:first-child:last-child,
+.slide .colloquium-grid > .col > figure.colloquium-figure:first-child:last-child,
+.slide .colloquium-row > figure.colloquium-figure:first-child:last-child {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    width: auto;
+    height: auto;
+    max-height: none;
+    margin: 0;
+    overflow: visible;
+}
+
+.slide .colloquium-grid > .col > p:first-child:last-child:has(> img) > img,
+.slide .colloquium-row > p:first-child:last-child:has(> img) > img {
+    width: 100%;
+    height: 100%;
+    flex: 1 1 auto;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    object-position: top center;
+    min-height: 0;
+}
+
+.slide .slide-content > figure.colloquium-figure:first-child:last-child > img,
+.slide .colloquium-grid > .col > figure.colloquium-figure:first-child:last-child > img,
+.slide .colloquium-row > figure.colloquium-figure:first-child:last-child > img {
+    width: auto;
+    height: auto;
+    flex: 0 0 auto;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    object-position: top center;
+    min-height: 0;
+}
+
+.slide.img-valign-top .colloquium-grid > .col > p:first-child:last-child:has(> img) > img,
+.slide.img-valign-top .colloquium-row > p:first-child:last-child:has(> img) > img,
+.slide.img-valign-top .slide-content > figure.colloquium-figure:first-child:last-child > img,
+.slide.img-valign-top .colloquium-grid > .col > figure.colloquium-figure:first-child:last-child > img,
+.slide.img-valign-top .colloquium-row > figure.colloquium-figure:first-child:last-child > img {
+    object-position: top center;
+}
+
+.slide.img-valign-center .colloquium-grid > .col > p:first-child:last-child:has(> img) > img,
+.slide.img-valign-center .colloquium-row > p:first-child:last-child:has(> img) > img,
+.slide.img-valign-center .slide-content > figure.colloquium-figure:first-child:last-child > img,
+.slide.img-valign-center .colloquium-grid > .col > figure.colloquium-figure:first-child:last-child > img,
+.slide.img-valign-center .colloquium-row > figure.colloquium-figure:first-child:last-child > img {
+    object-position: center center;
+}
+
+.slide.img-valign-bottom .colloquium-grid > .col > p:first-child:last-child:has(> img) > img,
+.slide.img-valign-bottom .colloquium-row > p:first-child:last-child:has(> img) > img,
+.slide.img-valign-bottom .slide-content > figure.colloquium-figure:first-child:last-child > img,
+.slide.img-valign-bottom .colloquium-grid > .col > figure.colloquium-figure:first-child:last-child > img,
+.slide.img-valign-bottom .colloquium-row > figure.colloquium-figure:first-child:last-child > img {
+    object-position: bottom center;
+}
+
+.img-overflow .colloquium-grid > .col,
+.img-overflow .colloquium-rows > .colloquium-row,
+.img-overflow .slide-content {
+    overflow: visible;
+}
+
+.slide.img-overflow .colloquium-grid > .col > p:first-child:last-child:has(> img),
+.slide.img-overflow .colloquium-row > p:first-child:last-child:has(> img),
+.slide.img-overflow .slide-content > figure.colloquium-figure:first-child:last-child,
+.slide.img-overflow .colloquium-grid > .col > figure.colloquium-figure:first-child:last-child,
+.slide.img-overflow .colloquium-row > figure.colloquium-figure:first-child:last-child {
+    overflow: visible;
+}
+
+.slide.img-overflow .colloquium-grid > .col > p:first-child:last-child:has(> img) > img,
+.slide.img-overflow .colloquium-row > p:first-child:last-child:has(> img) > img,
+.slide.img-overflow .slide-content > figure.colloquium-figure:first-child:last-child > img,
+.slide.img-overflow .colloquium-grid > .col > figure.colloquium-figure:first-child:last-child > img,
+.slide.img-overflow .colloquium-row > figure.colloquium-figure:first-child:last-child > img {
+    width: auto;
+    height: auto;
+    flex: 0 0 auto;
+    max-width: none;
+    max-height: none;
+}
+
+/* ===== Utility: Image Alignment (independent of title) ===== */
+.img-align-center .slide-content img,
+.img-align-left .slide-content img,
+.img-align-right .slide-content img {
+    display: block;
+}
+
+.img-align-center .slide-content img { margin-left: auto; margin-right: auto; }
+.img-align-left .slide-content img { margin-right: auto; }
+.img-align-right .slide-content img { margin-left: auto; }
+
+/* ===== Utility: Image Fill ===== */
+.img-fill .slide-content img {
+    max-height: none;
+    max-width: none;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+.img-fill .slide-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+}
+
+/* ===== Utility: Padding ===== */
+.pad-compact.active { padding: 30px; }
+.pad-normal.active  { padding: 60px; }
+.pad-wide.active    { padding: 90px; }
+
+/* ===== Utility: Font Size (slide-level) ===== */
+.size-small.active  { font-size: 20px; }
+.size-normal.active { font-size: 24px; }
+.size-large.active  { font-size: 28px; }
+
+/* ===== Utility: Inline/Block Text Size ===== */
+.text-xs { font-size: 0.65em; }
+.text-sm { font-size: 0.8em; }
+.text-base { font-size: 1em; }
+.text-lg { font-size: 1.2em; }
+.text-xl { font-size: 1.4em; }
+.text-2xl { font-size: 1.7em; }
+.text-3xl { font-size: 2.2em; }
+.text-4xl { font-size: 2.8em; }
+
+/* ===== Utility: Spacing ===== */
+.colloquium-spacer-sm { height: 0.75em; }
+.colloquium-spacer-md { height: 1.25em; }
+.colloquium-spacer-lg { height: 2em; }
+
+/* ===== Utility: Footnotes ===== */
+.colloquium-footnote {
+    margin-top: 1em;
+    font-size: 0.68em;
+    line-height: 1.35;
+    color: var(--colloquium-muted);
+}
+
+.colloquium-footnote p {
+    margin: 0.35em 0 0;
+}
+
+.colloquium-footnote p:first-child {
+    margin-top: 0;
+}
+
+/* ===== Footer (inside each slide) ===== */
+.colloquium-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    font-size: 13px;
+    color: var(--colloquium-muted);
+    user-select: none;
+}
+
+.colloquium-footer-left,
+.colloquium-footer-center,
+.colloquium-footer-right {
+    display: flex;
+    align-items: center;
+}
+
+.colloquium-footer-left   { justify-content: flex-start; }
+.colloquium-footer-center { justify-content: center; flex: 1; }
+.colloquium-footer-right  { justify-content: flex-end; }
+
+.colloquium-footer-nav {
+    cursor: pointer;
+}
+
+.slide .colloquium-footer-logo {
+    height: 24px;
+    width: auto;
+    border-radius: 0;
+    max-height: none;
+}
+
+.colloquium-counter {
+    cursor: pointer;
+    font-variant-numeric: tabular-nums;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.colloquium-counter:hover {
+    opacity: 1;
+}
+
+.colloquium-footer-nav:hover {
+    color: var(--colloquium-accent);
+}
+
+/* Inverted footer on section breaks */
+.slide--section-break .colloquium-footer {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* ===== Slide Picker Overlay ===== */
+.colloquium-picker-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 200;
+}
+
+.colloquium-picker-overlay.active {
+    display: block;
+}
+
+.colloquium-picker {
+    position: absolute;
+    bottom: 48px;
+    right: 24px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    max-height: 70vh;
+    overflow-y: auto;
+    width: 360px;
+    padding: 8px 0;
+}
+
+.colloquium-picker-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 10px 20px;
+    border: none;
+    background: none;
+    font-family: var(--colloquium-font-body);
+    font-size: 15px;
+    color: var(--colloquium-text);
+    cursor: pointer;
+    text-align: left;
+}
+
+.colloquium-picker-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.colloquium-picker-item:hover {
+    background: var(--colloquium-code-bg);
+}
+
+.colloquium-picker-item.current {
+    color: var(--colloquium-accent);
+    font-weight: 600;
+}
+
+.colloquium-picker-num {
+    min-width: 28px;
+    color: var(--colloquium-muted);
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+    text-align: right;
+}
+
+.colloquium-picker-item.current .colloquium-picker-num {
+    color: var(--colloquium-accent);
+}
+
+/* ===== Picker Trigger ===== */
+.colloquium-picker-trigger {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 155;
+    display: none;
+    align-items: center;
+    gap: 10px;
+    border: none;
+    border-radius: 999px;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--colloquium-heading);
+    font-family: var(--colloquium-font-body);
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.colloquium-picker-trigger:hover {
+    background: #fff;
+}
+
+.colloquium-picker-trigger-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--colloquium-muted);
+}
+
+.colloquium-picker-trigger-count {
+    font-size: 14px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--colloquium-accent);
+}
+
+/* ===== Present Button ===== */
+.colloquium-present {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 150;
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 50%;
+    background: var(--colloquium-accent);
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+body:hover .colloquium-present {
+    opacity: 0.7;
+}
+
+.colloquium-present:hover {
+    opacity: 1 !important;
+}
+
+/* Hide when already fullscreen */
+:fullscreen .colloquium-present {
+    display: none;
+}
+
+@media (hover: none) and (pointer: coarse) {
+    .colloquium-present {
+        display: none !important;
+    }
+
+    .colloquium-picker-trigger {
+        display: flex;
+        right: max(12px, env(safe-area-inset-right));
+        bottom: max(12px, env(safe-area-inset-bottom));
+        min-height: 52px;
+        padding: 12px 16px;
+        gap: 12px;
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 6px 24px rgba(0,0,0,0.22);
+    }
+
+    .colloquium-picker-trigger-label {
+        font-size: 12px;
+    }
+
+    .colloquium-picker-trigger-count {
+        font-size: 16px;
+    }
+
+    .colloquium-picker {
+        right: 12px;
+        left: 12px;
+        bottom: 76px;
+        width: auto;
+        max-height: min(72vh, 560px);
+    }
+}
+
+/* ===== Overflow Warning ===== */
+.colloquium-overflow-warn {
+    position: absolute;
+    bottom: 40px;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: repeating-linear-gradient(
+        90deg, #e94560 0, #e94560 8px, transparent 8px, transparent 16px
+    );
+    opacity: 0.8;
+    pointer-events: none;
+}
+
+:fullscreen .colloquium-overflow-warn {
+    display: none;
+}
+
+/* ===== Progress Bar ===== */
+.colloquium-progress {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: var(--colloquium-progress-bg);
+    z-index: 100;
+}
+
+.colloquium-progress-bar {
+    height: 100%;
+    background: var(--colloquium-progress-fill);
+    transition: width 0.3s ease;
+}
+
+/* ===== Conversation Bubbles ===== */
+.colloquium-conversation {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6em;
+    width: 100%;
+}
+
+.colloquium-message {
+    max-width: 80%;
+    border-radius: 12px;
+    padding: 0.5em 0.8em;
+}
+
+.colloquium-message--user {
+    align-self: flex-end;
+    background: var(--colloquium-accent);
+    color: #ffffff;
+}
+
+.colloquium-message--assistant {
+    align-self: flex-start;
+    background: var(--colloquium-code-bg);
+    color: var(--colloquium-text);
+}
+
+.colloquium-message--system {
+    align-self: center;
+    border: 1px solid var(--colloquium-border);
+    background: transparent;
+    color: var(--colloquium-muted);
+    font-style: italic;
+    font-size: 0.85em;
+    max-width: 90%;
+}
+
+.colloquium-message-role {
+    font-size: 0.65em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.15em;
+    opacity: 0.75;
+}
+
+.colloquium-message--user .colloquium-message-role {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.colloquium-message-role-name {
+    display: inline;
+}
+
+.colloquium-message-model {
+    text-transform: none;
+    letter-spacing: normal;
+    font-weight: 500;
+    opacity: 0.9;
+}
+
+.colloquium-message-content p {
+    margin: 0 0 0.3em;
+    white-space: pre-line;
+}
+
+.colloquium-message-content p:last-child {
+    margin-bottom: 0;
+}
+
+.colloquium-message-content li {
+    white-space: pre-line;
+}
+
+.colloquium-message-content code {
+    font-size: 0.85em;
+}
+
+.colloquium-message--user .colloquium-message-content code {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* ===== Built With Badge ===== */
+.slide a.colloquium-builtwith {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75em;
+    max-width: 100%;
+    padding: 0.55em 0.8em;
+    border: 1px solid color-mix(in srgb, var(--colloquium-border) 75%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--colloquium-code-bg) 75%, white 25%);
+    color: var(--colloquium-text);
+    text-decoration: none;
+    line-height: 1.1;
+}
+
+.slide a.colloquium-builtwith:hover {
+    border-color: color-mix(in srgb, var(--colloquium-accent) 55%, var(--colloquium-border) 45%);
+    color: var(--colloquium-heading);
+}
+
+.colloquium-builtwith-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.15em;
+    height: 1.15em;
+    flex: 0 0 auto;
+}
+
+.colloquium-builtwith-icon svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.colloquium-builtwith-text {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.05em;
+}
+
+.colloquium-builtwith-label {
+    font-size: 0.6em;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--colloquium-muted);
+}
+
+.colloquium-builtwith-repo {
+    font-size: 0.82em;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.colloquium-builtwith-stars {
+    font-size: 0.72em;
+    color: var(--colloquium-muted);
+    white-space: nowrap;
+    flex: 0 0 auto;
+}
+
+/* ===== Citations ===== */
+.slide a.colloquium-cite {
+    color: var(--colloquium-accent);
+    text-decoration: none;
+    font-size: 0.85em;
+    white-space: nowrap;
+}
+
+.slide a.colloquium-cite:hover {
+    text-decoration: underline;
+}
+
+.colloquium-footnote-ref {
+    font-size: 0.65em;
+    line-height: 0;
+    vertical-align: super;
+}
+
+.slide .colloquium-footnote-ref a {
+    color: var(--colloquium-accent);
+    text-decoration: none;
+}
+
+.slide .colloquium-footnote-ref a:hover {
+    text-decoration: underline;
+}
+
+.colloquium-cite-missing {
+    color: #dc2626;
+    font-weight: 600;
+}
+
+/* ===== Per-Slide Footnote Area ===== */
+.colloquium-slide-meta {
+    position: absolute;
+    bottom: 40px;
+    font-size: 12px;
+    color: var(--colloquium-muted);
+    max-width: 40%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2em;
+    z-index: 4;
+}
+
+.colloquium-slide-meta--left {
+    left: 24px;
+    align-items: flex-start;
+    text-align: left;
+}
+
+.colloquium-slide-meta--right {
+    right: 24px;
+    align-items: flex-end;
+    text-align: right;
+}
+
+.colloquium-slide-cite,
+.colloquium-slide-footnote {
+    max-width: 100%;
+}
+
+.colloquium-slide-cite {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.colloquium-slide-cite a.colloquium-cite {
+    font-size: inherit;
+    color: var(--colloquium-accent);
+}
+
+.colloquium-slide-cite a.colloquium-cite:hover {
+    color: var(--colloquium-heading);
+}
+
+.colloquium-slide-footnote {
+    line-height: 1.35;
+}
+
+.colloquium-slide-footnote-item + .colloquium-slide-footnote-item {
+    margin-top: 0.15em;
+}
+
+.colloquium-slide-footnote-label {
+    font-weight: 600;
+}
+
+.colloquium-slide-footnote-text {
+    display: inline;
+}
+
+.colloquium-slide-footnote-text .colloquium-cite {
+    white-space: normal;
+}
+
+.colloquium-slide-footnote > :first-child {
+    margin-top: 0;
+}
+
+.colloquium-slide-footnote > :last-child {
+    margin-bottom: 0;
+}
+
+.colloquium-slide-meta--right .colloquium-slide-footnote ul,
+.colloquium-slide-meta--right .colloquium-slide-footnote ol {
+    padding-right: 1.2em;
+    padding-left: 0;
+    list-style-position: inside;
+}
+
+/* ===== References Slide ===== */
+.colloquium-references-slide {
+}
+
+.colloquium-reference {
+    padding-left: 2em;
+    text-indent: -2em;
+    margin-bottom: 0.6em;
+    font-size: 0.75em;
+    line-height: 1.5;
+}
+
+.colloquium-ref-url {
+    color: var(--colloquium-muted);
+    font-size: 0.9em;
+    text-decoration: none;
+}
+
+.colloquium-ref-url:hover {
+    color: var(--colloquium-accent);
+    text-decoration: underline;
+}
+
+/* ===== Print / PDF Styles ===== */
+@page {
+    size: 13.333in 7.5in;  /* 16:9 widescreen at 96 CSS px/in => 1280x720 */
+    margin: 0;
+}
+
+@media print {
+    html, body {
+        width: 13.333in;
+        height: auto;
+        overflow: visible;
+        background: #fff;
+        margin: 0;
+        padding: 0;
+    }
+
+    .colloquium-deck {
+        position: static;
+        transform: none !important;
+        width: auto;
+        height: auto;
+        background: none;
+    }
+
+    .slide {
+        display: flex !important;
+        position: relative;
+        width: 1280px;
+        height: 720px;
+        page-break-after: always;
+        page-break-inside: avoid;
+        break-after: page;
+        break-inside: avoid;
+        margin: 0;
+        font-size: 24px;
+        overflow: visible;
+    }
+
+    .slide:last-child {
+        page-break-after: auto;
+    }
+
+    /* Display equations can be clipped inside printed columns even when the
+       right side of the slide has free space available. */
+    .slide .katex-display {
+        overflow: visible !important;
+    }
+
+    /* Hidden slides never get the runtime figure fit pass, so printed grid/row
+       figures need an explicit container-sized fallback. */
+    .slide .slide-content > figure.colloquium-figure:first-child:last-child,
+    .slide .colloquium-grid > .col > figure.colloquium-figure:first-child:last-child,
+    .slide .colloquium-row > figure.colloquium-figure:first-child:last-child {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    .slide .slide-content > figure.colloquium-figure:first-child:last-child > img,
+    .slide .colloquium-grid > .col > figure.colloquium-figure:first-child:last-child > img,
+    .slide .colloquium-row > figure.colloquium-figure:first-child:last-child > img {
+        width: 100% !important;
+        height: auto !important;
+        max-width: 100% !important;
+        max-height: calc(720px - var(--colloquium-slide-padding) * 2 - 100px) !important;
+    }
+
+    /* Printed slides are not .active, so re-apply layout/utility rules without that gate. */
+    .slide--title,
+    .slide--title-left,
+    .slide--title-banner,
+    .slide--section-break {
+        display: flex !important;
+    }
+
+    .slide--title-sidebar {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) 300px;
+        column-gap: 56px;
+        align-content: center;
+        align-items: start;
+    }
+
+    .slide--title-sidebar.valign-top {
+        align-content: start;
+    }
+
+    .slide--title-sidebar.valign-center {
+        align-content: center;
+    }
+
+    .slide--title-sidebar.valign-bottom {
+        align-content: end;
+    }
+
+    .title-top { justify-content: flex-start; }
+    .title-center { justify-content: center; align-items: center; text-align: center; }
+
+    .align-left { text-align: left; }
+    .align-center { text-align: center; }
+    .align-right { text-align: right; }
+
+    .align-center .slide-content > img,
+    .align-center .slide-content > p > img {
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .align-left .slide-content > img,
+    .align-left .slide-content > p > img {
+        display: block;
+        margin-right: auto;
+    }
+
+    .align-right .slide-content > img,
+    .align-right .slide-content > p > img {
+        display: block;
+        margin-left: auto;
+    }
+
+    .valign-top { justify-content: flex-start; }
+    .valign-center { justify-content: center; }
+    .valign-bottom { justify-content: flex-end; }
+
+    .size-small { font-size: 20px; }
+    .size-normal { font-size: 24px; }
+    .size-large { font-size: 28px; }
+
+    .colloquium-progress,
+    .colloquium-picker-overlay,
+    .colloquium-present,
+    .colloquium-picker-trigger,
+    .colloquium-overflow-warn {
+        display: none !important;
+    }
+
+    .colloquium-counter {
+        cursor: default;
+    }
+
+    a {
+        color: inherit !important;
+        text-decoration: underline;
+    }
+
+    .slide a.colloquium-cite,
+    .colloquium-slide-cite a.colloquium-cite,
+    .slide a.colloquium-ref-url {
+        color: var(--colloquium-accent) !important;
+    }
+
+    /* Swap chart canvases for static images */
+    .colloquium-chart-container canvas {
+        display: none !important;
+    }
+
+    .colloquium-chart-print {
+        display: block !important;
+    }
+}
+
+/* ===== Capture mode — hide UI chrome for headless screenshots ===== */
+.colloquium-capture .colloquium-present,
+.colloquium-capture .colloquium-progress,
+.colloquium-capture .colloquium-overflow-warn,
+.colloquium-capture .colloquium-picker-overlay {
+    display: none !important;
+}
+
+
+</style>
+</head>
+<body>
+<div class="colloquium-deck">
+<section class="slide slide--title active" data-index="0">
+<h1>KD-GAT</h1>
+<div class="slide-content"><h3>Adaptive Fusion of Graph-Based Ensembles for Automotive Intrusion Detection</h3>
+<p>Robert Frenken · The Ohio State University · Candidacy · 2026</p>
+</div>
+<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">1 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
+</section>
+
+<section class="slide slide--section-break" data-index="1">
+<h2>Problem Statement</h2>
+<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">2 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
+</section>
+
+<section class="slide slide--content cols-3" data-index="2">
+<h2>Motivation</h2>
+<div class="slide-content colloquium-grid" style="grid-template-columns: repeat(3, minmax(0, 1fr));"><div class="col"><div class="colloquium-box colloquium-box--muted">
+<div class="colloquium-box-title">Single Model Brittleness:</div>
+<div class="colloquium-box-content"><ul>
+<li>individual deep learning models achieve high accuracy on known attacks but are vulnerable to unseen attack types or attacks focusing on a structural weakness of a model’s architecture</li>
+<li>Axes: In vs Out of Distribution (known vs unknown)</li>
+<li>Attack &quot;surfaces&quot;: structural, distributional, and temporal</li>
+<li>For supervised models, massive class imbalance (eg 927:1) makes training difficult</li>
+</ul></div>
+</div></div><div class="col"><div class="colloquium-box colloquium-box--muted">
+<div class="colloquium-box-title">Resource Contraints:</div>
+<div class="colloquium-box-content"><ul>
+<li>Models developed under academic research using GPU-scaling need to significantly downsize to meet the limited onboard resources of production vehicles</li>
+<li>ARM Cortex processors require &lt;&lt;50--100ms latency</li>
+</ul></div>
+</div></div><div class="col"><div class="colloquium-box colloquium-box--muted">
+<div class="colloquium-box-title">Model Opaqueness:</div>
+<div class="colloquium-box-content"><ul>
+<li>Highly accurate models face systematic rejection in safety-critical systems because users cannot understand or verify decisions</li>
+<li>Standards like ISO 26262 require verifiable failure-mode analysis — something black-box models cannot satisfy</li>
+</ul></div>
+</div></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">3 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
+</section>
+
+<section class="slide slide--content cols-2" data-index="3">
+<h2>CAN Bus Network</h2>
+<div class="slide-content colloquium-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr));"><div class="col"><p><img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIzMSIgaGVpZ2h0PSIxMjg2IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB4bWw6c3BhY2U9InByZXNlcnZlIiBvdmVyZmxvdz0iaGlkZGVuIj48ZGVmcz48Y2xpcFBhdGggaWQ9ImNsaXAwIj48cmVjdCB4PSIyNDM0IiB5PSI3NiIgd2lkdGg9IjEyMzEiIGhlaWdodD0iMTI4NiIvPjwvY2xpcFBhdGg+PGltYWdlIHdpZHRoPSIxMjMxIiBoZWlnaHQ9IjEyODYiIHhsaW5rOmhyZWY9ImRhdGE6aW1hZ2UvcG5nO2Jhc2U2NCxpVkJPUncwS0dnb0FBQUFOU1VoRVVnQUFCTThBQUFVR0NBTUFBQUN4V1dZMEFBQUFBWE5TUjBJQXJzNGM2UUFBQUFSblFVMUJBQUN4and2OFlRVUFBQUF6VUV4VVJRQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUtNRlJza0FBQUFSZEZKT1V3QUNBd1VHQ0FvTERRNFRGaGtSRUJVWXR4TnNRZ0FBQUFsd1NGbHpBQUFPd3dBQURzTUJ4MitvWkFBQU1IRkpSRUZVZUY3dDNldGkycmdXQnRCRElPR1NFbmovcHoyazljeTBUU1RMeHJhMjdMVitNeE1LNXBQM2xpejlEd0FBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUMyWVBmeXNqKzh2cjRkajZjek5aeE9wK1BiMit2aHNOOTMzd2t3MEc3L2VqeGYzbjhReVB2MTQvUjY2TDRob01EdWNMcmM3dDFQaUhqZXIyZWhCdjBlV1NiS21pRFRJRWVXdGVZaTArQmJoN01zYTlIWk5BSDhhWCs2ZFQ4UG1uTTd2WFJmSTdBN0NyUEdYZCs2N3hLMjdYQlZaNjdCMlUwYW0zZHdhN1lhSHhLTlRaTm02M0tWYUd6VlRwcXRqMFJqazNhdjBteVZMdFp2c0RudXpkYnIzSDNIc0EwN2EyZlg3RzcxQmh2eVp0dU1sYnRwbzdFUisydDMwYk5paWs2MlFLbTVFYmZYN2h1SDFkb3JOVGZETFJvcmQzUnp0aUc2YUt6WjdxTzcwTm1HdTVxVDFWSnJicytwKys1aFpkU2FXM1RiZFY4L3JJaGFjNlB1dHVSbWRWN1VtcHZsYVFGV1J1dHN5NDdkVlFDcnNOYzYyelN6QXF6SVlYeWMzVzhmNStQeDdlMzFzQS9wclh1Zlg1MjdWelR2OFByNit2WjJQSDA4Y1ZxOVFHTTEza2JGMmYxNmV0MkhueHpiZCsvMnExWCtoRjllVCtPT2U3aDIvd05vM0loMUd2ZnJXeU83QW00c3ozNTZPWTdJdEV2M0gwUFRqdDBGWGVwK09UVzB3K2tXOCt6VHkrQXpCZ1VhS3pBd3ppNk5uVTI3MVR4NzJKK0c5ZE51M1g4SHpSb1VaL2VXN3N4KzJYQ2VQUnpPM1QrMmlEczBHamNremk3SEJoK04yWGFlUFJ3SDNLUUpOSm8yWUNyZzB1WldESnZQczBHSkp0Qm9XUGxDaldZUE9aTm5EK1dKSnRCb1Z2RXkyb2FQYkpSblB4WDNGUVFhalNwOXlPbmVZdC9zSC9Mc2wrTHRVMnpDVFpOSzQreWo2UTJ5NU5rL1NyY2NFR2cwcURET0xvM3ZqaVhQL2xOWWRHN3ZnNkY1WmFOMTA2WG1UL0xzTjd1eVp3WUVHbzBwMjc1eEJjZGx5TE0vbEsydnRSOGFUU2ticUMrdDM1dzl5TE0vdlhiLytqdzcxdEtRb2pocnY5YjhKTS8rc2k4YXlnUWF6ZGhkdTZzMlp5VkhNOHF6TDRwV2JnZzBHbEVVWjJzNU9sdWVmVlhVUkJOb05LRXN6dFpRYTM2U1o5ODRkUjlCbG1Qc2FFQlJuSzFoSnVBWGVmYWQ5S2tLdnhGb3hGZlNQV243a1lBL3lMTnZIYm9QSVV1Z0VWMUpuSjNYRTJmeUxLRW8wTnJkaG9CdEtPbWNyT29CUG5tV1VCSm9kNEZHWkNWUDhLM3JlV1I1bGlMUWFGeFJuSzJvMkh5UVowa0NqYWFWeE5tS3BnSitrbWRwQW8yR2xSd1dzSjZGR2gxNWxsRVVhQ3RaV00zS2xCd1dzSnBsdFArU1p6a2xUNmUvcis2YVlBVktEZ3RZWDV6SnM3eVNGb1JBSTV5UzdXaFhHR2Z5ckVkSm9LM3h1cUJwUlhHMnhrNkpQT3RSc2lMeDFyMFdRaWlKcy9kVk5uN2xXWitTM1RZRUdvR1VIQmF3MG9sNWVkYXI1QkU0eDNJU1JzbGhBZmVWUG53c3ovb0pOQnBTc3J2MlNuYWovVXFlRlJCb05HUFRjU2JQaWdnMEdsR3lmK042NDB5ZWxTbmE1TE43TFZSVEZHY3IzaXRlbnBXNWRKOUt6clY3TFZSU3RMdjJtbysra0dlRlNnSnRYVnRKMFp4ZFNXTmsxYWRoeTdOU0FvM29TdUpzM2I5cmVWYXE2SkJwSHhyMWxDejlYdm1RSzgrS0ZRWGFxbS9tQ1cxemh3VjhRNTZWS3dvMDV3eFR4L1lPQy9pR1BCdEFvQkhXRm5mWC9rcWVEU0hRQ0VxYy9TVFBCdGtWYk1RaTBGamNKZzhMK0lZOEcrYWxKTkFjbk02eXRubFl3RGZrMlVBbFcrVUpOQmExMGNNQ3ZpSFBoaEpvQkxQVnd3SytJYzhHUzM5a3Z4Rm9MR1c3dTJ0L0pjK0dLd2swNXd5ekVISDJHM2syZ29QVENXUERod1Y4UTU2TklkQUlZc3VIQlh4RG5vMGkwQWloWklYM2lyZWovVUtlalNQUUNHQlhzSXZWbHVKTW5vMVZGR2pibUNPbmxvMGZGdkFOZVRaV3lRTno3d0tOK1d6OXNJQnZ5TFBSU2dKdEk2c1lxV0h6aHdWOFE1Nk5WN0ovbmtCakpnNEwrSVk4ZTBMSi9zYTM3clV3clpJNDI5eUJGdkxzR1FLTldod1c4QjE1OWhRSHAxT0h3d0srSmMrZUk5Q29vZWl3Z0EzMmJ1WFprd1FheTdPN2RvSThlMWJKcExsQVkwcmlMRVdlUGEzazRIU0J4blRzcnAwa3o1NVhFbWdiYk0weUUzR1dKczhtSU5CWWpzTUNNdVRaRkVxTzVmUjVNZ1dIQmVUSXN5a1VuVE84dFVkUG1JUGR0YlBrMlNRRUdvc29pYlA3ZHVOTW5rMmtLTkFjbk01emluYlgzdkkyb3ZKc0lnS04yUlhGMmFiMmIveWJQSnZLcnVCYUUyZzh3V0VCdmVUWlpGNEtXaHMvdG4yMThReUhCZlNUWjlNcENqUUhwek9Pd3dJS3lMTUpsVXcrQ1RSR3NidDJDWGsycGZTbitSdUJ4bkRpcklnOG0xUlJvRG1XazZHS0RndndrNVZuRTNQT01ITndXRUFaZVRZeGdjYjBIQlpRU0o1TlRhQXhOWWNGbEpKbmt4Tm9UTXRoQWNYazJmU0tBbTNEend3empOMjF5OG16R2J4MUgySE91d3VRSWlWeGRuVTEvU0xQNWxCeUNRbzBTdGhkZXdoNU5vdVNRSE1SMGsrY0RTTFA1bEV5STNYclhnc3BkdGNlUnA3TnBHVEZrRUFqcnlqT1RDMzlSNTdOeGNIcFBNdGhBVVBKczlrSU5KNVRkRmlBbFl5L2syZnpFV2c4dzJFQnc4bXpHUWsweG5OWXdBanliRTRsQjZjTE5MN2pzSUF4NU5tc1NnTHRvM3N0L01mdTJxUElzM21WQkpxZEVmaWJPQnRIbnMxTW9ER2MzYlZIa21jekt6cG4yR2ZONzhUWldQSnNia1dCZHV4ZURJOUxwbVJpM08vek8vSnNka1dCWnJEbFh5Vnhwa2Z4TFhrMlA0SEdFQTRMR0UrZUxVQ2dVYTVvZCszdXRmeEZuaTNocGVCQlBJSEdwNkk0czBOUWdqeGJSRkdnT1RpZG9qaHpXRUNTUEZ0R3lWWUpBbzFqd1hWeUVXZEo4bXdoNlEvNk53SnQ0K3l1L1NSNXRoU0JSaDl4OWl4NXRoam5ESlBuc0lDbnliUGxDRFJ5SEJid1BIbTJJSUZHbXNNQ0ppRFBsaVRRU0hGWXdCVGsyYUlFR3Q5eldNQWs1Tm15WHJ0UE4rZGR5M2R6ZGc0TG1JUThXMWpKK20rQnRqVWxUL2lLc3dMeWJHa2xnV1pTZmx2c3JqMFZlYmE0VS9jQjU5eTYxN0lGUlhGbXU0SVM4bXg1SmZ0YkNiVHRzTHYyZE9SWkJTV0I1bGpPclNpS014dXlsNUZuTlRnNG5YODVMR0JDOHF3S2dVYkhZUUZUa21kMUNEUitLcGtkRW1mRjVGa2xKVTBUZ2JaNkRndVlsanlycGVUZ2RJRzJjZzRMbUpnOHE2WWswQXpOcSthd2dLbkpzM29FMnNZNUxHQnk4cXllb21NNWZRMnJaWGZ0NmNtemlvb0N6VXJLbFhvVlo5T1RaelVKdE8xeVdNQWM1RmxWUllIbTBiMFZzcnYyTE9SWlhRSnRtOFRaUE9SWlpidUNDMXVncmMzZTd0cnprR2UxdlpRRW1yMzhWcVhvc0FCblM0OGd6Nm9yQ2pRWDk0cVVOQmxzUnp1S1BLdXZwSmNpME5aRG5NMUhuZ1dRL2hKK0k5Qld3bUVCTTVKbkVaUUVtdmJ3T2pnc1lFN3lMQVRuREcrRnd3Sm1KYzlpRUdqYjRMQ0FlY216SUFUYUpqZ3NZRjd5TEFxQnRnRU9DNWlaUEF1aktOQThvTnd5aHdYTVRaN0ZVYkpiNmJ0QWE1ZkRBbVluendJUmFLdG1kKzM1eWJOSVN1b1JlMkkxU3B3dFFKNkZjdTQrL0p4YjkxcWFVbkpZZ0xIcVdmSXNGb0cyVWc0TFdJUThDOGJCNmF0MEVHZUxrR2ZSQ0xRVmNsakFRdVJaT0FKdGRleXV2UlI1Rm85QVd4bHh0aGg1RmxESndla0NyUmtPQzFpT1BJdW9KTkErdXRjU1hORmhBZlp2bklZOEM2a2swRHdaMHdTN2F5OUpuc1ZVY2l5bmI2Z0I0bXhSOGl5bW9uT0dmVVhoT1N4Z1dmSXNxS0pBczVGcGNBNExXSmc4aTZvbzBQd1VRbk5Zd05Ma1dWZ0NyWFc3a3BXRTdyR25KTS9pMmhWTTlBdTB3RXJpekN6MXBPUlpZQzhGNjhvRldsamliSG55TExLaVFITndla3dPQzZoQW5vVlc4dVNmUUF1cDZMQUFXMnBNVEo3Rmx2NStmaVBRNHJHN2RoWHlMTGlpUVBNd2N6UWxjWFlWWjVPVFo5RTVaN2hCRGd1b1JKNkZKOUNhNDdDQVd1UlpmQUt0TVE0THFFYWVOVUNnTmNWaEFmWElzeFlJdEliWVhic2llZGFFMSs1THlYazM1RWRRRW1kM2NUWVRlZGFHa3ZsL2dSWkEwZTdhYnFYbklzOGFVUkpvbWpMVjdRcDJTcmQvNDN6a1dTdEtIZ2U4ZGErbEV0dlJWaWJQbW5IdXZwZ2NnVlpYd1pZYTRteE84cXdkUmVjTUt6a3JLbWdLaUxOWnliT0dsQVRhdTE1ek5TWGJPOW11YmxieXJDVWxnV2EzalZwSzVnTEUyYnprV1ZPS0FzMk85SFVVek5qNFVjMU1ucldsNU9EMEh6ZkxOU3NvZUdyVGRyUnprMmVOS1FvMHQyZ1Y5SDh6NG14MjhxdzFaWUhtRm0xcC9ZK2tpYlA1eWJQbWxBWGFqNnRFVzFML2Fha09DMWlBUEd0TzBUbkRuejRrMm5KNkp3TWNGckFFZWRhZTRrRDdjYkU4WUNHN3Zza0FDNTBYSWM4YVZCNW9qeXJIY3JRbDlOMmUyU3BnR2ZLc1JVTUM3WEZyY0Q2b1BHZlc5NFVjMzFoQytvbXphL2NLQWlvNVAraFB0K3ZwdVBDUDZuRFl2MnprdHFSa3YwMmdlZmYzOTh2MStuRmE5VDFpNFp3enNCcVh0YVphdW1zRHJOcjc5YlMyUFVCSzl0b0UxdXA2WEZOblRia0pHM2RaelZJUzVTYnd1RTFiUmVsWmNsWU5zQUczOXZjQ0tUZ0VCZGlJYStPRlo4R1JtOEJtdko4YlhzZWhmUWI4NmRyc3MvUGFaOEFYamQ2a2FaOEIzMmd5MGJUUGdHODF1Q20xUEFNU1drdTBsKzU5QTN6VlZxSWR1bmNOOEoyV0V1MnRlODhBMzdxM3MzckRjZzJnUnpNbmlOb3NDT2pWeUlPZDUrN3RBcVRkbXRoODQ2Tjd0d0E1TGN3THlET2d5TzIxUzQyNFBPNEVGUHJvWWlNc2VRYVVlZy9lUlpOblFMbllFNTN5REJnZzlMUkFPcytPd0ZxY3poOGZsOHZ0L2Q3OXZKOFFlWEZ0TXMvdTNRdUFWWGw5TzEyZTJsYm5IdmVJQVhrR1czUjRwRnIzV3g4dWJCTk5uc0Ztdlk3TnRFdjNQNGhHbnNHbXZaNXYzVzkraUtDUFA4a3oyTHJkY1hnLzdSNHkwT1FaOEwvRDRDY2ZRd2FhUEFNK0hRZjIwaUlHbWp3RGZua1pXSGZHVzdjaHo0Qi9EVXUwY0lFbXo0RGZERXEwYURzSXlUUGdEME1TTGRoUktmSU0rTXVBUkl2MXFJQThBNzRvUC9ndDFCMmFQQU8rMmllajRXK1JKZ1hrR2ZDZHQ4SzloU0t0UTVObndQY0tueG00eDlrUVRaNEJDZnV5ZVlGYjkvTDY1Qm1RZE9yeUlDL005a0h5REVqYkYzWFJydDJyYTVOblFNYXVhSHUwSUtzMjVCbVFkZTR5SVN2R2swL3lETWg3NjBJaEs4UXlOSGtHOUNpWjU3enZ1aGZYSk0rQVBydGtVUHdud3B5QVBBUDZGYXl0RGRCQ2syZEFnZjVaZ1FEUENjZ3pvRVIvb05WL1RrQ2VBVVg2bnhVNGQ2K3NScDRCWmZvRHJmYWlEWGtHRkhydDBpR3A5cUlOZVFhVU9uVHhrRlQ1eVhSNUJoVHJ2VU9ydTJoRG5nSGwrdGFoMVYyMEljK0FBZm9DN2FON1hSWHlEQmppMGtWRVNzM2pCT1FaTUVUZmhtZzFWOVhLTTJDUVhjK1d0UlgzZHBSbndERDdMaVFTS21hSFBBTUc2bG1HZHVwZXRqeDVCZ3pWTThsWmJjMkdQQU1HeTg4SlZOdmFVWjRCZzcxME9aRlE2eWtCZVFZTWQreUM0bnZ2M2F1V0pzK0FFZkxMYWl1dDJaQm53QWo1VldpVmJ0RGtHVEJHZnRGR25RNmFQQU5HeVI0b1VPZXBKM2tHakxMTG5qSmM1YkYwZVFhTTg5YUZ4YmVxckVHVFo4QkkyVlcxTlI0U2tHZkFTTmtIMDJ0czdDalBnTEd5ejNGV3VFR1RaOEJZdXk0dXZsWGhkR0Y1Qm95V08ySzRRb2JJTTJDODNKcU5ZL2VhNWNnellMemNnWnpMaDRnOEE1NlF1MEZiZkVaQW5nRlB5QzJxWFh4R1FKNEJ6OGpjb0MyZUl2SU1lRVp1WjhlbEMwNTVCandqdHdadDZXY0U1Qm53bE15K1FVdkhpRHdEbnBLN1FWdDQzMjE1Qmp3bjh4VG53Z1duUEFPZWt6bThidUVja1dmQWt6SkxOcFl0T09VWjhLVE1tdHBsdDZtVlo4Q1RNak1DeXdhSlBBT2VsWmtST0hRdldZUThBNTZWS1RoUDNVc1dJYytBWjJVS3prVWJhUElNZUZxNjRGdzBTZVFaOExUTXRvNUxOdERrR2ZDOGV4Y2NYeTI1NjdZOEE1NlhMamlYYktESk0rQjU2WUp6eVNpUlo4RHpNak9jQ3piUTVCa3dnZlF6bkFzMjBPUVpNSUgwcm80TE50RGtHVENCRUEwMGVRWk1JTk5BMjNjdm1aODhBNmFRYnFDOWRxK1luendEcHBCdW9DMDNJU0RQZ0Nta0cyakxUUWpJTTJBSzZRYmFwWHZGL09RWk1JbmtJNXpMaFlrOEF5Wng2N0xqcTEzM2l0bkpNMkFTNlFtQnhSWnN5RE5nRXFjdU83NWFiSUpUbmdHVFNFOXdMbmFHZ0R3REpwRStKbjJ4QlJ2eURKaEVlc0hHclh2RjdPUVpNSTM2Q3pia0dUQ05TeGNlWHkyMVlFT2VBZE5JTDlpUVowQmIwZ3MybGxxQUpzK0FhYngxNGZHVlBBUGFrbDZBdHRTUktQSU1tRVk2ejViYTBWR2VBZE00ZE9IeDFWdjNpcm5KTTJBYSt5NDh2bHJxQVU1NUJrd2ovY0NUUEFQYWtuN2dhYWtIMHVVWk1JMTBucDI3Vjh4Tm5nRVQ2Y0xqcTQvdUJYT1RaOEJFa2cra0w3VmhrRHdESmlMUGdMVkk1dGxTSjliSk0yQWk4Z3hZQzNrR3JJVThBOVpDbmdGckljK0F0WkJud0ZySU0yQXQ1Qm13RnZJTVdBdDVCcXlGUEFQV1FwNHQ3K1gxN1hnOG56OHVsOXY3L1g1L2Y3OWNyeC9uMCtudGJhbER0ZGlBM2Y3MTUyVjJ2ZHdlMTltUCsvdnRjdjM0T0oyT2I0ZVg3aVhySTg4VzlIbUZmZHlTSC9tbjkrdjVlRmpxYkhyV2FYYzRuaS92M1JYMXZjdkhhWldwSnMrV3NUdWNMdmtrKzhQMTR5alVHRzUvUEErNHpONnZwNVdWQlBKc0FmdmpwZndhKzlmN2Vha3pVRm1GM2V2cDFsMDdRMXhQKys1L3NBTHliR2E3MTQ4UldmYVAxWTJmek9OeC96L2d2dXh2OTQrM2xaUUQ4bXhPajR1cys5Yzg0YnJVMGM0MGF2YzI1djcvTDVmekd2cHA4bXcydXluQzdKZXp1elJTRHVmbncreVh5MUtIN3M1SG5zMWpkM2ltelB6cWRqSS93RmNURHBvL1hSc2ZPZVhaSFBhbi9HejVLT3BPL3JRN1BORXpTM2x2dXU2VVo1TjdYR1hkUDJGeXEyaHhNSTJYeWVyTXZ6VThjc3F6cWMyWFpwOGtHai90Wmt1elQ3ZFdFMDJlVFd2ZU5Qc2swWmc1elQ0MW1tanliRXJ6cDlrbmliWng4NmZacHlZVFRaNU5aNWswKzNUdS9pSWJ0RXlhZldvdzBhcm4yVWYzOTc3cVh0Q0s1ZExzazBUYnFPWFM3Tk90dFVmdXF1Zlp1ZnQ3WHpXMTRHcVgvbmZNNDk3dUhCVGpIV1pZQ0pUVjJNQlpQYzlPM2QvN3FxVThlMXR5ME94OFdHRzdOYnRrZDJZK2JRMmNnZk9zbmFmKzl4VXVzMDl1MFRabFYyUFVmTGcxTlA5VVBjK08zZC83cXBVOFc3YWo4WWVXcmpTZXRGKzBRZnVIZHA3cnJKNW5iOTNmKzZxUko4bVduUWY0MjZsN0Y2eGN4Vkh6NGRiS3pVWDFQSHZ0L3Q1WFRlUlozY3Zzb1prcmpXZlVIVFVmR3BrWHFKNW5oKzd2ZmRWQ2QraWxVdWZzZCsxdjhrS2ZZK1ZSOCtIV3hQUlQ5VHpiZDMvdnF3WitwNGY2bDltRHRXZ3J0MHN2MGx6UXZZV0NxWHFldlhSLzc2dVA3aFZ4QlJnMWZ6SXRzR29WSndMKzFNQWRSdlU4MjNWLzc2dHI5NHFvWW95YVA5MmRuTEplTVlxQW42TC9KQVBrV2ZvZEJIK0FjNy8wU3Uwczg1d3J0ZmlESjFuaFo1L3E1MW42WmpwMEEvSjFpbEh6Zm4vL2VYYjFCQmI3dmxqU05FOEVUSGVaL1FoZUNkVFBzM1RWRm5rc2VHYlV2TjgrVG9mRC9tWDNYMkMvdk94ZjMwNDlaMXJudlZ1NHNUN1BGQUgzMitkWisvdkhkZGI5eng3cCtMSS92QjQvTHQwclJvbGRDZFRQczNReXhGMndNYloxZHI4OHJyRHNiZWZMNitsajVEVjhGMmhyc3g5NVQzVy9uZzc3N0hYMk9YcDJMeDRxOUR4ZC9UeExMNmdOTzUweUxzNXU1M3lVL1dkM0hGVmxDTFNWR1RVVGNMOFVuM2MrN2p6MTBLMk4rbm1XWGxBYmRUWmxSRS9qZm4wYnVLYmlkY3o0NlpqT05Sa2VaNTlaVmpobS91TjF4QU11Z1FPdGZwNmxGMndFbmVBY0hHZjNqNUUzVHNmQnc2ZEFXNC9CdTJsY2pnT3pySE1ZWEc3RURiVDZlWlorQ3o5Q0xoTWRHbWRqcjdLZjlrTkhUMXNJcmNYQXhkcjM4elBkaHVQQVl1RFcvWGZoQk1pejlFMUl4QWJhYnRBOTA3MjRsNUgwT216MEZHanJrTjVINnh2M3k5c1RnK1pQTDhPT3dJNzZOR2VBUEV0UGNBWnNvTDBNK2RhZnVqWDd6OHVnUlBONCtob01pYlBuYnMzKzh6cmsyZzRhYUFIeUxMMURiYndHMnBBNG15ak5QZzJhVUhXSDFyNEJjWGFmOFBqQ0lZbjJIakxRQXVSWmVrSWdYQU50Vjk1bW1ERE5QZzFKTkE5enRxNDh6cVpNczA4REVpMWtEeTFBbnFYZlE3VGFxWHdxWU9JMCt6UWcwYVlwUDZpbGVCbnQxR24ycVR6UkZveUlZaEh5TFAxRERmYUpsVDdrZEo4K3pUNFZKNXFGdFUwcmpyUExQUFZMOGQxaHdJMzNJdVJadW9FV3ErQXMvWjVudXN3ZVNwY2t4ZXh0VUdSWGVJTjBuNjE2S1I0NDQ3VnFJK1JacG9FV3FlQk1uOXp5aDNuUEt5eTgwc0t1RDZKUGFWUGpPdWVZVlZwMGhtdlZSc2l6VEFQdHZYdEZBSVZWd055bi9CYnV1QkNzVXFkVVlaemQ1azZTd3Q1S3RNNUdpRHpMekJxR0tUakw0bXoyeSt3aFU1Ny94cUVDYlNyS2taa2F0SDhvR3ppanRXcEQ1Rm5tRnhxbDRDeDdMR0RXR3VCZlpkRnFHVnFMaW5xMEMyMnZYaFN0d1ZxMUlmSXMwMENMc3FTMnBBcVlyMEg3bDdKd05jblpucUl0TlJZNy9xWW9YR04xTmtMazJmOHl0N1l4T280bDMreVNoNUtVREozQnoxL2dxNktCNnJ6Y0hWRlJ6Um1xRUlpUlo1bWZaNGo0TDZudzVsdWw4WjJTeWRiNHAvSHdwNEpoYXJFaTRLZWlCMklpRlFJeDhpeTlwMk9JR1lHU1lYUEJVZk9ua3FFenhyMHRwUXFxZ1BlbHY5T0NpQTIwQ0NGSW51VUt6Z0RibGZkL3AvTXVPdnRXUWNqZXc4d09VK0Nsdndxb3NLdEY3bDZqRStoRWdTQjVsa3VNNmovSzlBa0gvNmdRWncvOXRVQ0lZcDB5QmJWZGxVMTZDZ0l0VGlFUUpNOWV1ci82bmRycDN6OXMxanFldlA4SEVPbjVDdkw2MXhWZTZxeU42QSswZTUwMzlvMGdlWllyT0d0WFRiMUxOV3JGV2NuVFR4WnR0S0ovcWNiY2o1NGs3YnMza0JhbUVJaVNaN21Dcys0TldtK1R0bDZjRlFTYVJSdU42RytITGozajlKdisrZjBvaFVDVVBNc3NxYTNiUWV1dE51OVZ6MVRxbmFvSWZmb3IvK3I5SWl2R1dVbWdCWmw2aXBKbnVZS3o2dDFzWDdWWit3RzIzanMwRldjTGVudFVsWi9IN1IzV2d5eDJESk5uMlFXaTlTcTZ2cm5ObXNYbUwzMkJhK3VnRnZSTjdWVHJuZjJqdDRkVy9ZZndVNWc4eSs1aVY2MEwxTnZWQ1BDd1I5OWJqSEdoa2RQWHBBMXdtbExmSFdTTVZiVmg4aXcvWFYycjNkaDNuVVhZbGFjdmMwMEpoTmUzSmUxN2hPNVUzMjhoeEhPY2NmSXNPeU5RYWMzR3JxZHJFR09Uc2I3ZXhxbDdIVkgxTEQwTHNzbFlUNnMyeE5Nb2NmSXNQOE96L052NTFEUHBWTDJwMGVucmJRU1pleUtoWjBDcTM2UHQ5TFJxSTB5bEI4cXo3QTFhbFlxenAyVVE1NGpvbmpkcW80M1llbklpem9ZOFBaMk5BTGVSZ2ZLczUzNjJ3b2VWbjNTS3ROVnd6NDFrMVNWeTlPaVpRdyswYzNwUC82Vk9FZldIU0htV2U0anpFUi9kcTViVGM1MkZlall5UDNKRzJ0R0Z2L1RNNThTcEFoNTZmaEwxQytOSWVkWnozNzEwMWRRejZSUnI0WDErTEhDWVFHRDVyVG5yUG43eVJmNG5XbjhxUFZTZTlmUzFGMDcvL0ZnVTdjamVubmZidllwNDhyZG53WFpJNlJua3E0K2JvZktzcnpHNmJNTXEyejBMTm13KzVEODdOMmhSNVFlaWNGTTUrVUtnK3JnWks4L3lVNXpMcm5ESlgyZnhqcmZNajV5ZWVvb3FQMndHcXdJZThzdHFhM2ZRWXVWWjM4TENKWXU4N0hWV2FXZTlyUHlpalVDVHNmd20vNjFGZkZZdC84UG9YbFJMc0R6cmUvQmp1WGVWdmM2aW5RcjlTM2E5aXpWb01XWGJCUEdxZ0lkOEVWVjU3WGIzTHI2cU5IM1hNeUc4WEtCbHd5SG1FMFQ1MVVFZUVvZ29Pd1VXOUR5YmJCRlZkOW8vM2QycjliN3lhMWdYRzdLeWo2QkVtOXY4UjNibVA5YjZFbjVwY05qc0thS3FabkI2ZUtoMXE5dXprR3FwTHpua2JoKzlzbFAvYnREaWFYTFl6QmRSVmNmTjlJaGVyWFR2ZVlwL21VNVF0blNyM2ZOTXl6YjkzS0RGa3gwMkkwNEcvSklyb3FvV3llbkoxMnIzdW4xVEFvdmtTZlk2Qy93MFpLNjdiQiswY0xMRFp1QVpuR3dSVmJONlNWLy85UWFIbnMwaUh1WVB0RnltUnI3UHljNDlXVk1iVGE1d2l6bUgzc2tWVVJYSHpjejRVUEd1c2Zlb205a0RMVGZyRkhUU3FaTzdzYlJrSTVyYzdYVEl0UnIveU41WTF2dUJaTWFIbXIvYW5tMldIbTd6RGw2NVZJaTkyMnYyQmkxMEVtOVFMaFZpRDV2WlgwaTlBaVo5SjFUMVFhemVPYzZIV1l1blRMa1ovRHJMM3R5R25aZmRxTnlqUThGbmIzTGpacldDTTlONnJ6dUgxN2VxOXRPTTkrTzVQeDk5bGpCM29YbUlNNWJjTkdIMDU5TnlIYlJhdmZmTStzdksxWHQrczRoZmJyUGRLZVgrZXZqbklITVhtb0l6a2x5WE5ueXZNemR1VmhyemN4dGpWbDc3MHI5bzQrRStVODJaYTJ2RTc2bm5MalFGWnlTNUhsVDhIZEl6NDJhbGdqTlh2dGNleWZzWGJYejZtT1Z0NXNyTkJuYmlqM2VoOGExTXVkbkFWSFN1eVYxbFpWRHVIcWgrcDZXa2hmWXd4eDFIcHR5TSsyakFmM0psaklJemp0ejNGUGZSZ1A5a2ZpWlY0amgzdXh0ZzhVdXVEL1NiNmJ0b3VYS3poZXNzdDl3bDlLS21qY244L3BxWXVNbVVVRFcyb2N4dXhoRGhkMXN5Si9EcFBIR2laZTRNMjlpR1AvUE5LampqeUpSSHNkYzQvaVB6RDFpKzROem5WdmpHK04zMmJSMzByMm52T2pJNTJzYnRUVzVHUU1FWlJhYmNqTDdHc1pOWjZyaDR3WmsvOUMvRzc3Ym5ZTUxmVGZtR004Tk9BN01CbnpLbHVobk9LREozMFEzTUJuektqSnRMMXdHN2ZERVg1SGViM1IzcUw1TlZuWmx4czVYMXFKbUt1WkdmeWdaa2ZvRk5kR2tmTWlQL3NuZVkrOHc3ZVFqenU4MU5BWDF4bmFab3o0eWJiYlExSHRMamdBWmFGT21mWU1CRG5iNlhXZkMxYUIxdzZMbnZpZk83TFZ1RzlxOHBidEl5eFZyNFp3UCtrZmszYUtERmtCbXFtN21IemhTY0MvNGJkcWVlT0lzMFBnd010QitYMDdPMWNucmNiT2Z4eDh5bnBvRVdRNllNYUtYY3pONWpkcStZMzZHM3l4NnFyQnBVY3Y1eVBUNXhFNUw1ZTgyVW03a0xUUU10aHZRdGREUGxaamFVRjZvRER2MnJ1b0xORm1jWGxxVGNQMDZIY2YrTStsL1JGTkpUNlJwb01hUkhuSWJXUEdjS3ppWHFnUDJwWkFWRXRNOXp5Q3pubjI3WDA5dnI0YkIvR1REaXBjZk5kc3JON0F4blE2bThZcG1uSDlzcE4zT1Bvc3hhQit4ZTlxL0hjOWx5cm5pM3V3UFdvWlZLLzZoWE1XNk9Hemo3OXpsbm1QVEdPU3NaY0ViVkFkMHJGaEt3U3pSNW9LVS83SldNbTVsWVR2L0dNcVUybzZTSHdIV1VBZU5pT1gxdHppRGtJYWE3NGtlZnlxU3ZtYlVVYW1NR3pzeS9uVkhTS3lMWFVRYU1xd01tL2pIbkJiMEx5VzBHTWx6NkhpVzlSTENwY1RPWFRkMHJ2c3Bjbkl5Uy9qR2w4NnlwTWlEejcwalhlVXYyTmNKdWp6OTBJVnJXbURvZzdDZnpyVXcycGU4enV4Y3dsZVJIbldsck5GVUdaTElwUFNFdzdiMUpWc2hxODVmOWhFMjBkQjJRWHM3UzFyaVpHVGpUQzQ0WGJXeHNRZmU1ZnBVZW5kc3FBekoxd0tpZXpzVHVvVGVReUR6Rk05Q1lPcUN0Y1RNemNBWnBiR3hBK2llZGJtdTBWUVprNm9CMG4zYkVFdm1SZ3ZjaWN3Y2VESkxNcHZUWDA5aTRtUmtFMDEveWtvMk5MVWp2enA3K3BLdHN2ZitFOUExQXN0UmJyRTk3aVZ0dC90S3pMMGl4N24vM1ZYcm9hT0hrZ04rbEw1b1FqWTFOU0k4YzZiWkdJMXZzL1N0ZE5LWC9KYU1YeUE5eml4NW5ENVA4NU5MM1d1a2xXRTFOb3orTUtRUXMySmpXbU9VYWpiVTFSdlUxcGw4Zi81MzNKajdLS2FZRjB2ZGE2WXEydFRwZ1RDR1FPNEtNNGRKdDJ1NEZYN1Z4UXNWdjBtTmdlc0hHZEkzd2pOaHpBYjk1dm9zMlpybEdZOU9idWVaK2NodTN4Um9iRzVHOFFVaTNOVnByMDJabWF0TjlqU1g2dFBkMmZyQzdaL045ekF4ZmEzVkE1cUpKZjlNTE5UYTJJbm5OcEVPZ3Nlbk4zQmlZdnRWY29LL1JVSnc5dkQwM0w1RCt0NmIvdjkwTDJwSHVOTlp1Ykd4RitnZWRMakZhYTlObXhzQ2FmZHA3TTF0SmQ0N1BKRm95ejlLRFRYTjFRT2FpU2Q4RFdJQTJwWFNlamJsM2ppbzlCaWI3dEpNKzYvT2Q2UThabjk4VGlaYnNGS1liNHUxdDZ6cG13VWIvWnArVVM0K0I2WVpKYS9jVnVXd2UwVDZjUnZoMVo5OGJuV2pKaXlhZForM1ZBZWs1dEhTZUxUTHh0QmxqOHF5OUc0dDBYMlBFejJ3SzkzUS9KYnFSaVRaaTRHandNMG8yTnNZc1cyZTQ5T2VjdmcvdVh0Q1E5SkxOWkJrMDZ6eDZXek1CZnp1T2FmbU1tSGRxYnZsWnByR1J2bStRWjFOSzN3Y25MOXJtbHAvbCtyUlY4dXlqelZyelAvdSs0L2UrR3RHb1hGT2VwWDgwSG5pYTBvaDVsMVhsV2ZvMzA3MWdlcmVtYjg3KzhUcXc3OVA5WjErbDc1MGIvSnlTUDVyMFJMbzhtMUs2NTVwc2s3UTNqWjY1QjBqM2FHWmE1M2cvdG41ejlxL2prS1ZUM1gvejFZaGVRRnpKSmswNno1d2dNS1VSZWRiYXJnY1BZM3JPcytUWml0THMwKzd0by9CakdyUE9zY0U4UzkrMGRpLzRTcDVOS2YwQTQ1cnlMRDFaT2VMZlA5Nzd1dExzbDBQUjlNQ1lQR3R3Z1Y2NnVaLzg1aGQ0RUdWRDB2Y24zUXUrYXU1eHAxeHpQNTFuVXorSGNyL3NWNWhtdjd5ZUxqM3huMjVTcFB0SDhveWhSdlREVjVWbjZYcDd6S0tFcFB2MWJiVmg5bytYMTlQSHBPc1ZHdnpFUm9UejdBK2liRW95ejFhMWJIdE1PRStXWisvWDAzcnZ6TDU0MlI5ZTM5NU9wL1BIOVhmcGkyWkV5eW11TVF1M2Iwd25PU2Urcmp4TGRxM1Q2KzlPM1NjMDJ2WDZjVDRmTnhSbDQyejkvb3hGakNuUjR1cmUrbGNORnM4cnM2bzhTLzlqNUZsZDZUemJTUCtNWll3bzBlSktGODl1MHl2cnZvZXYydHZHWldYRjg3cWsxMnVzS3MrNkYxRExpSlpUV0dQV243R01yVDhmd0RLU2ViYVI1d05ZUm5yOTFacWUzMnp3b2VlVkdiR1VLS3hWN2VHd01tUDJDZ2hyVFQrYWxVbCtOUTBPTmZJc3JqRjdCWVMxcGswY1ZtYkUxaWRocldwUG1wVlpWUzlnVFE4OXI4eWFXcHVyNmptdnpLcm1hcnAzL3BVOHEyMU5TMmxXdFNaZ1pkSnJBOXViU0U5bnMzWGJ0YVdYT3JlWEFlbHN0bXk3dG5TZXRkZW9UZmNDNVZsdDZUeHJyK2VVUHR0Rm5sV1hYQmpVWG1OalRXZHdyMDM2T1pUMityVHB6Ym02RjFCUGVxTzU1Z2FiZEIxZzNxbTI5THFnNXZvYTZaTEdOSHA5NlVLZ3VjbWFkQjFnM3FtMmRBZzBOMWVUWGhKZzJxbStGUlVDNlRwQVg2TzJkSjQxMTlkSUw5ZlExcWd2WFFnMHQyQ2plOTlmZWR5cHZ2UmcwOXFDalhTYjF1TUI5YVh2bmx0cmJLZ0RJa3R2T04zYWdvMTBXME9idHI3MUZBTHBPMDNMTmVwTDkybGI2MnVzYUFadGpkSkhlRGIyOWFRN2dmb2E5YVcvbmNaR20vUU5nT1VhRWFTSG04YmFBZW1LUmgxUVgvcnV1YkU2SVAwUHNWd2pnblFoME5iQW1SazMxUUgxWmI2ZXRpWUUwamVhRFc2MXUwTHA3NmV0Z1RNOWJzcXpDTHJ2NGh0dDFRSHA2UUJ0alFneU9kRFV3Sm5PWmNzMUlrajNOWnFxQTNicGZyUGxHaEZrQ29HbXZxRDB1S2tPaUNEZDEyaXFEbEFHUkpkZTZkalNpdHJNdU9uVW5RalN5K3FicWdQVzBwNVpyL1JqM0MxOVErbk5nank5R2NKSzZnQmxRSFNaZ2JPaE8yampablRwT3FDaEJwb3lJTHpNd05uUTB1MzByOFc0R2NNcTZvQk0rMHdaRUVRNkN0cDU4REg5OEtaeE00aE1IZEJPRktUTFRXVkFGT21CczUyQ00xMXVHamVEeU5RQnpSU2NtWEpUR1JCRlp1QnNwdUJNMzJNYU42Tll3WGVVM2l0SUdSQkdadUJzWlNscXBxMWgzSXdpVXdlME1zT1pma1pZR1JCSGV1QnNwZUJNTDlZMGJvYVJxUU1hS1RqVEp5SXFBd0xKREp4dEZKeTdUQ0xiWENPS1RCM1FTQnBreWsxbFFCeVpnYk9OQ3kxVGJ0N2JPMzk3dFRLalRoc0ZaNmJjVkFiRWtSazQyOWdOT1QyTDN0aW1SK3VXNlFvMHNYZFk1aGtVRDI5R2tpazRXMWlDbGxsOHB0d01KUGM5dFRCdVpvWk5SMVJFa2lrNFd4aDRNbkdzVFJ0SnB1QnM0RDc2SmIzNFRMa1pTcTdnakgraDVhNHplK3hGa2lrNEd4ZzNNMnUybFp1eFpPNXc0bjlWdWV2TXFxQkltaDQzTTg4R21OME1Kak5CR1A1Q3kxMW5qcWlJSlZOdzNxT1BtN2xoVTVjMmxsd21STC9RY3RlWnRrWXNtUVZjMGIrcjdFL0VvcUJnY2dWbjdEVzF1YlcweloyOXZYYTVnalA0MUUxdTJGUnVScE1yT0dOZmFMa2hYN2taVFc3d0NYMkRsaDAybFp2aDVMNnV5QjIwWEJtZzNBd250eklvZEdNamQzdW0zSXduTjVVZWVZcXoxZmU5VWJtQ00zTFpsbHNUMU1MYXVjM0pYbWh4Vno4ZmN0ZVp0a1k4dVVadDRIWm5vMjk3dzdMZldOZ0dRZVlKWVl2UElzcU9tMkczMjh1MWx3MmJJV1gyZG9vN0plQTZhMDUyM0F5NnpjYk9zTm1lek5PMlVkZHM3RzdkMi91VzZ5eWkzRVBwVWNmTjNCeTZSOUdEeXUyR0VuVHVLVGZwWkxGR1VOa3hLT1R6dHRrNWRJczFvc290MlFnNUN1MnoxMWxMcDI1dlNiWkhFTEszbnAxRE4yeEdsVnNiRkRFZTh0WG11MFZCUVdYSHpZQlRBdGxxczZVenQ3Y21lNkhGR3ptenc2YTF0R0hseDgxd3N6alpwV2VHemNEeUYxcTBrVE5mdDFpekhWZCszQXpXajhyUGJSbzJBOHMrb3hhdFY1c2ZObDFuZ2VVTHVHQlRUOWs1SjhObWFQa2J0RmdMSUxMTFMxeG5rZldNbTZHbW5ySVBvQmcyZzh0ZmFKRkNJai9HNjlLR2xtOFZSUHJ5OG5OT3VtZkJaZGVnUlJvNTgwczFmbHhjWjZIbFV5Sk9JYkRMVndIV0JFWFg4LzFGbVh6cWlUT1BCZ1NYZmJqdVVRaEVtVXZQVDZGN29pNjg3T1BDRHpINkJUMVZnT3Nzdk94VG5HRTZHejFOamJ0aE03eWVFU25FSFhaZkZSQm1lQ2VsYjl3TXNlcityYWNLY0JoaWZEMXpUeUZLdVo0NE0rblVnSjVibndpdDJyNm1oam4wRnZTczJRaHc4OU4zQzJuU3FRVjk0MmIxbmtGZm5KbERiME5QYjZyNnNOUTNzcHQwYWtMUG1vM3FjZEhYby8xeE0ydzJJYnRCMWFlNjl6KzljV1kvcWpiMGRRM3FCbHB2bkpsRGIwVmZQVmUxNU95Tk01TUJqZWliRXFqYUIzM3BLNGROQnJTamQyaXFseG41cCtrKzZXcTBvcmZpckJkbys5NDRVMjIybzJlMTQwT3RRT3U5ZFhSMldFTjZLODVhMzJaL25GbDYxcEwra2JOS29PMTZWbUUrbU50c1NPL2FvRXJOME42WlRVdUNHdE0vY2xab2h4YkVtYzNjbTlJNzlWUWwwQXJpekFNb2JTa1lPUmR2VlBVOUZmQkprN1l0dmJNN1AzN2NsdDRPN2RnZloxYlN0cVpubzQyZmxtMXVIQW9pMXJZYXJjbHYvdnJUc3EycVhYK0xWaFhRb0pLdmRjbWhzMkRVdEZTalBmbWo0RG9MVmdMN2dvQlZCYlNvZDlIR3A2VUdxcExXbWFVYUxlcWZlbnBZckluV3N4dnRMNVpxdEtobmYvN09Ndk04KzZKd05XeTJxR2lrdWkxejUzMHF1ZVpWQVcwcWFhRXRVM1AyN2R2eXk5V3cyYVNDYVo2SEJSN0tMWmx3ZXNTWjVsbWp5Z0p0OWlwdlgzYkJxd0phVlhUelBmdkF1U3ZwMEQ3WTdhQlpCYlBwbjJZdEJuYm5zc3ZzUGRZcFo1UXJXUnowYWRaK1FsbExRMU9qYVVXOWpZZjV2dVJENFdYbStaT0dsYlZxNXh3NFMwZE5jZGEya3RuclQrL3pOQldLTHpOTmphWVZkalptaTVQU1VWTlRvM0g5dTBEOTR6cDl2YmM3RlJZaVZtcTBybWpWeGs4ekpOcWhyRUg3SU01YVY5cmJlSmc0MFFha21TcWdlWVd0Mms4VGY5bmxhZmJqcmtmYnZQNjlnLzR6WWFJTlNUTjdCSzFBYWF2MjA0U0pOaUROOUdoWG9XQzNnZjlNbEdpRDB1ekhXUld3QWtNQ2JhcEVHNUptZXJRck1TalFmbHllWDU5ektKMEYrRVdjclVQSkU4UC9PVDg5MTdsN0syNE9meEpuYTlHL2wvcWZ6cy9jbCsrT2c2Nnl5WVpxcWhzV2FEOXV4MmNHc29HRDVvOTNUem10UnZrc1orZjlOSzd1M0IwK2hsMWw0bXhOK2crSCtNdDFaREd3T3cyK29rMEZyTWpnUUh0Y2FxZWhkMm03MTQvaGY4YSt4MnN5WUphemMvOTRHM2lYdGp1Y2JrTUh6ZVUzbFdSV0l3THQ0WG9zdlVrZmRaRTllSmh1WFlvWDF2N3VVdDdnMkI4dll5NHo2ODVXcC9SSmdiL2NQMDZIL05pMjI3K095N0xILzF5Y3JjMm9RSHU0bnQ1NlFtMTNPSTY0Ly85Sm5LM1FrS250djEwK1UrMnZXTnZ0WGc1djU4dklLUHRreG1tRnhnYmFwL2ZyK1hoNCtTdDhkbzhCODNoKzRqS3ppL3M2RGU3V2ZuVi92MTJ1MTh2bGRycy9jWDExRnRyamoyV1ZiblNSMDExbnQ5djdCTmVaOVVBcjljelFPVDJqNWxvOVV3bE1UaEd3WGk4VERKMFR1WHNDZmIyR1QzUE94c1RtcWcxYzhqZ2JvK2FxRFhza1pVWWZpb0IxaXpGMEdqVlhidHo2b0trcEF0WnZQL0RocHpubzBLNWZnRXBBRWJBRlpVZGh6c2lvdVFsdjNkZGR6VVVSc0ExbHg4Zk54V1cyRVhVSFRxUG1odFM3MGp3U3NDR3Y5WG9iRG5QZGxGcGROUE5OMjFLcGkzYlRPZHVhQ1o0V0dNeGx0amsxQnM3N3lhaTVQVk04bHpMSS9hbjkrMmpVNGl1RUxwNmoyNlpscnpTWDJVYnRGKzNXR2pVM2JMbEVrMllidGx5aVNiT05XeWJScE5uR0xaTm8wb3dGRWsyYXNVQ2lTVE4rbWpmUkxrNXg1ZE4rMW4yRXBCbi9PczcyeElBMDQxK0RqdjhkeEJJTi92QTZSem53ZmxKcDhydVg0d3pyMGU2WFYybkczeWErMU82WHZhdU1MNlllT1M4ano0cGw5UTdUUFo1eTBjNGc1VGp5c0xHdjdoOHFBREplcDdqVWJ1cE1zdmFuQ1lxQnUwR1RmcStuWnpMdGZoVm1GTmdkbjVvZHVKMFB3b3hDcitjeE01NzN5MG5QakhLSGNaWG4vZnJtTW1PWWwrTjFTRTF3dnhnd0dXRllPWEMvdWY5bnRKZlgwMGZmNWZaK09SL2RsdkdNMTdmVHBXZjAvRXl5Zyt1TTU3MjhIazhmSDVmTDdmMmZLdlQrZnJ0ZHJ4OW5TY1owRG0rbjg4Zm44ZnYvWEdmM1h3ZWxmNXlQa294NTdGNWVYRnJNN25HWnVjNEFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBSUNVLy8zdi93azBKMnUzbVcxTEFBQUFBRWxGVGtTdVFtQ0MiIHByZXNlcnZlQXNwZWN0UmF0aW89Im5vbmUiIGlkPSJpbWcxIj48L2ltYWdlPjxjbGlwUGF0aCBpZD0iY2xpcDIiPjxwYXRoIGQ9Ik0tMC4xNTA4NzktMC4wMDU0NTk4NyAzNDEwOTg5LTAuMDA1NDU5ODcgMzQxMDk4OSAzNTYzMzg5LTAuMjUgMzU2MzM4OVoiIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIi8+PC9jbGlwUGF0aD48L2RlZnM+PGcgY2xpcC1wYXRoPSJ1cmwoI2NsaXAwKSIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTI0MzQgLTc2KSI+PGcgdHJhbnNmb3JtPSJtYXRyaXgoMC4wMDAzNjA4OTIgMCAwIDAuMDAwMzYwODkyIDI0MzQgNzYpIj48ZyBjbGlwLXBhdGg9InVybCgjY2xpcDIpIj48dXNlIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIHhsaW5rOmhyZWY9IiNpbWcxIiB0cmFuc2Zvcm09Im1hdHJpeCgyNzcwLjkxIDAgMCAyNzcwLjkxIC0wLjE1MDg3OSAtMC4wMDU0NTk4NykiPjwvdXNlPjwvZz48L2c+PHJlY3QgeD0iMjc0MyIgeT0iNDc1IiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjE1MyIgc3Ryb2tlPSIjQTJBQUFEIiBzdHJva2Utd2lkdGg9IjEwLjMxMjUiIHN0cm9rZS1taXRlcmxpbWl0PSI4IiBmaWxsPSJub25lIi8+PHRleHQgZm9udC1mYW1pbHk9IkNhbGlicmksQ2FsaWJyaV9NU0ZvbnRTZXJ2aWNlLHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSI0MDAiIGZvbnQtc2l6ZT0iNTUiIHRyYW5zZm9ybT0ibWF0cml4KDEgMCAwIDEgMjgxNC4xNCA1NjkpIj5BQlM8L3RleHQ+PHBhdGggZD0iTTI3MzIgNzE0IDM0NDQuODcgNzE0IiBzdHJva2U9IiNEODZFQ0MiIHN0cm9rZS13aWR0aD0iMTAuMzEyNSIgc3Ryb2tlLW1pdGVybGltaXQ9IjgiIGZpbGw9Im5vbmUiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGQ9Ik0yNzMyIDc5NCAzNDQ0Ljg3IDc5NCIgc3Ryb2tlPSIjQTFERjhCIiBzdHJva2Utd2lkdGg9IjEwLjMxMjUiIHN0cm9rZS1taXRlcmxpbWl0PSI4IiBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48dGV4dCBmaWxsPSIjRDg2RUNDIiBmb250LWZhbWlseT0iQ2FsaWJyaSxDYWxpYnJpX01TRm9udFNlcnZpY2Usc2Fucy1zZXJpZiIgZm9udC13ZWlnaHQ9IjQwMCIgZm9udC1zaXplPSI1NSIgdHJhbnNmb3JtPSJtYXRyaXgoMSAwIDAgMSAyNDk4LjA1IDcyOCkiPkNBTiBMb3c8L3RleHQ+PHRleHQgZmlsbD0iIzcyQ0Y1MCIgZm9udC1mYW1pbHk9IkNhbGlicmksQ2FsaWJyaV9NU0ZvbnRTZXJ2aWNlLHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSI0MDAiIGZvbnQtc2l6ZT0iNTUiIHRyYW5zZm9ybT0ibWF0cml4KDEgMCAwIDEgMjQ5OC4wNSA4MDkpIj5DQU4gSGlnaDwvdGV4dD48cmVjdCB4PSIzMDg1IiB5PSI0NzgiIHdpZHRoPSIyMzAiIGhlaWdodD0iMTU2IiBzdHJva2U9IiNBMkFBQUQiIHN0cm9rZS13aWR0aD0iMTAuMzEyNSIgc3Ryb2tlLW1pdGVybGltaXQ9IjgiIGZpbGw9Im5vbmUiLz48dGV4dCBmb250LWZhbWlseT0iQ2FsaWJyaSxDYWxpYnJpX01TRm9udFNlcnZpY2Usc2Fucy1zZXJpZiIgZm9udC13ZWlnaHQ9IjQwMCIgZm9udC1zaXplPSI1NSIgdHJhbnNmb3JtPSJtYXRyaXgoMSAwIDAgMSAzMTI3LjYgNTc0KSI+QWlyYmFnPC90ZXh0PjxyZWN0IHg9IjI4MjUiIHk9Ijg1OCIgd2lkdGg9IjIzMSIgaGVpZ2h0PSIxNTEiIHN0cm9rZT0iI0EyQUFBRCIgc3Ryb2tlLXdpZHRoPSIxMC4zMTI1IiBzdHJva2UtbWl0ZXJsaW1pdD0iOCIgZmlsbD0ibm9uZSIvPjx0ZXh0IGZvbnQtZmFtaWx5PSJDYWxpYnJpLENhbGlicmlfTVNGb250U2VydmljZSxzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iNDAwIiBmb250LXNpemU9IjU1IiB0cmFuc2Zvcm09Im1hdHJpeCgxIDAgMCAxIDI4NjUuNDkgOTUxKSI+RW5naW5lPC90ZXh0PjxyZWN0IHg9IjMxNTgiIHk9Ijg1NSIgd2lkdGg9IjIzMCIgaGVpZ2h0PSIxNTEiIHN0cm9rZT0iI0EyQUFBRCIgc3Ryb2tlLXdpZHRoPSIxMC4zMTI1IiBzdHJva2UtbWl0ZXJsaW1pdD0iOCIgZmlsbD0ibm9uZSIvPjx0ZXh0IGZvbnQtZmFtaWx5PSJDYWxpYnJpLENhbGlicmlfTVNGb250U2VydmljZSxzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iNDAwIiBmb250LXNpemU9IjU1IiB0cmFuc2Zvcm09Im1hdHJpeCgxIDAgMCAxIDMyMTEuMzggOTQ5KSI+SFZBQzwvdGV4dD48cGF0aCBkPSJNNS4xNTYyNS0xLjI5NDA0ZS0wNSA1LjE1NjU1IDExOC4wMi01LjE1NTk1IDExOC4wMi01LjE1NjI1IDEuMjk0MDRlLTA1Wk0xNS40NjkgMTEyLjg2NCAwLjAwMDM2MDg5MiAxNDMuODAyLTE1LjQ2ODUgMTEyLjg2NFoiIGZpbGw9IiNEODZFQ0MiIHRyYW5zZm9ybT0ibWF0cml4KDEgMCAwIC0xIDI5NDEgODU3LjgwMikiLz48cGF0aCBkPSJNNS4xNTYyNS0xLjI5NDA0ZS0wNSA1LjE1NjU1IDExOC4wMi01LjE1NTk1IDExOC4wMi01LjE1NjI1IDEuMjk0MDRlLTA1Wk0xNS40NjkgMTEyLjg2NCAwLjAwMDM2MDg5MiAxNDMuODAyLTE1LjQ2ODUgMTEyLjg2NFoiIGZpbGw9IiNEODZFQ0MiIHRyYW5zZm9ybT0ibWF0cml4KDEgMCAwIC0xIDMyNzggODUxLjgwMikiLz48cGF0aCBkPSJNMjgwNy4xNiA2MzAgMjgwNy4xNiA2OTAuMjAzIDI3OTYuODQgNjkwLjIwMyAyNzk2Ljg0IDYzMFpNMjgxNy40NyA2ODUuMDQ3IDI4MDIgNzE1Ljk4NCAyNzg2LjUzIDY4NS4wNDdaIiBmaWxsPSIjRDg2RUNDIi8+PHBhdGggZD0iTTMxNzQuMTYgNjMxIDMxNzQuMTYgNjkxLjIwMyAzMTYzLjg0IDY5MS4yMDMgMzE2My44NCA2MzFaTTMxODQuNDcgNjg2LjA0NyAzMTY5IDcxNi45ODQgMzE1My41MyA2ODYuMDQ3WiIgZmlsbD0iI0Q4NkVDQyIvPjxwYXRoIGQ9Ik0yODYyLjE2IDYzNCAyODYyLjE2IDc3MC45NTYgMjg1MS44NCA3NzAuOTU2IDI4NTEuODQgNjM0Wk0yODcyLjQ3IDc2NS44IDI4NTcgNzk2LjczNyAyODQxLjUzIDc2NS44WiIgZmlsbD0iI0ExREY4QiIvPjxwYXRoIGQ9Ik0zMjEzLjE2IDYzOSAzMjEzLjE2IDc3NS45NTYgMzIwMi44NCA3NzUuOTU2IDMyMDIuODQgNjM5Wk0zMjIzLjQ3IDc3MC44IDMyMDggODAxLjczOCAzMTkyLjUzIDc3MC44WiIgZmlsbD0iI0ExREY4QiIvPjxwYXRoIGQ9Ik01LjE1NjI1LTIuOTQyNzZlLTA1IDUuMTU2NDYgMzcuNDUzNi01LjE1NjA0IDM3LjQ1MzYtNS4xNTYyNSAyLjk0Mjc2ZS0wNVpNMTUuNDY4OSAzMi4yOTczIDAuMDAwMzYwODkyIDYzLjIzNDgtMTUuNDY4NiAzMi4yOTc0WiIgZmlsbD0iI0ExREY4QiIgdHJhbnNmb3JtPSJtYXRyaXgoMSAwIDAgLTEgMjk4NyA4NDkuMjM1KSIvPjxwYXRoIGQ9Ik01LjE1NjI1LTIuOTQyNzZlLTA1IDUuMTU2NDYgMzcuNDUzNi01LjE1NjA0IDM3LjQ1MzYtNS4xNTYyNSAyLjk0Mjc2ZS0wNVpNMTUuNDY4OSAzMi4yOTczIDAuMDAwMzYwODkyIDYzLjIzNDgtMTUuNDY4NiAzMi4yOTc0WiIgZmlsbD0iI0ExREY4QiIgdHJhbnNmb3JtPSJtYXRyaXgoMSAwIDAgLTEgMzMxOSA4NTUuMjM1KSIvPjwvZz48L3N2Zz4=" alt="CAN Bus Network" /></p>
+<p><em>CAN bus topology: ECUs broadcast on a shared bus with no sender authentication — injected messages are indistinguishable from legitimate traffic at the protocol level.</em></p></div><div class="col"><p><img src="CANframe.svg" alt="CAN Frame" /></p>
+<p><em>CAN frame anatomy: 11-bit arbitration ID (attack surface), DLC, and up to 8 bytes of payload — the graph node features are computed from these fields.</em></p></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">4 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
+</section>
+
+<section class="slide slide--section-break" data-index="4">
+<h2>Current Framework</h2>
+<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">5 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
+</section>
+
+<section class="slide slide--content cols-4-6 size-small" data-index="5">
+<h2>VGAE Architecture</h2>
+<div class="slide-content colloquium-grid" style="grid-template-columns: minmax(0, 4fr) minmax(0, 6fr);"><div class="col"><hr />
+<ul>
+<li>
+<p>The Variational Graph Autoencoder (VGAE) is a probabilistic model designed for unsupervised learning on graphs.</p>
+</li>
+<li>
+<p>The encoder learns the posterior distribution over the latent variables <span class="math inline">Z = \{z_1, \ldots, z_n\}</span> by assuming a Gaussian distribution for each node:</p>
+</li>
+</ul>
+<div class="math block">
+q(Z|X, A) = \prod_{i=1}^{n} \mathcal{N}(z_i|\mu_i, \mathrm{diag}(\sigma_i^2))
+</div>
+<p>where <span class="math inline">\mu_i \in \mathbb{R}^d</span> and <span class="math inline">\sigma_i \in \mathbb{R}^d</span> are the mean and standard deviation vectors for node <span class="math inline">i</span>.</p></div><div class="col"><div class="colloquium-iframe-container" style="width:100%;height:auto;min-height:480px;"><iframe src="https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/vgae.html" width="100%" height="480" title="VGAE" frameborder="0" allowfullscreen style="border:none;display:block;width:100%;height:480px"></iframe></div></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">6 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
+</section>
+
+<section class="slide slide--content cols-2" data-index="6">
+<h2>GAT Architecture</h2>
+<div class="slide-content colloquium-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr));"><div class="col"><img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTI4NSIgaGVpZ2h0PSIxMTI5IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB4bWw6c3BhY2U9InByZXNlcnZlIiBvdmVyZmxvdz0iaGlkZGVuIj48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMjgxMSAtMjU0KSI+PHBhdGggZD0iTTQwOTIuNzggODIyLjY4NyA0MDI2IDgyMi42ODcgNDAyNiA1NzIgNDA5Mi43OCA1NzIgNDA5Mi43OCA4MjIuNjg3WiIgZmlsbD0iI0Q4NkVDQyIgZmlsbC1ydWxlPSJldmVub2RkIi8+PHBhdGggZD0iTTQwMjYuNSA1NzIuNSA0MDkzLjI4IDU3Mi41IDQwOTMuMjggODIzLjE4NyA0MDI2LjUgODIzLjE4NyA0MDI2LjUgNTcyLjVaIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iNC41ODI5NyIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLW1pdGVybGltaXQ9IjEwIiBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48cGF0aCBkPSJNMzY4NS43OCA1MDkuNjgzIDM2MTggNTA5LjY4MyAzNjE4IDI1NiAzNjg1Ljc4IDI1NiAzNjg1Ljc4IDUwOS42ODNaIiBmaWxsPSIjOTJEMDUwIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48cGF0aCBkPSJNMzYxOC41IDI1Ni41IDM2ODYuMjggMjU2LjUgMzY4Ni4yOCA1MTAuMTgzIDM2MTguNSA1MTAuMTgzIDM2MTguNSAyNTYuNVoiIHN0cm9rZT0iIzAwMDAwMCIgc3Ryb2tlLXdpZHRoPSI0LjU4Mjk3IiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2UtbWl0ZXJsaW1pdD0iMTAiIGZpbGw9IiM5MkQwNTAiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGQ9Ik0yOTkwLjc4IDg1Mi43MDMgMjkyNyA4NTIuNzAzIDI5MjcgNjE1IDI5OTAuNzggNjE1IDI5OTAuNzggODUyLjcwM1oiIGZpbGw9IiNDMkYxQzgiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGQ9Ik0yOTI3LjUgNjE1LjUgMjk5MS4yOCA2MTUuNSAyOTkxLjI4IDg1My4yMDMgMjkyNy41IDg1My4yMDMgMjkyNy41IDYxNS41WiIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjQuNTgyOTciIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS1taXRlcmxpbWl0PSIxMCIgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIi8+PHBhdGggZD0iTTI5NzcuODEgMTM3OS43MiAyOTE4IDEzNzkuNzIgMjkxOCAxMTUyIDI5NzcuODEgMTE1MiAyOTc3LjgxIDEzNzkuNzJaIiBmaWxsPSIjRjZDNkFEIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48cGF0aCBkPSJNMjkxOC41IDExNTIuNSAyOTc4LjMxIDExNTIuNSAyOTc4LjMxIDEzODAuMjIgMjkxOC41IDEzODAuMjIgMjkxOC41IDExNTIuNVoiIHN0cm9rZT0iIzAwMDAwMCIgc3Ryb2tlLXdpZHRoPSI0LjU4Mjk3IiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2UtbWl0ZXJsaW1pdD0iMTAiIGZpbGw9IiNGNkM2QUQiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGQ9Ik0zMDM3LjUgNzU1LjVDMzAzNy41IDcwNC42OSAzMDc4LjY5IDY2My41IDMxMjkuNSA2NjMuNSAzMTgwLjMxIDY2My41IDMyMjEuNSA3MDQuNjkgMzIyMS41IDc1NS41IDMyMjEuNSA4MDYuMzEgMzE4MC4zMSA4NDcuNSAzMTI5LjUgODQ3LjUgMzA3OC42OSA4NDcuNSAzMDM3LjUgODA2LjMxIDMwMzcuNSA3NTUuNVoiIHN0cm9rZT0iIzA0MjQzMyIgc3Ryb2tlLXdpZHRoPSI0LjU4MzMzIiBzdHJva2UtbWl0ZXJsaW1pdD0iOCIgZmlsbD0iI0VDRjlFOCIgZmlsbC1ydWxlPSJldmVub2RkIi8+PHRleHQgZm9udC1mYW1pbHk9IkNhbGlicmksQ2FsaWJyaV9NU0ZvbnRTZXJ2aWNlLHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSI0MDAiIGZvbnQtc2l6ZT0iODMiIHRyYW5zZm9ybT0ibWF0cml4KDEgMCAwIDEgMzEwNS40NCA3ODIpIj5BPC90ZXh0PjxwYXRoIGQ9Ik0zNzk1LjUgNzE0LjVDMzc5NS41IDY2My42OSAzODM2LjQ3IDYyMi41IDM4ODcgNjIyLjUgMzkzNy41MyA2MjIuNSAzOTc4LjUgNjYzLjY5IDM5NzguNSA3MTQuNSAzOTc4LjUgNzY1LjMxIDM5MzcuNTMgODA2LjUgMzg4NyA4MDYuNSAzODM2LjQ3IDgwNi41IDM3OTUuNSA3NjUuMzEgMzc5NS41IDcxNC41WiIgc3Ryb2tlPSIjMDQyNDMzIiBzdHJva2Utd2lkdGg9IjQuNTgzMzMiIHN0cm9rZS1taXRlcmxpbWl0PSI4IiBmaWxsPSIjRTU5RUREIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48dGV4dCBmb250LWZhbWlseT0iQ2FsaWJyaSxDYWxpYnJpX01TRm9udFNlcnZpY2Usc2Fucy1zZXJpZiIgZm9udC13ZWlnaHQ9IjQwMCIgZm9udC1zaXplPSI4MyIgdHJhbnNmb3JtPSJtYXRyaXgoMSAwIDAgMSAzODY0LjQzIDc0MSkiPkM8L3RleHQ+PHBhdGggZD0iTTMwMDkuNSAxMjM3QzMwMDkuNSAxMTg2LjQ3IDMwNTAuNjkgMTE0NS41IDMxMDEuNSAxMTQ1LjUgMzE1Mi4zMSAxMTQ1LjUgMzE5My41IDExODYuNDcgMzE5My41IDEyMzcgMzE5My41IDEyODcuNTMgMzE1Mi4zMSAxMzI4LjUgMzEwMS41IDEzMjguNSAzMDUwLjY5IDEzMjguNSAzMDA5LjUgMTI4Ny41MyAzMDA5LjUgMTIzN1oiIHN0cm9rZT0iIzA0MjQzMyIgc3Ryb2tlLXdpZHRoPSI0LjU4MzMzIiBzdHJva2UtbWl0ZXJsaW1pdD0iOCIgZmlsbD0iI0Y2QzZBRCIgZmlsbC1ydWxlPSJldmVub2RkIi8+PHRleHQgZm9udC1mYW1pbHk9IkNhbGlicmksQ2FsaWJyaV9NU0ZvbnRTZXJ2aWNlLHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSI0MDAiIGZvbnQtc2l6ZT0iODMiIHRyYW5zZm9ybT0ibWF0cml4KDEgMCAwIDEgMzA3NS45IDEyNjQpIj5EPC90ZXh0PjxwYXRoIGQ9Ik0zNjg0LjUgMTIwNS41QzM2ODQuNSAxMTU0LjY5IDM3MjUuNjkgMTExMy41IDM3NzYuNSAxMTEzLjUgMzgyNy4zMSAxMTEzLjUgMzg2OC41IDExNTQuNjkgMzg2OC41IDEyMDUuNSAzODY4LjUgMTI1Ni4zMSAzODI3LjMxIDEyOTcuNSAzNzc2LjUgMTI5Ny41IDM3MjUuNjkgMTI5Ny41IDM2ODQuNSAxMjU2LjMxIDM2ODQuNSAxMjA1LjVaIiBzdHJva2U9IiMwNDI0MzMiIHN0cm9rZS13aWR0aD0iNC41ODMzMyIgc3Ryb2tlLW1pdGVybGltaXQ9IjgiIGZpbGw9IiNFNzQ5NDUiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjx0ZXh0IGZvbnQtZmFtaWx5PSJDYWxpYnJpLENhbGlicmlfTVNGb250U2VydmljZSxzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iNDAwIiBmb250LXNpemU9IjgzIiB0cmFuc2Zvcm09Im1hdHJpeCgxIDAgMCAxIDM3NTYuMDEgMTIzMykiPkU8L3RleHQ+PHBhdGggZD0iTTMzNjIuNSA0NjkuNUMzMzYyLjUgNDE4LjY5IDM0MDMuNjkgMzc3LjUgMzQ1NC41IDM3Ny41IDM1MDUuMzEgMzc3LjUgMzU0Ni41IDQxOC42OSAzNTQ2LjUgNDY5LjUgMzU0Ni41IDUyMC4zMSAzNTA1LjMxIDU2MS41IDM0NTQuNSA1NjEuNSAzNDAzLjY5IDU2MS41IDMzNjIuNSA1MjAuMzEgMzM2Mi41IDQ2OS41WiIgc3Ryb2tlPSIjMDQyNDMzIiBzdHJva2Utd2lkdGg9IjQuNTgzMzMiIHN0cm9rZS1taXRlcmxpbWl0PSI4IiBmaWxsPSIjOTJEMDUwIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48dGV4dCBmb250LWZhbWlseT0iQ2FsaWJyaSxDYWxpYnJpX01TRm9udFNlcnZpY2Usc2Fucy1zZXJpZiIgZm9udC13ZWlnaHQ9IjQwMCIgZm9udC1zaXplPSI4MyIgdHJhbnNmb3JtPSJtYXRyaXgoMSAwIDAgMSAzNDMxLjIxIDQ5NikiPkI8L3RleHQ+PHBhdGggZD0iTTAgMCAyNy44MjQ4IDI5Ny45NjQiIHN0cm9rZT0iIzAwMDAwMCIgc3Ryb2tlLXdpZHRoPSIxMC4zMTI1IiBzdHJva2UtbWl0ZXJsaW1pdD0iOCIgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiB0cmFuc2Zvcm09Im1hdHJpeCgxIDAgMCAtMSAzMTAxIDExNDQuOTYpIi8+PHBhdGggZD0iTTAgMCA0OTAuNzU3IDMxLjUwNTkiIHN0cm9rZT0iIzAwMDAwMCIgc3Ryb2tlLXdpZHRoPSIxMC4zMTI1IiBzdHJva2UtbWl0ZXJsaW1pdD0iOCIgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiB0cmFuc2Zvcm09Im1hdHJpeCgxIDAgMCAtMSAzMTkzIDEyMzYuNTEpIi8+PHBhdGggZD0iTTAgMCAxOTQuMjk4IDE1Ni4wNDYiIHN0cm9rZT0iIzAwMDAwMCIgc3Ryb2tlLXdpZHRoPSIxMC4zMTI1IiBzdHJva2UtbWl0ZXJsaW1pdD0iOCIgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiB0cmFuc2Zvcm09Im1hdHJpeCgxIDAgMCAtMSAzMTk0IDY5MC4wNDUpIi8+PHBhdGggZD0iTTM4MjEuODkgNjQ5LjE3OCAzNTE5IDUzNCIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjEwLjMxMjUiIHN0cm9rZS1taXRlcmxpbWl0PSI4IiBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48cGF0aCBkPSJNMCAwIDI4Ny4xNDMgNjEwLjk4MyIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjEwLjMxMjUiIHN0cm9rZS1taXRlcmxpbWl0PSI4IiBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHRyYW5zZm9ybT0ibWF0cml4KDEgMCAwIC0xIDMxNjYgMTE3MS45OCkiLz48cGF0aCBkPSJNMzc3Ni40OCAxMTEzLjQ4IDM1MTkgNTM0IiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMTAuMzEyNSIgc3Ryb2tlLW1pdGVybGltaXQ9IjgiIGZpbGw9Im5vbmUiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGQ9Ik0wIDAgNTczLjM2IDQwLjg2NzUiIHN0cm9rZT0iIzAwMDAwMCIgc3Ryb2tlLXdpZHRoPSIxMC4zMTI1IiBzdHJva2UtbWl0ZXJsaW1pdD0iOCIgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiB0cmFuc2Zvcm09Im1hdHJpeCgxIDAgMCAtMSAzMjIxIDc1NC44NjcpIi8+PHBhdGggZD0iTTM5NzcuODEgMTMyOS43MiAzOTE4IDEzMjkuNzIgMzkxOCAxMTAyIDM5NzcuODEgMTEwMiAzOTc3LjgxIDEzMjkuNzJaIiBmaWxsPSIjQzAwMDAwIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48cGF0aCBkPSJNMzkxOC41IDExMDIuNSAzOTc4LjMxIDExMDIuNSAzOTc4LjMxIDEzMzAuMjIgMzkxOC41IDEzMzAuMjIgMzkxOC41IDExMDIuNVoiIHN0cm9rZT0iIzAwMDAwMCIgc3Ryb2tlLXdpZHRoPSI0LjU4Mjk3IiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2UtbWl0ZXJsaW1pdD0iMTAiIGZpbGw9IiNDMDAwMDAiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGQ9Ik0zMTI5LjU2IDQ3NC4xNjRDMzEyNS43MyA0NzQuMTY0IDMxMjIuMTcgNDc1Ljg3MiAzMTE4Ljg4IDQ3OS4yODkgMzExNS41OCA0ODIuNzA1IDMxMTIuOTUgNDg3LjMzIDMxMTAuOTcgNDkzLjE2NCAzMTA4Ljk5IDQ5OC45OTcgMzEwOCA1MDQuOTc2IDMxMDggNTExLjEwMSAzMTA4IDUxNS4zMSAzMTA4LjYzIDUxOC40MzUgMzEwOS44OCA1MjAuNDc2IDMxMTEuMTMgNTIyLjUxOCAzMTEzIDUyMy41MzkgMzExNS41IDUyMy41MzkgMzExOS4wOCA1MjMuNTM5IDMxMjIuNzcgNTIxLjQzNSAzMTI2LjU2IDUxNy4yMjYgMzEzMC4zNiA1MTMuMDE4IDMxMzMuODggNTA3LjE2NCAzMTM3LjEzIDQ5OS42NjQgMzEzNy44MyA0OTUuMzMgMzEzOC4xOSA0OTEuNDk3IDMxMzguMTkgNDg4LjE2NCAzMTM4LjE5IDQ4My40MTQgMzEzNy40OSA0NzkuODkzIDMxMzYuMSA0NzcuNjAxIDMxMzQuNyA0NzUuMzEgMzEzMi41MiA0NzQuMTY0IDMxMjkuNTYgNDc0LjE2NFpNMzEzMCA0NjkuMjI2QzMxMzQuNjcgNDY5LjIyNiAzMTM4LjMyIDQ3MC42ODUgMzE0MC45NyA0NzMuNjAxIDMxNDMuNjIgNDc2LjUxOCAzMTQ1LjA4IDQ4MC43ODkgMzE0NS4zOCA0ODYuNDE0TDMxNDUuOTQgNDg2LjM1MSAzMTU0LjEzIDQ3MC4yMjYgMzE2NC45NCA0NzAuMjI2IDMxNjQuMzEgNDczLjQxNEMzMTU5LjE1IDQ4MC40MTQgMzE1My4wNiA0ODkuMDE4IDMxNDYuMDYgNDk5LjIyNiAzMTQ1LjAyIDUwNy4xODUgMzE0NC41IDUxMi44MSAzMTQ0LjUgNTE2LjEwMSAzMTQ0LjUgNTE4Ljg1MSAzMTQ0LjgxIDUyMC44MiAzMTQ1LjQ0IDUyMi4wMDcgMzE0Ni4wNiA1MjMuMTk1IDMxNDcuMTEgNTIzLjc4OSAzMTQ4LjU2IDUyMy43ODkgMzE0OS43MyA1MjMuNzg5IDMxNTEuMDUgNTIzLjI5OSAzMTUyLjUzIDUyMi4zMiAzMTU0LjAxIDUyMS4zNDEgMzE1NS42MSA1MTkuODMgMzE1Ny4zMSA1MTcuNzg5TDMxNjAuOTQgNTIxLjE2NEMzMTU3LjQ0IDUyNC45MTQgMzE1NC40IDUyNy40ODcgMzE1MS44MSA1MjguODgyIDMxNDkuMjMgNTMwLjI3OCAzMTQ2LjU2IDUzMC45NzYgMzE0My44MSA1MzAuOTc2IDMxMzguMjcgNTMwLjk3NiAzMTM1LjUgNTI2LjkzNSAzMTM1LjUgNTE4Ljg1MSAzMTM1LjUgNTE3LjA2IDMxMzUuNjMgNTE1LjA4IDMxMzUuODggNTEyLjkxNEwzMTM1LjI1IDUxMi45MTRDMzEzMC45NiA1MTkuMzMgMzEyNi45IDUyMy45NDUgMzEyMy4wNiA1MjYuNzU3IDMxMTkuMjMgNTI5LjU3IDMxMTUuMTMgNTMwLjk3NiAzMTEwLjc1IDUzMC45NzYgMzEwNy43MSA1MzAuOTc2IDMxMDUuMTUgNTMwLjEwMSAzMTAzLjA2IDUyOC4zNTEgMzEwMC45OCA1MjYuNjAxIDMwOTkuNDQgNTI0LjI3OCAzMDk4LjQ0IDUyMS4zODIgMzA5Ny40NCA1MTguNDg3IDMwOTYuOTQgNTE1LjMzIDMwOTYuOTQgNTExLjkxNCAzMDk2Ljk0IDUwNC40NTUgMzA5OC4zNiA0OTcuMzgyIDMxMDEuMTkgNDkwLjY5NSAzMTA0LjAyIDQ4NC4wMDcgMzEwNy45NiA0NzguNzU3IDMxMTMgNDc0Ljk0NSAzMTE4LjA0IDQ3MS4xMzIgMzEyMy43MSA0NjkuMjI2IDMxMzAgNDY5LjIyNloiIGZpbGw9IiM5MkQwNTAiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZpbGwtb3BhY2l0eT0iMCIgZm9udC1mYW1pbHk9IkFyaWFsLEFyaWFsX01TRm9udFNlcnZpY2Usc2Fucy1zZXJpZiIgZm9udC1zaXplPSI2MS43NSIgeD0iMzA5Ni45NCIgeT0iNTIzLjI1NyI+8J2bvDwvdGV4dD48cGF0aCBkPSJNMzI0NS4yOSA1MjcuNzU5IDMyNDAuMDYgNTUxLjMwNUMzMjQwLjc5IDU1MS4zMzUgMzI0MS43MiA1NTEuMzY2IDMyNDIuODMgNTUxLjM5NyAzMjQzLjk1IDU1MS40MjcgMzI0NS4yNyA1NTEuNDQyIDMyNDYuOCA1NTEuNDQyIDMyNTAuMTEgNTUxLjQ0MiAzMjUyLjk2IDU1MS4xNTkgMzI1NS4zNiA1NTAuNTkzIDMyNTcuNzcgNTUwLjAyNyAzMjU5Ljc2IDU0OS4xNCAzMjYxLjMzIDU0Ny45MzEgMzI2Mi45MSA1NDYuNzIzIDMyNjQuMDcgNTQ1LjE1NCAzMjY0LjgyIDU0My4yMjcgMzI2NS41NyA1NDEuMjk5IDMyNjUuOTQgNTM4Ljk4OSAzMjY1Ljk0IDUzNi4yOTYgMzI2NS45NCA1MzQuODg4IDMyNjUuNzMgNTMzLjY0OSAzMjY1LjMgNTMyLjU3OCAzMjY0Ljg3IDUzMS41MDcgMzI2NC4xNiA1MzAuNjEyIDMyNjMuMTcgNTI5Ljg5MyAzMjYyLjE3IDUyOS4xNzQgMzI2MC45IDUyOC42MzkgMzI1OS4zNiA1MjguMjg3IDMyNTcuODEgNTI3LjkzNSAzMjU1LjkyIDUyNy43NTkgMzI1My42OSA1MjcuNzU5Wk0zMjAxLjA1IDUwNS45MTFDMzE5OC4zOSA1MTAuMjU2IDMxOTUuNzUgNTE0LjYwOSAzMTkzLjE0IDUxOC45NjkgMzE5MC41MiA1MjMuMzMgMzE4Ny44OCA1MjcuNjk4IDMxODUuMjIgNTMyLjA3M0wzMjAyLjg5IDUzMi4wNzNDMzIwMi43NCA1MzAuMTE1IDMyMDIuNTggNTI4LjE5NSAzMjAyLjQzIDUyNi4zMTMgMzIwMi4yOCA1MjQuNDMxIDMyMDIuMTUgNTIyLjQ1IDMyMDIuMDYgNTIwLjM2OSAzMjAxLjk3IDUxOC4yODggMzIwMS44OSA1MTYuMDcgMzIwMS44MSA1MTMuNzE0IDMyMDEuNzMgNTExLjM1OCAzMjAxLjcgNTA4Ljc1NyAzMjAxLjcgNTA1LjkxMVpNMzI1OS4xNSA1MDEuNDEzQzMyNTcuNjggNTAxLjQxMyAzMjU2LjI4IDUwMS40MzYgMzI1NC45NSA1MDEuNDgyIDMyNTMuNjIgNTAxLjUyOCAzMjUyLjM0IDUwMS42MTIgMzI1MS4xMiA1MDEuNzM0TDMyNDYuMzkgNTIyLjk4NSAzMjUzLjUxIDUyMi45ODVDMzI1Ni44NCA1MjIuOTg1IDMyNTkuNjYgNTIyLjY3MiAzMjYxLjk3IDUyMi4wNDQgMzI2NC4yOCA1MjEuNDE3IDMyNjYuMTYgNTIwLjUyMiAzMjY3LjYgNTE5LjM1OSAzMjY5LjAzIDUxOC4xOTcgMzI3MC4wOCA1MTYuNzk3IDMyNzAuNzQgNTE1LjE2IDMyNzEuNCA1MTMuNTIzIDMyNzEuNzMgNTExLjY3OSAzMjcxLjczIDUwOS42MjkgMzI3MS42NyA1MDguMzEzIDMyNzEuNDEgNTA3LjEzNSAzMjcwLjk1IDUwNi4wOTUgMzI3MC40OSA1MDUuMDU0IDMyNjkuNzYgNTA0LjE5IDMyNjguNzcgNTAzLjUwMiAzMjY3Ljc3IDUwMi44MTMgMzI2Ni40OSA1MDIuMjkzIDMyNjQuOTEgNTAxLjk0MSAzMjYzLjM0IDUwMS41ODkgMzI2MS40MiA1MDEuNDEzIDMyNTkuMTUgNTAxLjQxM1pNMzIzNy4xMiA0OTYuNjQgMzI2MS4xNyA0OTYuNjRDMzI2NC43NSA0OTYuNjQgMzI2Ny43OSA0OTYuOTMgMzI3MC4yOCA0OTcuNTEyIDMyNzIuNzggNDk4LjA5MyAzMjc0LjgzIDQ5OC45MzUgMzI3Ni40MyA1MDAuMDM2IDMyNzguMDQgNTAxLjEzOCAzMjc5LjIgNTAyLjQ2MSAzMjc5LjkyIDUwNC4wMDYgMzI4MC42NCA1MDUuNTUyIDMyODEgNTA3LjMxOSAzMjgxIDUwOS4zMDggMzI4MSA1MTYuODM1IDMyNzYuMjcgNTIyLjE0NCAzMjY2LjgyIDUyNS4yMzQgMzI2Ni44MiA1MjUuMzg3IDMyNjYuODEgNTI1LjUxIDMyNjYuNzkgNTI1LjYwMiAzMjY2Ljc4IDUyNS42OTMgMzI2Ni43NyA1MjUuNzcgMzI2Ni43NyA1MjUuODMxIDMyNjkuNjIgNTI2Ljk2MyAzMjcxLjc3IDUyOC41MjQgMzI3My4yNCA1MzAuNTEzIDMyNzQuNzEgNTMyLjUwMiAzMjc1LjQ1IDUzNC43OTcgMzI3NS40NSA1MzcuMzk4IDMyNzUuNDUgNTQwLjMzNSAzMjc0LjkgNTQyLjk1OSAzMjczLjgyIDU0NS4yNjkgMzI3Mi43MyA1NDcuNTc5IDMyNzEuMDUgNTQ5LjUzOCAzMjY4Ljc5IDU1MS4xNDQgMzI2Ni41MyA1NTIuNzUxIDMyNjMuNjIgNTUzLjk5IDMyNjAuMDcgNTU0Ljg2MiAzMjU2LjUyIDU1NS43MzQgMzI1Mi4yNyA1NTYuMTcgMzI0Ny4zMSA1NTYuMTdMMzIyNS43OCA1NTYuMTcgMzIyNi4yOSA1NTMuMzdDMzIyNy4yNCA1NTMuMjE3IDMyMjguMDEgNTUzLjA0MSAzMjI4LjYxIDU1Mi44NDIgMzIyOS4yIDU1Mi42NDMgMzIyOS43NCA1NTIuMjE1IDMyMzAuMjEgNTUxLjU1NyAzMjMwLjY5IDU1MC44OTkgMzIzMS4xMiA1NDkuOTEyIDMyMzEuNTIgNTQ4LjU5NyAzMjMxLjkyIDU0Ny4yODEgMzIzMi4zOCA1NDUuNDE0IDMyMzIuOSA1NDIuOTk3TDMyNDAuNDIgNTA5LjUzN0MzMjQwLjczIDUwOC4xOTEgMzI0MC45NiA1MDYuOTk3IDMyNDEuMTEgNTA1Ljk1NyAzMjQxLjI3IDUwNC45MTcgMzI0MS4zNCA1MDQuMDYgMzI0MS4zNCA1MDMuMzg3IDMyNDEuMzQgNTAyLjAxIDMyNDEgNTAxLjAzMSAzMjQwLjMxIDUwMC40NDkgMzIzOS42MiA0OTkuODY4IDMyMzguMzMgNDk5LjU2MiAzMjM2LjQzIDQ5OS41MzFaTTMyMDAuODcgNDk1Ljg1OSAzMjA4LjQ0IDQ5NS44NTkgMzIxMi42MiA1NDQuMzc0QzMyMTIuNzQgNTQ1LjkzNSAzMjEyLjkzIDU0Ny4yNSAzMjEzLjE5IDU0OC4zMjEgMzIxMy40NSA1NDkuMzkyIDMyMTMuODEgNTUwLjI4IDMyMTQuMjcgNTUwLjk4MyAzMjE0LjczIDU1MS42ODcgMzIxNS4zIDU1Mi4yMjMgMzIxNS45OSA1NTIuNTkgMzIxNi42OCA1NTIuOTU3IDMyMTcuNTUgNTUzLjIxNyAzMjE4LjU5IDU1My4zN0wzMjE3LjkgNTU2LjE3IDMxOTcuODkgNTU2LjE3IDMxOTguNTcgNTUzLjM3QzMxOTkuNDMgNTUzLjIxNyAzMjAwLjE5IDU1My4wMjYgMzIwMC44NSA1NTIuNzk2IDMyMDEuNSA1NTIuNTY3IDMyMDIuMDUgNTUyLjE4NCAzMjAyLjQ4IDU1MS42NDkgMzIwMi45IDU1MS4xMTQgMzIwMy4yMyA1NTAuMzg3IDMyMDMuNDYgNTQ5LjQ2OSAzMjAzLjY5IDU0OC41NTEgMzIwMy44MSA1NDcuMzU3IDMyMDMuODEgNTQ1Ljg4OSAzMjAzLjgxIDU0NS4zMzggMzIwMy43OSA1NDQuNzAzIDMyMDMuNzYgNTQzLjk4NCAzMjAzLjczIDU0My4yNjUgMzIwMy42OSA1NDIuNTA4IDMyMDMuNjUgNTQxLjcxMiAzMjAzLjYgNTQwLjkxNiAzMjAzLjU0IDU0MC4wOTggMzIwMy40NiA1MzkuMjU2IDMyMDMuMzkgNTM4LjQxNSAzMjAzLjMyIDUzNy41OTYgMzIwMy4yNiA1MzYuODAxTDMxODIuNjkgNTM2LjgwMUMzMTgxLjk5IDUzNy44NDEgMzE4MS4yOSA1MzguOTEyIDMxODAuNiA1NDAuMDE0IDMxNzkuOTIgNTQxLjExNSAzMTc5LjI5IDU0Mi4xOTQgMzE3OC43MiA1NDMuMjUgMzE3OC4xNiA1NDQuMzA1IDMxNzcuNzEgNTQ1LjM1MyAzMTc3LjM3IDU0Ni4zOTQgMzE3Ny4wMyA1NDcuNDM0IDMxNzYuODYgNTQ4LjQ1OSAzMTc2Ljg2IDU0OS40NjkgMzE3Ni44NiA1NTEuNzAzIDMxNzguNSA1NTMuMDAzIDMxODEuNzggNTUzLjM3TDMxODEuMTggNTU2LjE3IDMxNjEuMTIgNTU2LjE3IDMxNjEuNjMgNTUzLjM3QzMxNjIuNDUgNTUzLjIxNyAzMTYzLjE5IDU1Mi45OCAzMTYzLjg1IDU1Mi42NTkgMzE2NC41MSA1NTIuMzM3IDMxNjUuMiA1NTEuODMzIDMxNjUuOTIgNTUxLjE0NCAzMTY2LjY0IDU1MC40NTYgMzE2Ny40MiA1NDkuNTIyIDMxNjguMjYgNTQ4LjM0NCAzMTY5LjEgNTQ3LjE2NiAzMTcwLjEyIDU0NS42MTMgMzE3MS4zMSA1NDMuNjg2WiIgZmlsbD0iIzkyRDA1MCIgZmlsbC1ydWxlPSJldmVub2RkIi8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZmlsbC1vcGFjaXR5PSIwIiBmb250LWZhbWlseT0iQXJpYWwsQXJpYWxfTVNGb250U2VydmljZSxzYW5zLXNlcmlmIiBmb250LXNpemU9IjYwLjMxMDUiIHg9IjMxNjEuMTIiIHk9IjU0OC42MzEiPvCdkLTwnZC1PC90ZXh0PjxwYXRoIGQ9Ik0zNDU4Ljg1IDgwOS42MDJDMzQ1NS4wMiA4MDkuNjAyIDM0NTEuNDYgODExLjMxIDM0NDguMTYgODE0LjcyNyAzNDQ0Ljg3IDgxOC4xNDQgMzQ0Mi4yNCA4MjIuNzY5IDM0NDAuMjYgODI4LjYwMiAzNDM4LjI4IDgzNC40MzUgMzQzNy4yOSA4NDAuNDE0IDM0MzcuMjkgODQ2LjUzOSAzNDM3LjI5IDg1MC43NDggMzQzNy45MSA4NTMuODczIDM0MzkuMTYgODU1LjkxNCAzNDQwLjQxIDg1Ny45NTYgMzQ0Mi4yOSA4NTguOTc3IDM0NDQuNzkgODU4Ljk3NyAzNDQ4LjM3IDg1OC45NzcgMzQ1Mi4wNiA4NTYuODczIDM0NTUuODUgODUyLjY2NCAzNDU5LjY0IDg0OC40NTYgMzQ2My4xNiA4NDIuNjAyIDM0NjYuNDEgODM1LjEwMiAzNDY3LjEyIDgzMC43NjkgMzQ2Ny40OCA4MjYuOTM1IDM0NjcuNDggODIzLjYwMiAzNDY3LjQ4IDgxOC44NTIgMzQ2Ni43OCA4MTUuMzMxIDM0NjUuMzggODEzLjAzOSAzNDYzLjk5IDgxMC43NDggMzQ2MS44MSA4MDkuNjAyIDM0NTguODUgODA5LjYwMlpNMzQ1OS4yOSA4MDQuNjY0QzM0NjMuOTYgODA0LjY2NCAzNDY3LjYxIDgwNi4xMjMgMzQ3MC4yNiA4MDkuMDM5IDM0NzIuOSA4MTEuOTU2IDM0NzQuMzcgODE2LjIyNyAzNDc0LjY2IDgyMS44NTJMMzQ3NS4yMyA4MjEuNzg5IDM0ODMuNDEgODA1LjY2NCAzNDk0LjIzIDgwNS42NjQgMzQ5My42IDgwOC44NTJDMzQ4OC40MyA4MTUuODUyIDM0ODIuMzUgODI0LjQ1NiAzNDc1LjM1IDgzNC42NjQgMzQ3NC4zMSA4NDIuNjIzIDM0NzMuNzkgODQ4LjI0OCAzNDczLjc5IDg1MS41MzkgMzQ3My43OSA4NTQuMjg5IDM0NzQuMSA4NTYuMjU4IDM0NzQuNzMgODU3LjQ0NiAzNDc1LjM1IDg1OC42MzMgMzQ3Ni4zOSA4NTkuMjI3IDM0NzcuODUgODU5LjIyNyAzNDc5LjAyIDg1OS4yMjcgMzQ4MC4zNCA4NTguNzM3IDM0ODEuODIgODU3Ljc1OCAzNDgzLjMgODU2Ljc3OSAzNDg0Ljg5IDg1NS4yNjkgMzQ4Ni42IDg1My4yMjdMMzQ5MC4yMyA4NTYuNjAyQzM0ODYuNzMgODYwLjM1MiAzNDgzLjY4IDg2Mi45MjUgMzQ4MS4xIDg2NC4zMjEgMzQ3OC41MiA4NjUuNzE3IDM0NzUuODUgODY2LjQxNCAzNDczLjEgODY2LjQxNCAzNDY3LjU2IDg2Ni40MTQgMzQ2NC43OSA4NjIuMzczIDM0NjQuNzkgODU0LjI4OSAzNDY0Ljc5IDg1Mi40OTggMzQ2NC45MSA4NTAuNTE5IDM0NjUuMTYgODQ4LjM1MkwzNDY0LjU0IDg0OC4zNTJDMzQ2MC4yNSA4NTQuNzY5IDM0NTYuMTggODU5LjM4MyAzNDUyLjM1IDg2Mi4xOTYgMzQ0OC41MiA4NjUuMDA4IDM0NDQuNDEgODY2LjQxNCAzNDQwLjA0IDg2Ni40MTQgMzQzNyA4NjYuNDE0IDM0MzQuNDMgODY1LjUzOSAzNDMyLjM1IDg2My43ODkgMzQzMC4yNyA4NjIuMDM5IDM0MjguNzMgODU5LjcxNyAzNDI3LjczIDg1Ni44MjEgMzQyNi43MyA4NTMuOTI1IDM0MjYuMjMgODUwLjc2OSAzNDI2LjIzIDg0Ny4zNTIgMzQyNi4yMyA4MzkuODk0IDM0MjcuNjQgODMyLjgyMSAzNDMwLjQ4IDgyNi4xMzMgMzQzMy4zMSA4MTkuNDQ2IDM0MzcuMjUgODE0LjE5NiAzNDQyLjI5IDgxMC4zODMgMzQ0Ny4zMyA4MDYuNTcxIDM0NTMgODA0LjY2NCAzNDU5LjI5IDgwNC42NjRaIiBmaWxsPSIjRkZFMjk5IiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmaWxsLW9wYWNpdHk9IjAiIGZvbnQtZmFtaWx5PSJBcmlhbCxBcmlhbF9NU0ZvbnRTZXJ2aWNlLHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNjEuNzUiIHg9IjM0MjYuMjMiIHk9Ijg1OC42OTYiPvCdm7w8L3RleHQ+PHBhdGggZD0iTTM1MzAuMzQgODQxLjM0OUMzNTI3LjY4IDg0NS42OTQgMzUyNS4wNCA4NTAuMDQ3IDM1MjIuNDIgODU0LjQwOCAzNTE5LjgxIDg1OC43NjggMzUxNy4xNyA4NjMuMTM2IDM1MTQuNSA4NjcuNTEyTDM1MzIuMTggODY3LjUxMkMzNTMyLjAyIDg2NS41NTMgMzUzMS44NyA4NjMuNjMzIDM1MzEuNzIgODYxLjc1MSAzNTMxLjU2IDg1OS44NjkgMzUzMS40NCA4NTcuODg4IDM1MzEuMzUgODU1LjgwNyAzNTMxLjI2IDg1My43MjcgMzUzMS4xNyA4NTEuNTA4IDM1MzEuMSA4NDkuMTUyIDM1MzEuMDIgODQ2Ljc5NiAzNTMwLjk4IDg0NC4xOTUgMzUzMC45OCA4NDEuMzQ5Wk0zNTMwLjE2IDgzMS4yOTggMzUzNy43MyA4MzEuMjk4IDM1NDEuOTEgODc5LjgxMkMzNTQyLjAzIDg4MS4zNzMgMzU0Mi4yMiA4ODIuNjg5IDM1NDIuNDggODgzLjc2IDM1NDIuNzQgODg0LjgzMSAzNTQzLjEgODg1LjcxOCAzNTQzLjU2IDg4Ni40MjIgMzU0NC4wMiA4ODcuMTI1IDM1NDQuNTkgODg3LjY2MSAzNTQ1LjI4IDg4OC4wMjggMzU0NS45NyA4ODguMzk1IDM1NDYuODMgODg4LjY1NSAzNTQ3Ljg3IDg4OC44MDhMMzU0Ny4xOCA4OTEuNjA4IDM1MjcuMTcgODkxLjYwOCAzNTI3Ljg2IDg4OC44MDhDMzUyOC43MiA4ODguNjU1IDM1MjkuNDcgODg4LjQ2NCAzNTMwLjEzIDg4OC4yMzUgMzUzMC43OSA4ODguMDA1IDM1MzEuMzMgODg3LjYyMyAzNTMxLjc2IDg4Ny4wODcgMzUzMi4xOSA4ODYuNTUyIDM1MzIuNTIgODg1LjgyNSAzNTMyLjc1IDg4NC45MDcgMzUzMi45OCA4ODMuOTg5IDM1MzMuMDkgODgyLjc5NiAzNTMzLjA5IDg4MS4zMjcgMzUzMy4wOSA4ODAuNzc2IDM1MzMuMDggODgwLjE0MSAzNTMzLjA1IDg3OS40MjIgMzUzMy4wMiA4NzguNzAzIDM1MzIuOTggODc3Ljk0NiAzNTMyLjkzIDg3Ny4xNSAzNTMyLjg5IDg3Ni4zNTUgMzUzMi44MyA4NzUuNTM2IDM1MzIuNzUgODc0LjY5NSAzNTMyLjY3IDg3My44NTMgMzUzMi42IDg3My4wMzUgMzUzMi41NCA4NzIuMjM5TDM1MTEuOTggODcyLjIzOUMzNTExLjI4IDg3My4yNzkgMzUxMC41OCA4NzQuMzUgMzUwOS44OSA4NzUuNDUyIDM1MDkuMiA4NzYuNTU0IDM1MDguNTggODc3LjYzMiAzNTA4LjAxIDg3OC42ODggMzUwNy40NCA4NzkuNzQzIDM1MDYuOTkgODgwLjc5MiAzNTA2LjY2IDg4MS44MzIgMzUwNi4zMiA4ODIuODcyIDM1MDYuMTUgODgzLjg5NyAzNTA2LjE1IDg4NC45MDcgMzUwNi4xNSA4ODcuMTQxIDM1MDcuNzkgODg4LjQ0MSAzNTExLjA2IDg4OC44MDhMMzUxMC40NyA4OTEuNjA4IDM0OTAuNDEgODkxLjYwOCAzNDkwLjkxIDg4OC44MDhDMzQ5MS43NCA4ODguNjU1IDM0OTIuNDggODg4LjQxOCAzNDkzLjE0IDg4OC4wOTcgMzQ5My44IDg4Ny43NzYgMzQ5NC40OSA4ODcuMjcxIDM0OTUuMiA4ODYuNTgyIDM0OTUuOTIgODg1Ljg5NCAzNDk2LjcgODg0Ljk2MSAzNDk3LjU0IDg4My43ODMgMzQ5OC4zOSA4ODIuNjA0IDM0OTkuNCA4ODEuMDUyIDM1MDAuNiA4NzkuMTI0Wk0zNTkxLjI4IDgzMS4yMDZDMzU5Mi42NiA4MzEuMjA2IDM1OTMuOTkgODMxLjI0NCAzNTk1LjI4IDgzMS4zMjEgMzU5Ni41NiA4MzEuMzk3IDM1OTcuODggODMxLjUzNSAzNTk5LjIyIDgzMS43MzQgMzYwMC41NyA4MzEuOTMzIDM2MDEuOTQgODMyLjIgMzYwMy4zMyA4MzIuNTM3IDM2MDQuNzIgODMyLjg3NCAzNjA2LjIyIDgzMy4zMDIgMzYwNy44MSA4MzMuODIyTDM2MDUuMDUgODQ2LjEyMyAzNjAwLjIzIDg0Ni4xMjNDMzYwMC4wOCA4NDQuMzQ4IDM1OTkuODEgODQyLjgxOCAzNTk5LjQxIDg0MS41MzMgMzU5OS4wMSA4NDAuMjQ4IDM1OTguNDQgODM5LjE5MiAzNTk3LjcxIDgzOC4zNjYgMzU5Ni45OCA4MzcuNTQgMzU5Ni4wMyA4MzYuOTM2IDM1OTQuODkgODM2LjU1MyAzNTkzLjc0IDgzNi4xNzEgMzU5Mi4zNCA4MzUuOTc5IDM1OTAuNjkgODM1Ljk3OSAzNTg4LjQ1IDgzNS45NzkgMzU4Ni4zMyA4MzYuNTMgMzU4NC4zMSA4MzcuNjMyIDM1ODIuMjkgODM4LjczMyAzNTgwLjQ0IDg0MC4yMzMgMzU3OC43NSA4NDIuMTMgMzU3Ny4wNyA4NDQuMDI3IDM1NzUuNTYgODQ2LjI1MyAzNTc0LjIzIDg0OC44MDggMzU3Mi45IDg1MS4zNjMgMzU3MS43NiA4NTQuMDcxIDM1NzAuODEgODU2LjkzMiAzNTY5Ljg2IDg1OS43OTMgMzU2OS4xNSA4NjIuNzM4IDM1NjguNjYgODY1Ljc2NyAzNTY4LjE3IDg2OC43OTcgMzU2Ny45MiA4NzEuNzUgMzU2Ny45MiA4NzQuNjI2IDM1NjcuOTIgODc5LjI0NiAzNTY4Ljc5IDg4Mi41OTcgMzU3MC41MSA4ODQuNjc4IDM1NzIuMjQgODg2Ljc1OCAzNTc0LjkgODg3Ljc5OSAzNTc4LjQ4IDg4Ny43OTkgMzU4MC4yOCA4ODcuNzk5IDM1ODEuOTMgODg3LjYgMzU4My40MSA4ODcuMjAyIDM1ODQuOSA4ODYuODA0IDM1ODYuMjcgODg2LjE3NyAzNTg3LjU0IDg4NS4zMiAzNTg4LjgxIDg4NC40NjMgMzU4OS45OCA4ODMuMzU0IDM1OTEuMDMgODgxLjk5MiAzNTkyLjA5IDg4MC42MzEgMzU5My4wNyA4NzkuMDAxIDM1OTMuOTkgODc3LjEwNEwzNTk5LjA0IDg3Ny4xMDQgMzU5Ni4xIDg4OS45MUMzNTk0LjQ1IDg5MC40IDM1OTIuODYgODkwLjgxMyAzNTkxLjMzIDg5MS4xNDkgMzU4OS44IDg5MS40ODYgMzU4OC4zIDg5MS43NjEgMzU4Ni44MyA4OTEuOTc1IDM1ODUuMzYgODkyLjE5IDM1ODMuOTEgODkyLjM1IDM1ODIuNDcgODkyLjQ1NyAzNTgxLjAzIDg5Mi41NjQgMzU3OS41OCA4OTIuNjE4IDM1NzguMTEgODkyLjYxOCAzNTc0LjkzIDg5Mi42MTggMzU3Mi4xMSA4OTIuMTU5IDM1NjkuNjQgODkxLjI0MSAzNTY3LjE4IDg5MC4zMjMgMzU2NS4xMiA4ODkuMDE1IDM1NjMuNDcgODg3LjMxNyAzNTYxLjgyIDg4NS42MTggMzU2MC41NiA4ODMuNTM4IDM1NTkuNzEgODgxLjA3NSAzNTU4Ljg1IDg3OC42MTEgMzU1OC40MiA4NzUuODUgMzU1OC40MiA4NzIuNzkgMzU1OC40MiA4NjguNzgxIDM1NTguODMgODY0Ljk2NCAzNTU5LjY0IDg2MS4zMzggMzU2MC40NSA4NTcuNzEyIDM1NjEuNTggODU0LjM2MiAzNTYzLjAzIDg1MS4yODYgMzU2NC40OSA4NDguMjExIDM1NjYuMjMgODQ1LjQzNCAzNTY4LjI3IDg0Mi45NTYgMzU3MC4zIDg0MC40NzcgMzU3Mi41MyA4MzguMzY2IDM1NzQuOTcgODM2LjYyMiAzNTc3LjQgODM0Ljg3OCAzNTc5Ljk5IDgzMy41MzkgMzU4Mi43NSA4MzIuNjA2IDM1ODUuNSA4MzEuNjcyIDM1ODguMzUgODMxLjIwNiAzNTkxLjI4IDgzMS4yMDZaIiBmaWxsPSIjRkZFMjk5IiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmaWxsLW9wYWNpdHk9IjAiIGZvbnQtZmFtaWx5PSJBcmlhbCxBcmlhbF9NU0ZvbnRTZXJ2aWNlLHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNjEuNDEyMSIgeD0iMzQ5MC40MSIgeT0iODg0Ljk0MSI+8J2QtPCdkLY8L3RleHQ+PHBhdGggZD0iTTI4ODIuODIgOTUwLjc2M0MyODc4Ljk5IDk1MC43NjMgMjg3NS40MiA5NTIuNDcxIDI4NzIuMTMgOTU1Ljg4OCAyODY4Ljg0IDk1OS4zMDUgMjg2Ni4yIDk2My45MyAyODY0LjIzIDk2OS43NjMgMjg2Mi4yNSA5NzUuNTk2IDI4NjEuMjYgOTgxLjU3NSAyODYxLjI2IDk4Ny43IDI4NjEuMjYgOTkxLjkwOSAyODYxLjg4IDk5NS4wMzQgMjg2My4xMyA5OTcuMDc1IDI4NjQuMzggOTk5LjExNyAyODY2LjI2IDEwMDAuMTQgMjg2OC43NiAxMDAwLjE0IDI4NzIuMzQgMTAwMC4xNCAyODc2LjAzIDk5OC4wMzQgMjg3OS44MiA5OTMuODI1IDI4ODMuNjEgOTg5LjYxNyAyODg3LjEzIDk4My43NjMgMjg5MC4zOCA5NzYuMjYzIDI4OTEuMDkgOTcxLjkzIDI4OTEuNDQgOTY4LjA5NiAyODkxLjQ0IDk2NC43NjMgMjg5MS40NCA5NjAuMDEzIDI4OTAuNzUgOTU2LjQ5MiAyODg5LjM1IDk1NC4yIDI4ODcuOTUgOTUxLjkwOSAyODg1Ljc4IDk1MC43NjMgMjg4Mi44MiA5NTAuNzYzWk0yODgzLjI2IDk0NS44MjVDMjg4Ny45MiA5NDUuODI1IDI4OTEuNTggOTQ3LjI4NCAyODk0LjIzIDk1MC4yIDI4OTYuODcgOTUzLjExNyAyODk4LjM0IDk1Ny4zODggMjg5OC42MyA5NjMuMDEzTDI4OTkuMTkgOTYyLjk1IDI5MDcuMzggOTQ2LjgyNSAyOTE4LjE5IDk0Ni44MjUgMjkxNy41NyA5NTAuMDEzQzI5MTIuNCA5NTcuMDEzIDI5MDYuMzIgOTY1LjYxNyAyODk5LjMyIDk3NS44MjUgMjg5OC4yOCA5ODMuNzg0IDI4OTcuNzYgOTg5LjQwOSAyODk3Ljc2IDk5Mi43IDI4OTcuNzYgOTk1LjQ1IDI4OTguMDcgOTk3LjQxOSAyODk4LjY5IDk5OC42MDcgMjg5OS4zMiA5OTkuNzk0IDI5MDAuMzYgMTAwMC4zOSAyOTAxLjgyIDEwMDAuMzkgMjkwMi45OSAxMDAwLjM5IDI5MDQuMzEgOTk5Ljg5OCAyOTA1Ljc5IDk5OC45MTkgMjkwNy4yNyA5OTcuOTQgMjkwOC44NiA5OTYuNDMgMjkxMC41NyA5OTQuMzg4TDI5MTQuMTkgOTk3Ljc2M0MyOTEwLjY5IDEwMDEuNTEgMjkwNy42NSAxMDA0LjA5IDI5MDUuMDcgMTAwNS40OCAyOTAyLjQ5IDEwMDYuODggMjg5OS44MiAxMDA3LjU4IDI4OTcuMDcgMTAwNy41OCAyODkxLjUzIDEwMDcuNTggMjg4OC43NiAxMDAzLjUzIDI4ODguNzYgOTk1LjQ1IDI4ODguNzYgOTkzLjY1OSAyODg4Ljg4IDk5MS42OCAyODg5LjEzIDk4OS41MTNMMjg4OC41MSA5ODkuNTEzQzI4ODQuMjIgOTk1LjkzIDI4ODAuMTUgMTAwMC41NCAyODc2LjMyIDEwMDMuMzYgMjg3Mi40OSAxMDA2LjE3IDI4NjguMzggMTAwNy41OCAyODY0LjAxIDEwMDcuNTggMjg2MC45NyAxMDA3LjU4IDI4NTguNCAxMDA2LjcgMjg1Ni4zMiAxMDA0Ljk1IDI4NTQuMjQgMTAwMy4yIDI4NTIuNjkgMTAwMC44OCAyODUxLjY5IDk5Ny45ODIgMjg1MC42OSA5OTUuMDg2IDI4NTAuMTkgOTkxLjkzIDI4NTAuMTkgOTg4LjUxMyAyODUwLjE5IDk4MS4wNTUgMjg1MS42MSA5NzMuOTgyIDI4NTQuNDQgOTY3LjI5NCAyODU3LjI4IDk2MC42MDcgMjg2MS4yMiA5NTUuMzU3IDI4NjYuMjYgOTUxLjU0NCAyODcxLjMgOTQ3LjczMiAyODc2Ljk3IDk0NS44MjUgMjg4My4yNiA5NDUuODI1WiIgZmlsbD0iI0ZGNjdEQyIgZmlsbC1ydWxlPSJldmVub2RkIi8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZmlsbC1vcGFjaXR5PSIwIiBmb250LWZhbWlseT0iQXJpYWwsQXJpYWxfTVNGb250U2VydmljZSxzYW5zLXNlcmlmIiBmb250LXNpemU9IjYxLjc1IiB4PSIyODUwLjE5IiB5PSI5OTkuODU3Ij7wnZu8PC90ZXh0PjxwYXRoIGQ9Ik0yOTU0LjMxIDk4Mi41MUMyOTUxLjY1IDk4Ni44NTUgMjk0OS4wMSA5OTEuMjA4IDI5NDYuMzkgOTk1LjU2OCAyOTQzLjc3IDk5OS45MjkgMjk0MS4xNCAxMDA0LjMgMjkzOC40NyAxMDA4LjY3TDI5NTYuMTQgMTAwOC42N0MyOTU1Ljk5IDEwMDYuNzEgMjk1NS44NCAxMDA0Ljc5IDI5NTUuNjggMTAwMi45MSAyOTU1LjUzIDEwMDEuMDMgMjk1NS40MSA5OTkuMDQ5IDI5NTUuMzIgOTk2Ljk2OCAyOTU1LjIzIDk5NC44ODggMjk1NS4xNCA5OTIuNjY5IDI5NTUuMDcgOTkwLjMxMyAyOTU0Ljk5IDk4Ny45NTcgMjk1NC45NSA5ODUuMzU2IDI5NTQuOTUgOTgyLjUxWk0zMDA5LjQyIDk3OC4wMTJDMzAwOC4zNSA5NzguMDEyIDMwMDcuNDEgOTc4LjAyOCAzMDA2LjYgOTc4LjA1OCAzMDA1Ljc5IDk3OC4wODkgMzAwNS4wNSA5NzguMTM1IDMwMDQuMzcgOTc4LjE5NkwyOTkzLjIyIDEwMjcuOUMyOTkzLjM0IDEwMjcuOSAyOTkzLjYyIDEwMjcuOTEgMjk5NC4wNSAxMDI3LjkzIDI5OTQuNDggMTAyNy45NCAyOTk0Ljk1IDEwMjcuOTYgMjk5NS40NyAxMDI3Ljk3IDI5OTUuOTkgMTAyNy45OSAyOTk2LjUyIDEwMjggMjk5Ny4wNSAxMDI4LjAyIDI5OTcuNTkgMTAyOC4wMyAyOTk4LjAyIDEwMjguMDQgMjk5OC4zNiAxMDI4LjA0IDMwMDMuMzggMTAyOC4wNCAzMDA3LjYzIDEwMjcuMjcgMzAxMS4xIDEwMjUuNzIgMzAxNC41NyAxMDI0LjE4IDMwMTcuNTUgMTAyMS43NyAzMDIwLjAzIDEwMTguNDkgMzAyMi41IDEwMTUuMSAzMDI0LjMyIDEwMTEuNTQgMzAyNS40OSAxMDA3LjgyIDMwMjYuNjUgMTAwNC4xMSAzMDI3LjIzIDEwMDAuMDcgMzAyNy4yMyA5OTUuNzI5IDMwMjcuMjMgOTkyLjkxNCAzMDI2Ljg0IDk5MC40MDUgMzAyNi4wNiA5ODguMjAyIDMwMjUuMjggOTg1Ljk5OSAzMDI0LjEzIDk4NC4xNCAzMDIyLjYyIDk4Mi42MjUgMzAyMS4xIDk4MS4xMSAzMDE5LjI0IDk3OS45NjMgMzAxNy4wMiA5NzkuMTgzIDMwMTQuOCA5NzguNDAyIDMwMTIuMjcgOTc4LjAxMiAzMDA5LjQyIDk3OC4wMTJaTTI5OTAuMzggOTczLjIzOSAzMDA4LjU1IDk3My4yMzlDMzAxMS41MiA5NzMuMjM5IDMwMTQuMSA5NzMuMzc3IDMwMTYuMjggOTczLjY1MiAzMDE4LjQ3IDk3My45MjcgMzAyMC4zNiA5NzQuMzQgMzAyMS45NSA5NzQuODkxIDMwMjQuMTMgOTc1LjUwMyAzMDI2LjExIDk3Ni4zOTEgMzAyNy45MiA5NzcuNTUzIDMwMjkuNzMgOTc4LjcxNiAzMDMxLjI5IDk4MC4xNjIgMzAzMi42IDk4MS44OTEgMzAzMy45MiA5ODMuNjIgMzAzNC45NCA5ODUuNjM5IDMwMzUuNjggOTg3Ljk0OSAzMDM2LjQxIDk5MC4yNiAzMDM2Ljc4IDk5Mi44NTMgMzAzNi43OCA5OTUuNzI5IDMwMzYuNzggMTAwMS4yMSAzMDM1Ljk0IDEwMDYuMjEgMzAzNC4yNSAxMDEwLjc0IDMwMzIuNTcgMTAxNS4yNyAzMDMwLjExIDEwMTkuMTYgMzAyNi44NiAxMDIyLjQyIDMwMjMuNjIgMTAyNS42OCAzMDE5LjYzIDEwMjguMjIgMzAxNC44OSAxMDMwLjA0IDMwMTAuMTQgMTAzMS44NiAzMDA0LjcgMTAzMi43NyAyOTk4LjU1IDEwMzIuNzdMMjk3OS4wNCAxMDMyLjc3IDI5NzkuNTQgMTAyOS45N0MyOTgwLjQ5IDEwMjkuODIgMjk4MS4yNiAxMDI5LjY0IDI5ODEuODYgMTAyOS40NCAyOTgyLjQ2IDEwMjkuMjQgMjk4Mi45OSAxMDI4LjgxIDI5ODMuNDcgMTAyOC4xNiAyOTgzLjk0IDEwMjcuNSAyOTg0LjM4IDEwMjYuNTEgMjk4NC43OCAxMDI1LjIgMjk4NS4xNyAxMDIzLjg4IDI5ODUuNjMgMTAyMi4wMSAyOTg2LjE1IDEwMTkuNkwyOTkzLjY4IDk4Ni4xMzZDMjk5My45OSA5ODQuNzkgMjk5NC4yMiA5ODMuNTk3IDI5OTQuMzcgOTgyLjU1NiAyOTk0LjUyIDk4MS41MTYgMjk5NC42IDk4MC42MjkgMjk5NC42IDk3OS44OTQgMjk5NC42IDk3OC41NDggMjk5NC4yNSA5NzcuNTkyIDI5OTMuNTQgOTc3LjAyNiAyOTkyLjg0IDk3Ni40NTkgMjk5MS41NSA5NzYuMTYxIDI5ODkuNjkgOTc2LjEzWk0yOTU0LjEyIDk3Mi40NTkgMjk2MS43IDk3Mi40NTkgMjk2NS44NyAxMDIwLjk3QzI5NjYgMTAyMi41MyAyOTY2LjE5IDEwMjMuODUgMjk2Ni40NSAxMDI0LjkyIDI5NjYuNzEgMTAyNS45OSAyOTY3LjA3IDEwMjYuODggMjk2Ny41MyAxMDI3LjU4IDI5NjcuOTkgMTAyOC4yOSAyOTY4LjU2IDEwMjguODIgMjk2OS4yNSAxMDI5LjE5IDI5NjkuOTQgMTAyOS41NiAyOTcwLjggMTAyOS44MiAyOTcxLjg0IDEwMjkuOTdMMjk3MS4xNSAxMDMyLjc3IDI5NTEuMTQgMTAzMi43NyAyOTUxLjgzIDEwMjkuOTdDMjk1Mi42OSAxMDI5LjgyIDI5NTMuNDQgMTAyOS42MyAyOTU0LjEgMTAyOS40IDI5NTQuNzYgMTAyOS4xNyAyOTU1LjMgMTAyOC43OCAyOTU1LjczIDEwMjguMjUgMjk1Ni4xNiAxMDI3LjcxIDI5NTYuNDkgMTAyNi45OSAyOTU2LjcyIDEwMjYuMDcgMjk1Ni45NSAxMDI1LjE1IDI5NTcuMDYgMTAyMy45NiAyOTU3LjA2IDEwMjIuNDkgMjk1Ny4wNiAxMDIxLjk0IDI5NTcuMDUgMTAyMS4zIDI5NTcuMDIgMTAyMC41OCAyOTU2Ljk5IDEwMTkuODYgMjk1Ni45NSAxMDE5LjExIDI5NTYuOSAxMDE4LjMxIDI5NTYuODYgMTAxNy41MiAyOTU2Ljc5IDEwMTYuNyAyOTU2LjcyIDEwMTUuODYgMjk1Ni42NCAxMDE1LjAxIDI5NTYuNTcgMTAxNC4yIDI5NTYuNTEgMTAxMy40TDI5MzUuOTUgMTAxMy40QzI5MzUuMjQgMTAxNC40NCAyOTM0LjU1IDEwMTUuNTEgMjkzMy44NiAxMDE2LjYxIDI5MzMuMTcgMTAxNy43MSAyOTMyLjU0IDEwMTguNzkgMjkzMS45OCAxMDE5Ljg1IDI5MzEuNDEgMTAyMC45IDI5MzAuOTYgMTAyMS45NSAyOTMwLjYyIDEwMjIuOTkgMjkzMC4yOSAxMDI0LjAzIDI5MzAuMTIgMTAyNS4wNiAyOTMwLjEyIDEwMjYuMDcgMjkzMC4xMiAxMDI4LjMgMjkzMS43NiAxMDI5LjYgMjkzNS4wMyAxMDI5Ljk3TDI5MzQuNDMgMTAzMi43NyAyOTE0LjM4IDEwMzIuNzcgMjkxNC44OCAxMDI5Ljk3QzI5MTUuNzEgMTAyOS44MiAyOTE2LjQ1IDEwMjkuNTggMjkxNy4xMSAxMDI5LjI2IDI5MTcuNzcgMTAyOC45NCAyOTE4LjQ1IDEwMjguNDMgMjkxOS4xNyAxMDI3Ljc0IDI5MTkuODkgMTAyNy4wNSAyOTIwLjY3IDEwMjYuMTIgMjkyMS41MSAxMDI0Ljk0IDI5MjIuMzUgMTAyMy43NyAyOTIzLjM3IDEwMjIuMjEgMjkyNC41NyAxMDIwLjI4WiIgZmlsbD0iI0ZGNjdEQyIgZmlsbC1ydWxlPSJldmVub2RkIi8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZmlsbC1vcGFjaXR5PSIwIiBmb250LWZhbWlseT0iQXJpYWwsQXJpYWxfTVNGb250U2VydmljZSxzYW5zLXNlcmlmIiBmb250LXNpemU9IjYwLjMxMDUiIHg9IjI5MTQuMzgiIHk9IjEwMjUuMjMiPvCdkLTwnZC3PC90ZXh0PjxwYXRoIGQ9Ik02Ljg2NzM0LTAuMzI0NDg0IDguODE0MjQgNDAuODc5NS00LjkyMDQzIDQxLjUyODUtNi44NjczNCAwLjMyNDQ4NFpNOS40NjMyMSA1NC42MTQyIDExLjQxMDEgOTUuODE4Mi0yLjMyNDU2IDk2LjQ2NzItNC4yNzE0NiA1NS4yNjMyWk0xMi4wNTkxIDEwOS41NTMgMTQuMDA2IDE1MC43NTcgMC4yNzEzMTYgMTUxLjQwNi0xLjY3NTU5IDExMC4yMDJaTTE0LjY1NSAxNjQuNDkyIDE2LjYwMTkgMjA1LjY5NiAyLjg2NzE5IDIwNi4zNDUgMC45MjAyODUgMTY1LjE0MVpNMTcuMjUwOCAyMTkuNDMgMTguMjY2MyAyNDAuOTIxIDQuNTMxNTkgMjQxLjU3IDMuNTE2MTYgMjIwLjA3OVpNMzEuNjc2NSAyMzMuNDA1IDEzLjAyMTQgMjc1LjU4Mi05LjUyNzU2IDIzNS4zNTJaIiBmaWxsPSIjRkY2N0RDIiB0cmFuc2Zvcm09Im1hdHJpeCgxIDAgMCAtMSAzMDY2IDExMzEuNTgpIi8+PHBhdGggZD0iTTMuODQyNjctNS43MDA4MyAzOC4wNDc3IDE3LjM1NTIgMzAuMzYyMyAyOC43NTY5LTMuODQyNjcgNS43MDA4M1pNNDkuNDQ5MyAyNS4wNDA2IDgzLjY1NDMgNDguMDk2NiA3NS45NjkgNTkuNDk4MyA0MS43NjQgMzYuNDQyMlpNOTUuMDU2IDU1Ljc4MTkgMTI5LjI2MSA3OC44MzggMTIxLjU3NiA5MC4yMzk2IDg3LjM3MDYgNjcuMTgzNlpNMTQwLjY2MyA4Ni41MjMzIDE1My4zMDggOTUuMDQ3MSAxNDUuNjIzIDEwNi40NDkgMTMyLjk3NyA5Ny45MjVaTTE1NS4yOTMgNzkuODAyOCAxNzcuOTcgMTE5Ljk2MSAxMzIuMjM3IDExNC4wMDhaIiBmaWxsPSIjOTJEMDUwIiB0cmFuc2Zvcm09Im1hdHJpeCgtMSAwIDAgMSAzMzQzLjk3IDUyMSkiLz48cGF0aCBkPSJNMC41NTc1Ni02Ljg1MjM1IDQxLjY3MTctMy41MDcgNDAuNTU2NiAxMC4xOTc3LTAuNTU3NTYgNi44NTIzNVpNNTUuMzc2NC0yLjM5MTg4IDk2LjQ5MDUgMC45NTM0ODEgOTUuMzc1NCAxNC42NTgyIDU0LjI2MTMgMTEuMzEyOFpNMTEwLjE5NSAyLjA2ODYgMTUxLjMwOSA1LjQxMzk2IDE1MC4xOTQgMTkuMTE4NyAxMDkuMDggMTUuNzczM1pNMTY1LjAxNCA2LjUyOTA4IDIwNi4xMjggOS44NzQ0NCAyMDUuMDEzIDIzLjU3OTEgMTYzLjg5OSAyMC4yMzM4Wk0yMTkuODMzIDEwLjk4OTYgMjYwLjk0NyAxNC4zMzQ5IDI1OS44MzIgMjguMDM5NiAyMTguNzE4IDI0LjY5NDNaTTI3NC42NTIgMTUuNDUgMzE1Ljc2NiAxOC43OTU0IDMxNC42NTEgMzIuNTAwMSAyNzMuNTM3IDI5LjE1NDdaTTMyOS40NzEgMTkuOTEwNSAzNzAuNTg1IDIzLjI1NTkgMzY5LjQ3IDM2Ljk2MDYgMzI4LjM1NSAzMy42MTUyWk0zODQuMjg5IDI0LjM3MSA0MjUuNDA0IDI3LjcxNjMgNDI0LjI4OCA0MS40MjEgMzgzLjE3NCAzOC4wNzU3Wk00MzkuMTA4IDI4LjgzMTUgNDc2LjU0NSAzMS44Nzc2IDQ3NS40MyA0NS41ODIzIDQzNy45OTMgNDIuNTM2MlpNNDcwLjgwOCAxNy42MTU0IDUxMC4yNSA0MS41MTc4IDQ2Ny40NjMgNTguNzI5NVoiIGZpbGw9IiNGRkUyOTkiIHRyYW5zZm9ybT0ibWF0cml4KC0xIDAgMCAxIDM3NjAuMjUgNzQ2KSIvPjwvZz48L3N2Zz4=" alt="Graph Attention" style="width:100%;max-height:260px;object-fit:contain">
+<ul>
+<li>Inspired by attention models, Graph Attention Transformer (GAT) adds a learnable attention variable <span class="math inline">𝛼_𝑣𝑢</span> to dynamically weight the importance of a node’s neighbors</li>
+</ul>
+<div class="math block">
+\alpha_{vu} = \mathrm{softmax}\left(
+    \mathrm{LeakyReLU}\left(
+        \mathbf{a}^\top
+        \left[
+            \mathbf{W}\mathbf{h}_v \| \mathbf{W}\mathbf{h}_u
+        \right]
+    \right)
+\right)
+</div></div><div class="col"><p><strong>GATv2 — dynamic attention:</strong></p>
+<div class="math block">
+\alpha_{vu} = \mathrm{softmax}\left(
+    \mathbf{a}^\top \mathrm{LeakyReLU}\left(
+        \mathbf{W}\left[\mathbf{h}_v \| \mathbf{h}_u\right]
+    \right)
+\right)
+</div>
+<p>GATv1 applies the nonlinearity <em>after</em> the attention parameter, making rankings query-independent. GATv2 applies it <em>before</em>, enabling truly dynamic per-node attention — critical for CAN bus graphs where adversarial injection corrupts edge structure and static attention degrades uniformly.</p>
+<p><strong>Aggregation:</strong></p>
+<div class="math block">
+\mathbf{h}_v’ = \sigma\!\left(\sum_{u \in \mathcal{N}(v)} \alpha_{vu} \cdot \mathbf{W}\mathbf{h}_u\right)
+</div></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">7 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
+</section>
+
+<section class="slide slide--content cols-6-4 size-small" data-index="7">
+<h2>Fusion: MoE</h2>
+<div class="slide-content colloquium-grid" style="grid-template-columns: minmax(0, 6fr) minmax(0, 4fr);"><div class="col"><p><strong>MLP Layers</strong></p>
+<pre><code class="language-python">layers: list[nn.Module] = []
+cur = in_dim
+for h in hidden:
+    layers.extend([nn.Linear(cur, h), nn.ReLU(), nn.Dropout(0.2)])
+    cur = h
+layers.append(nn.Linear(cur, out_dim))
+return nn.Sequential(*layers)
+</code></pre>
+<p><strong>Load Balancing</strong> — <span class="math inline">\alpha = 0.01</span></p>
+<pre><code class="language-python">P = self._last_gate_weights.mean(dim=0)
+K = P.numel()
+return K * (P * P).sum()
+</code></pre>
+<p><strong>Loss Function</strong> — <span class="math inline">0 =</span> collapsed · <span class="math inline">\log K =</span> uniform</p>
+<pre><code class="language-python">entropy = -(w * w.clamp_min(1e-9).log()).sum(-1).mean()
+</code></pre></div><div class="col"><img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjE2NiIgaGVpZ2h0PSIxNzAyIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB4bWw6c3BhY2U9InByZXNlcnZlIiBvdmVyZmxvdz0iaGlkZGVuIj48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtOTI3IC01MTIpIj48cGF0aCBkPSJNMC4wMDI3MzI0MS01LjE1NjI1IDMwLjI1OTMtNS4xNDAyMiA0NS4wOTQ1LTUuMTIwOTUgNTkuNTcxOS01LjA5NDkgNzMuNTc0MS01LjA2MjU2IDg2Ljk4MjMtNS4wMjQ0OCA5OS42NzgtNC45ODExNiAxMTEuNTQyLTQuOTMzMTMgMTIyLjQ1Ny00Ljg4MDkyIDEzMi4zMDItNC44MjUwNCAxNDAuOTYyLTQuNzY2MDEgMTQ4LjMxNi00LjcwNDM0IDE1MS40Ny00LjY3MjY0IDE1NC4yNTMtNC42NDA0OCAxNTYuNjUyLTQuNjA3ODcgMTU4LjY2Ni00LjU3NDY2IDE2MC4yNy00LjU0MDkxIDE2MS40ODEtNC41MDU2NCAxNjIuNDY1LTQuNDU4MzggMTYyLjkzOS00LjM5MTAxIDE2My4xNzMtNC4zNTc2OSAxNjIuNjk1LTQuNDAzMDcgMTYzLjM5LTQuMzY5NzEgMTYzLjI5NC00LjM3MzQ1IDE2NC40MzUtNC4zNDAyMiAxNjQuMzkzLTQuMzQxMjcgMTY1Ljk2NS00LjMwODI0IDE2NS45NDEtNC4zMDg2NyAxNjcuOTI5LTQuMjc1OSAxNzAuMzAyLTQuMjQzNjggMTczLjA2Ny00LjIxMTc2IDE3Ni4yMDUtNC4xODAyNCAxODMuNTQzLTQuMTE4NzQgMTkyLjE4OC00LjA1OTg0IDIwMi4wMjMtNC4wMDQwNSAyMTIuOTI5LTMuOTUxODkgMjI0Ljc4Ni0zLjkwMzkxIDIzNy40NzYtMy44NjA2MyAyNTAuODc4LTMuODIyNTYgMjY0Ljg3NS0zLjc5MDI1IDI3OS4zNDctMy43NjQyIDI5OC42NS0zLjc0MzAyIDI5OC42MzkgNi41Njk0OCAyNzkuMzI5IDYuNTQ4MjggMjY0Ljg1MSA2LjUyMjIzIDI1MC44NDkgNi40ODk5IDIzNy40NDEgNi40NTE4MSAyMjQuNzQ1IDYuNDA4NSAyMTIuODggNi4zNjA0OSAyMDEuOTY1IDYuMzA4MjkgMTkyLjExNyA2LjI1MjQyIDE4My40NTYgNi4xOTMzOSAxNzYuMTAxIDYuMTMxNzQgMTcyLjk0OCA2LjEwMDA2IDE3MC4xNjIgNi4wNjc4NyAxNjcuNzU5IDYuMDM1MiAxNjUuNzYgNi4wMDIyMyAxNjQuMTU1IDUuOTY4NTIgMTYyLjk0NSA1LjkzMzI3IDE2MS45NjEgNS44ODYwNyAxNjEuNDg3IDUuODE4NyAxNjEuMjUxIDUuNzg1MjUgMTYxLjczIDUuODMwNzEgMTYxLjAzNSA1Ljc5NzMzIDE2MS4xMzIgNS44MDEwNyAxNTkuOTkxIDUuNzY3ODIgMTYwLjAzMyA1Ljc2ODg2IDE1OC40NjEgNS43MzU4MSAxNTguNDg0IDUuNzM2MjQgMTU2LjUxMiA1LjcwMzY3IDE1NC4xMzQgNS42NzEzMyAxNTEuMzY3IDUuNjM5MzQgMTQ4LjIyOSA1LjYwNzggMTQwLjg5MSA1LjU0NjI1IDEzMi4yNDQgNS40ODczIDEyMi40MDcgNS40MzE0NiAxMTEuNTAxIDUuMzc5MjggOTkuNjQyOCA1LjMzMTI4IDg2Ljk1MzEgNS4yODc5OCA3My41NTAzIDUuMjQ5OTEgNTkuNTUzMyA1LjIxNzU5IDQ1LjA4MTEgNS4xOTE1NCAzMC4yNTM4IDUuMTcyMjgtMC4wMDI3MzI0MSA1LjE1NjI1Wk0yOTMuNDk3LTE0LjA1ODMgMzI0LjQyNiAxLjQyNzMzIDI5My40OCAxNi44NzkyWiIgdHJhbnNmb3JtPSJtYXRyaXgoLTEuODM2OTdlLTE2IC0xIC0xIDEuODM2OTdlLTE2IDIwMDAuNDMgMTc0MC40MykiLz48cGF0aCBkPSJNOTMyIDc5OS4wMDZDOTMyIDY0My4yNTggMTA1OC4yNiA1MTcgMTIxNC4wMSA1MTdMMjgwNS45OSA1MTdDMjk2MS43NCA1MTcgMzA4OCA2NDMuMjU4IDMwODggNzk5LjAwNkwzMDg4IDE5MjYuOTlDMzA4OCAyMDgyLjc0IDI5NjEuNzQgMjIwOSAyODA1Ljk5IDIyMDlMMTIxNC4wMSAyMjA5QzEwNTguMjYgMjIwOSA5MzIgMjA4Mi43NCA5MzIgMTkyNi45OVoiIHN0cm9rZT0iI0EyQUFBRCIgc3Ryb2tlLXdpZHRoPSIxMC4zMTI1IiBzdHJva2UtbWl0ZXJsaW1pdD0iOCIgZmlsbD0iI0YyRjJGMiIgZmlsbC1ydWxlPSJldmVub2RkIiBmaWxsLW9wYWNpdHk9IjAuMiIvPjxwYXRoIGQ9Ik0xMDQzIDExMzUuNjdDMTA0MyAxMTA2LjAzIDEwNjcuMDMgMTA4MiAxMDk2LjY3IDEwODJMMTQ3Mi4zMyAxMDgyQzE1MDEuOTcgMTA4MiAxNTI2IDExMDYuMDMgMTUyNiAxMTM1LjY3TDE1MjYgMTM1MC4zM0MxNTI2IDEzNzkuOTcgMTUwMS45NyAxNDA0IDE0NzIuMzMgMTQwNEwxMDk2LjY3IDE0MDRDMTA2Ny4wMyAxNDA0IDEwNDMgMTM3OS45NyAxMDQzIDEzNTAuMzNaIiBzdHJva2U9IiNBMkFBQUQiIHN0cm9rZS13aWR0aD0iMTAuMzEyNSIgc3Ryb2tlLW1pdGVybGltaXQ9IjgiIGZpbGw9IiNEQ0VBRjciIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjx0ZXh0IGZvbnQtZmFtaWx5PSJDYWxpYnJpLENhbGlicmlfTVNGb250U2VydmljZSxzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iNDAwIiBmb250LXNpemU9IjgzIiB0cmFuc2Zvcm09Im1hdHJpeCgxIDAgMCAxIDEyMTAuMjcgMTI3MCkiPk1MPC90ZXh0Pjx0ZXh0IGZvbnQtZmFtaWx5PSJDYWxpYnJpLENhbGlicmlfTVNGb250U2VydmljZSxzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iNDAwIiBmb250LXNpemU9IjgzIiB0cmFuc2Zvcm09Im1hdHJpeCgxIDAgMCAxIDEzMTUuNjggMTI3MCkiPlA8L3RleHQ+PHBhdGggZD0iTTE3NTcgMTE0Ny42N0MxNzU3IDExMTguMDMgMTc4MS4wMyAxMDk0IDE4MTAuNjcgMTA5NEwyMTg2LjMzIDEwOTRDMjIxNS45NyAxMDk0IDIyNDAgMTExOC4wMyAyMjQwIDExNDcuNjdMMjI0MCAxMzYyLjMzQzIyNDAgMTM5MS45NyAyMjE1Ljk3IDE0MTYgMjE4Ni4zMyAxNDE2TDE4MTAuNjcgMTQxNkMxNzgxLjAzIDE0MTYgMTc1NyAxMzkxLjk3IDE3NTcgMTM2Mi4zM1oiIHN0cm9rZT0iI0EyQUFBRCIgc3Ryb2tlLXdpZHRoPSIxMC4zMTI1IiBzdHJva2UtbWl0ZXJsaW1pdD0iOCIgZmlsbD0iI0RDRUFGNyIgZmlsbC1ydWxlPSJldmVub2RkIi8+PHRleHQgZm9udC1mYW1pbHk9IkNhbGlicmksQ2FsaWJyaV9NU0ZvbnRTZXJ2aWNlLHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSI0MDAiIGZvbnQtc2l6ZT0iODMiIHRyYW5zZm9ybT0ibWF0cml4KDEgMCAwIDEgMTkyNC43MyAxMjgyKSI+TUw8L3RleHQ+PHRleHQgZm9udC1mYW1pbHk9IkNhbGlicmksQ2FsaWJyaV9NU0ZvbnRTZXJ2aWNlLHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSI0MDAiIGZvbnQtc2l6ZT0iODMiIHRyYW5zZm9ybT0ibWF0cml4KDEgMCAwIDEgMjAzMC4xNCAxMjgyKSI+UDwvdGV4dD48cGF0aCBkPSJNMjQ3MiAxMTQ0LjY3QzI0NzIgMTExNS4wMyAyNDk2LjAzIDEwOTEgMjUyNS42NyAxMDkxTDI5MDEuMzMgMTA5MUMyOTMwLjk3IDEwOTEgMjk1NSAxMTE1LjAzIDI5NTUgMTE0NC42N0wyOTU1IDEzNTkuMzNDMjk1NSAxMzg4Ljk3IDI5MzAuOTcgMTQxMyAyOTAxLjMzIDE0MTNMMjUyNS42NyAxNDEzQzI0OTYuMDMgMTQxMyAyNDcyIDEzODguOTcgMjQ3MiAxMzU5LjMzWiIgc3Ryb2tlPSIjQTJBQUFEIiBzdHJva2Utd2lkdGg9IjEwLjMxMjUiIHN0cm9rZS1taXRlcmxpbWl0PSI4IiBmaWxsPSIjRENFQUY3IiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48dGV4dCBmb250LWZhbWlseT0iQ2FsaWJyaSxDYWxpYnJpX01TRm9udFNlcnZpY2Usc2Fucy1zZXJpZiIgZm9udC13ZWlnaHQ9IjQwMCIgZm9udC1zaXplPSI4MyIgdHJhbnNmb3JtPSJtYXRyaXgoMSAwIDAgMSAyNjM5LjE5IDEyNzkpIj5NTDwvdGV4dD48dGV4dCBmb250LWZhbWlseT0iQ2FsaWJyaSxDYWxpYnJpX01TRm9udFNlcnZpY2Usc2Fucy1zZXJpZiIgZm9udC13ZWlnaHQ9IjQwMCIgZm9udC1zaXplPSI4MyIgdHJhbnNmb3JtPSJtYXRyaXgoMSAwIDAgMSAyNzQ0LjYgMTI3OSkiPlA8L3RleHQ+PHBhdGggZD0iTTE2MDggMTgwNC4zM0MxNjA4IDE3NjguOCAxNjM2LjggMTc0MCAxNjcyLjMzIDE3NDBMMjMyNy42NyAxNzQwQzIzNjMuMiAxNzQwIDIzOTIgMTc2OC44IDIzOTIgMTgwNC4zM0wyMzkyIDIwNjEuNjdDMjM5MiAyMDk3LjIgMjM2My4yIDIxMjYgMjMyNy42NyAyMTI2TDE2NzIuMzMgMjEyNkMxNjM2LjggMjEyNiAxNjA4IDIwOTcuMiAxNjA4IDIwNjEuNjdaIiBzdHJva2U9IiNBMkFBQUQiIHN0cm9rZS13aWR0aD0iMTAuMzEyNSIgc3Ryb2tlLW1pdGVybGltaXQ9IjgiIGZpbGw9IiNDMUU1RjUiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGQ9Ik0xODY5LjM1IDg2MC42QzE4MDUuNTMgNzk4LjcxIDE4MDMuOTcgNjk2LjgwMyAxODY1Ljg2IDYzMi45ODYgMTkyNy43NSA1NjkuMTY5IDIwMjkuNjUgNTY3LjYwOCAyMDkzLjQ3IDYyOS40OTggMjE1Ny4yOSA2OTEuMzg5IDIxNTguODUgNzkzLjI5NSAyMDk2Ljk2IDg1Ny4xMTIgMjAzNS4wNyA5MjAuOTI5IDE5MzMuMTYgOTIyLjQ5MSAxODY5LjM1IDg2MC42WiIgc3Ryb2tlPSIjQTJBQUFEIiBzdHJva2Utd2lkdGg9IjEwLjMxMjUiIHN0cm9rZS1taXRlcmxpbWl0PSI4IiBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48cGF0aCBkPSJNMTk3OSA1ODQgMTk4My45MyA5MDUuODk2IiBzdHJva2U9IiNBMkFBQUQiIHN0cm9rZS13aWR0aD0iMTAuMzEyNSIgc3Ryb2tlLW1pdGVybGltaXQ9IjgiIGZpbGw9Im5vbmUiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGQ9Ik0wIDAgMzIxLjg5NSA0LjkzMjY4IiBzdHJva2U9IiNBMkFBQUQiIHN0cm9rZS13aWR0aD0iMTAuMzEyNSIgc3Ryb2tlLW1pdGVybGltaXQ9IjgiIGZpbGw9Im5vbmUiIGZpbGwtcnVsZT0iZXZlbm9kZCIgdHJhbnNmb3JtPSJtYXRyaXgoMSAwIDAgLTEgMTgyMCA3NDcuOTMyKSIvPjxwYXRoIGQ9Ik0yLjcyNjg5LTQuMzc2MTggNTE3LjEzNCAzMTYuMTYyIDUxMS42OCAzMjQuOTE0LTIuNzI2ODkgNC4zNzYxOFpNNTE4LjIxMSAzMDQuNjgyIDUzNi4yODcgMzM0LjE3MiA1MDEuODQ5IDMzMC45MzlaIiB0cmFuc2Zvcm09Im1hdHJpeCgxIDAgMCAtMSAxMjg0IDEwODIuMTcpIi8+PHBhdGggZD0iTTE5NzguODQgMTA5MC41OSAxOTc4Ljg0IDkzOC43ODEgMTk4OS4xNiA5MzguNzgxIDE5ODkuMTYgMTA5MC41OVpNMTk2OC41MyA5NDMuOTM4IDE5ODQgOTEzIDE5OTkuNDcgOTQzLjkzOFoiLz48cGF0aCBkPSJNMTk5NC44NiAxNzM5LjkxIDE5OTUuMzkgMTczMS45MSAxOTk3LjA1IDE3MjMuNjIgMTk5OS43NCAxNzE1LjQzIDIwMDMuNDIgMTcwNy4zNyAyMDA4LjAzIDE2OTkuNDMgMjAxMy41MyAxNjkxLjY0IDIwMTkuODcgMTY4My45OSAyMDI3LjAyIDE2NzYuNSAyMDM0Ljk0IDE2NjkuMTcgMjA0My42IDE2NjIgMjA1Mi45NiAxNjU1LjAxIDIwNjMgMTY0OC4yIDIwNzMuNjggMTY0MS42IDIwODQuOTcgMTYzNS4yIDIwOTYuODQgMTYyOS4wMiAyMTA5LjI2IDE2MjMuMDggMjEyMi4xOSAxNjE3LjM4IDIxMzUuNjEgMTYxMS45NSAyMTQ5LjQ5IDE2MDYuNzkgMjE2My43OCAxNjAxLjkzIDIxNzguNDYgMTU5Ny4zNiAyMTkzLjUzIDE1OTMuMTEgMjIyNC41IDE1ODUuNjYgMjI0MC40NSAxNTgyLjQ1IDIyNTYuNiAxNTc5LjYzIDIyNzIuOTQgMTU3Ny4yIDIyODkuNDYgMTU3NS4xOCAyMzA2LjEgMTU3My41OCAyMzIyLjg1IDE1NzIuNDIgMjMzOS42NiAxNTcxLjcxIDIzNTYuNDQgMTU3MS40NyAyMzczLjE1IDE1NzEuMjQgMjM3MyAxNTcxLjI0IDIzODkuNjggMTU3MC41NCAyMzg5LjU0IDE1NzAuNTUgMjQwNi4xNSAxNTY5LjQgMjQwNi4wMSAxNTY5LjQxIDI0MjIuNTIgMTU2Ny44MiAyNDIyLjM5IDE1NjcuODQgMjQzOC43NyAxNTY1LjgzIDI0MzguNjQgMTU2NS44NSAyNDU0Ljg1IDE1NjMuNDQgMjQ1NC43MiAxNTYzLjQ2IDI0NzAuNzQgMTU2MC42NiAyNDcwLjYyIDE1NjAuNjkgMjQ4Ni40MSAxNTU3LjUxIDI0ODYuMjIgMTU1Ny41NSAyNTE2Ljk4IDE1NTAuMTQgMjUxNi43OSAxNTUwLjE5IDI1MzEuNyAxNTQ1Ljk5IDI1MzEuNTcgMTU0Ni4wMyAyNTQ2LjEyIDE1NDEuNSAyNTQ1Ljk5IDE1NDEuNTUgMjU2MC4xNSAxNTM2LjczIDI1NjAuMDIgMTUzNi43NyAyNTczLjc1IDE1MzEuNjcgMjU3My42MiAxNTMxLjcyIDI1ODYuOSAxNTI2LjM1IDI1ODYuNzUgMTUyNi40MSAyNTk5LjU0IDE1MjAuNzggMjU5OS4zOSAxNTIwLjg0IDI2MTEuNjYgMTUxNC45NyAyNjExLjUxIDE1MTUuMDUgMjYyMy4yMiAxNTA4Ljk2IDI2MjMuMDYgMTUwOS4wNCAyNjM0LjE4IDE1MDIuNzQgMjYzNC4wMSAxNTAyLjg0IDI2NDQuNTIgMTQ5Ni4zNCAyNjQ0LjM0IDE0OTYuNDYgMjY1NC4xOSAxNDg5Ljc4IDI2NTQgMTQ4OS45MiAyNjYzLjE2IDE0ODMuMDcgMjY2Mi45NiAxNDgzLjIzIDI2NzEuNDEgMTQ3Ni4yNCAyNjcxLjE5IDE0NzYuNDMgMjY3OC44OSAxNDY5LjMgMjY3OC42NiAxNDY5LjUyIDI2ODUuNTggMTQ2Mi4yOCAyNjg1LjM0IDE0NjIuNTQgMjY5MS40NCAxNDU1LjE5IDI2OTEuMTkgMTQ1NS41MSAyNjk2LjQ0IDE0NDguMDcgMjY5Ni4yIDE0NDguNDUgMjcwMC41NiAxNDQwLjkzIDI3MDAuMDYgMTQ0Mi4xNCAyNzAxLjYxIDE0MzYuNTcgMjcxMS41NCAxNDM5LjM0IDI3MDkuODEgMTQ0NS41NCAyNzA1IDE0NTMuODMgMjY5OS41IDE0NjEuNjIgMjY5My4xNiAxNDY5LjI2IDI2ODYuMDEgMTQ3Ni43NiAyNjc4LjA5IDE0ODQuMDkgMjY2OS40NCAxNDkxLjI2IDI2NjAuMDcgMTQ5OC4yNSAyNjUwLjAzIDE1MDUuMDYgMjYzOS4zNSAxNTExLjY2IDI2MjguMDYgMTUxOC4wNiAyNjE2LjE5IDE1MjQuMjQgMjYwMy43NyAxNTMwLjE4IDI1OTAuODQgMTUzNS44OCAyNTc3LjQyIDE1NDEuMzEgMjU2My41NCAxNTQ2LjQ3IDI1NDkuMjUgMTU1MS4zMyAyNTM0LjU3IDE1NTUuODkgMjUxOS41IDE1NjAuMTUgMjQ4OC41NCAxNTY3LjYgMjQ3Mi41OCAxNTcwLjgxIDI0NTYuNDMgMTU3My42MyAyNDQwLjA5IDE1NzYuMDYgMjQyMy41NyAxNTc4LjA4IDI0MDYuOTMgMTU3OS42OCAyMzkwLjE4IDE1ODAuODQgMjM3My4zNyAxNTgxLjU1IDIzNTYuNTkgMTU4MS43OSAyMzM5Ljg4IDE1ODIuMDIgMjM0MC4wMyAxNTgyLjAyIDIzMjMuMzUgMTU4Mi43MiAyMzIzLjQ5IDE1ODIuNzEgMjMwNi44OCAxNTgzLjg2IDIzMDcuMDIgMTU4My44NSAyMjkwLjUxIDE1ODUuNDQgMjI5MC42NCAxNTg1LjQyIDIyNzQuMjYgMTU4Ny40MyAyMjc0LjM5IDE1ODcuNDEgMjI1OC4xOCAxNTg5LjgyIDIyNTguMzEgMTU4OS44IDIyNDIuMjkgMTU5Mi42IDIyNDIuNDIgMTU5Mi41NyAyMjI2LjYyIDE1OTUuNzUgMjIyNi44MSAxNTk1LjcgMjE5Ni4wNSAxNjAzLjExIDIxOTYuMjQgMTYwMy4wNiAyMTgxLjMzIDE2MDcuMjcgMjE4MS40NiAxNjA3LjIzIDIxNjYuOTEgMTYxMS43NSAyMTY3LjA0IDE2MTEuNzEgMjE1Mi44OCAxNjE2LjUzIDIxNTMuMDEgMTYxNi40OCAyMTM5LjI4IDE2MjEuNTkgMjEzOS40MSAxNjIxLjU0IDIxMjYuMTQgMTYyNi45MSAyMTI2LjI4IDE2MjYuODUgMjExMy40OSAxNjMyLjQ4IDIxMTMuNjQgMTYzMi40MSAyMTAxLjM3IDE2MzguMjggMjEwMS41MiAxNjM4LjIxIDIwODkuODEgMTY0NC4zIDIwODkuOTcgMTY0NC4yMSAyMDc4Ljg1IDE2NTAuNTIgMjA3OS4wMiAxNjUwLjQyIDIwNjguNTEgMTY1Ni45MiAyMDY4LjcgMTY1Ni44IDIwNTguODQgMTY2My40OCAyMDU5LjAzIDE2NjMuMzQgMjA0OS44NyAxNjcwLjE5IDIwNTAuMDcgMTY3MC4wMyAyMDQxLjYyIDE2NzcuMDIgMjA0MS44NCAxNjc2LjgzIDIwMzQuMTQgMTY4My45NiAyMDM0LjM3IDE2ODMuNzQgMjAyNy40NSAxNjkwLjk4IDIwMjcuNjkgMTY5MC43MiAyMDIxLjU5IDE2OTguMDcgMjAyMS44NCAxNjk3Ljc1IDIwMTYuNTkgMTcwNS4xOSAyMDE2LjgzIDE3MDQuODEgMjAxMi40NyAxNzEyLjMzIDIwMTIuNyAxNzExLjg4IDIwMDkuMjQgMTcxOS40NSAyMDA5LjQ1IDE3MTguOTMgMjAwNi45NCAxNzI2LjU1IDIwMDcuMSAxNzI1Ljk1IDIwMDUuNTcgMTczMy42IDIwMDUuNjYgMTczMi45NCAyMDA1LjE0IDE3NDAuNjFaTTI2OTAuMzEgMTQzOS4wOCAyNzEzLjAzIDE0MTMgMjcyMC4yNiAxNDQ2LjgzWiIvPjxwYXRoIGQ9Ik0wLjMzODU5Mi01LjE0NTEyIDguNTUwMDUtNC42MDQ3NCAxNy4wNDAyLTIuOTQ4ODYgMjUuNDM0Mi0wLjI1MjQ2OSAzMy43MTAyIDMuNDMxMTIgNDEuODU0MiA4LjA1MTU3IDQ5Ljg1NzQgMTMuNTYzIDU3LjcxMjggMTkuOTI0IDY1LjQxMzYgMjcuMDk2NSA3Mi45NTIzIDM1LjA0NTIgODAuMzIwNiA0My43MzYgODcuNTA4OCA1My4xMzY0IDk0LjUwNiA2My4yMTQyIDEwMS4zMDEgNzMuOTM3MyAxMDcuODgxIDg1LjI3NDMgMTE0LjIzMyA5Ny4xOTMyIDEyMC4zNDQgMTA5LjY2MyAxMjYuMiAxMjIuNjUgMTMxLjc4NiAxMzYuMTI1IDEzNy4wOSAxNTAuMDU1IDE0Mi4wOTQgMTY0LjQwNyAxNDYuNzg2IDE3OS4xNTEgMTUxLjE2IDE5NC4yODYgMTU4LjgyOCAyMjUuMzc0IDE2Mi4xMjUgMjQxLjM5MyAxNjUuMDI3IDI1Ny42MSAxNjcuNTI1IDI3NC4wMjUgMTY5LjYwMyAyOTAuNjA2IDE3MS4yNDcgMzA3LjMyIDE3Mi40NDEgMzI0LjEzNiAxNzMuMTY5IDM0MS4wMjIgMTczLjQxMyAzNTcuODY5IDE3My42NTcgMzc0LjY0MiAxNzMuNjUzIDM3NC40OTUgMTc0LjM3NSAzOTEuMjM1IDE3NC4zNjYgMzkxLjA5MiAxNzUuNTUgNDA3Ljc2NyAxNzUuNTM4IDQwNy42MjcgMTc3LjE2OSA0MjQuMjA0IDE3Ny4xNTMgNDI0LjA2NyAxNzkuMjE1IDQ0MC41MTIgMTc5LjE5NiA0NDAuMzc4IDE4MS42NzQgNDU2LjY2IDE4MS42NTIgNDU2LjUyNyAxODQuNTMgNDcyLjYxMiAxODQuNTA1IDQ3Mi40ODEgMTg3Ljc2OCA0ODguMzM3IDE4Ny43MjQgNDg4LjE0MSAxOTUuMzQ0IDUxOS4wMzMgMTk1LjI5MSA1MTguODM2IDE5OS42MTcgNTMzLjgwNyAxOTkuNTc3IDUzMy42NzUgMjA0LjIyNyA1NDguMjg1IDIwNC4xODIgNTQ4LjE1MSAyMDkuMTQgNTYyLjM2OCAyMDkuMDkgNTYyLjIzMSAyMTQuMzQgNTc2LjAyMiAyMTQuMjg0IDU3NS44ODIgMjE5LjgxMiA1ODkuMjE0IDIxOS43NSA1ODkuMDcgMjI1LjUzOSA2MDEuOTEgMjI1LjQ2OSA2MDEuNzYxIDIzMS41MDUgNjE0LjA3NyAyMzEuNDI1IDYxMy45MjEgMjM3LjY5MiA2MjUuNjggMjM3LjYwMSA2MjUuNTE3IDI0NC4wODQgNjM2LjY4NiAyNDMuOTggNjM2LjUxNSAyNTAuNjYzIDY0Ny4wNjEgMjUwLjU0MyA2NDYuODggMjU3LjQxIDY1Ni43NzIgMjU3LjI3MSA2NTYuNTgxIDI2NC4zMDggNjY1Ljc4NCAyNjQuMTQ1IDY2NS41ODEgMjcxLjMzNyA2NzQuMDYzIDI3MS4xNDUgNjczLjg1IDI3OC40NzUgNjgxLjU3OCAyNzguMjQ4IDY4MS4zNTMgMjg1LjcwMSA2ODguMjk1IDI4NS40MzIgNjg4LjA2MSAyOTIuOTkzIDY5NC4xODQgMjkyLjY3MiA2OTMuOTQ0IDMwMC4zMjYgNjk5LjIxNSAyOTkuOTQ2IDY5OC45NzcgMzA3LjY3NiA3MDMuMzYzIDMwNi41NjYgNzAyLjg5NSAzMTIuOTI1IDcwNC43MzcgMzEwLjA1NiA3MTQuNjQyIDMwMy4xMTUgNzEyLjYzMSAyOTQuNjYyIDcwNy44MzUgMjg2LjY1OCA3MDIuMzI0IDI3OC44MDMgNjk1Ljk2MyAyNzEuMTAyIDY4OC43OTEgMjYzLjU2NCA2ODAuODQyIDI1Ni4xOTUgNjcyLjE1MSAyNDkuMDA3IDY2Mi43NTEgMjQyLjAxIDY1Mi42NzMgMjM1LjIxNSA2NDEuOTUgMjI4LjYzNSA2MzAuNjEzIDIyMi4yODMgNjE4LjY5NCAyMTYuMTcyIDYwNi4yMjUgMjEwLjMxNiA1OTMuMjM3IDIwNC43MjkgNTc5Ljc2MiAxOTkuNDI2IDU2NS44MzIgMTk0LjQyMSA1NTEuNDggMTg5LjcyOSA1MzYuNzM2IDE4NS4zNTYgNTIxLjYwMSAxNzcuNjg3IDQ5MC41MTQgMTc0LjM5IDQ3NC40OTQgMTcxLjQ4OSA0NTguMjc3IDE2OC45OTEgNDQxLjg2MiAxNjYuOTEyIDQyNS4yODIgMTY1LjI2OCA0MDguNTY3IDE2NC4wNzUgMzkxLjc1MSAxNjMuMzQ3IDM3NC44NjUgMTYzLjEwMiAzNTguMDE5IDE2Mi44NTggMzQxLjI0NSAxNjIuODYyIDM0MS4zOTIgMTYyLjE0MSAzMjQuNjUyIDE2Mi4xNDkgMzI0Ljc5NSAxNjAuOTY2IDMwOC4xMiAxNjAuOTc3IDMwOC4yNiAxNTkuMzQ3IDI5MS42ODMgMTU5LjM2MiAyOTEuODIgMTU3LjMwMSAyNzUuMzc1IDE1Ny4zMTkgMjc1LjUwOSAxNTQuODQyIDI1OS4yMjcgMTU0Ljg2NCAyNTkuMzYgMTUxLjk4NiAyNDMuMjc1IDE1Mi4wMTEgMjQzLjQwNiAxNDguNzQ4IDIyNy41NTEgMTQ4Ljc5MiAyMjcuNzQ2IDE0MS4xNzIgMTk2Ljg1NCAxNDEuMjI1IDE5Ny4wNTEgMTM2Ljg5OCAxODIuMDggMTM2LjkzOSAxODIuMjEyIDEzMi4yODkgMTY3LjYwMiAxMzIuMzM0IDE2Ny43MzYgMTI3LjM3NiAxNTMuNTE5IDEyNy40MjYgMTUzLjY1NiAxMjIuMTc2IDEzOS44NjUgMTIyLjIzMSAxNDAuMDA1IDExNi43MDQgMTI2LjY3MyAxMTYuNzY2IDEyNi44MTcgMTEwLjk3NyAxMTMuOTc3IDExMS4wNDcgMTE0LjEyNiAxMDUuMDExIDEwMS44MSAxMDUuMDkxIDEwMS45NjYgOTguODI0IDkwLjIwNjkgOTguOTE0OCA5MC4zNzAxIDkyLjQzMjEgNzkuMjAwOCA5Mi41MzYyIDc5LjM3MjMgODUuODUzMiA2OC44MjU2IDg1Ljk3MzMgNjkuMDA2NSA3OS4xMDU1IDU5LjExNTIgNzkuMjQ0OSA1OS4zMDY1IDcyLjIwNzYgNTAuMTAzNCA3Mi4zNzA2IDUwLjMwNTggNjUuMTc5MyA0MS44MjM3IDY1LjM3MTEgNDIuMDM3NSA1OC4wNDExIDM0LjMwOTEgNTguMjY4IDM0LjUzMzkgNTAuODE0OCAyNy41OTIgNTEuMDg0MiAyNy44MjYgNDMuNTIzMiAyMS43MDM0IDQzLjg0MzYgMjEuOTQyOSAzNi4xOTAxIDE2LjY3MjIgMzYuNTcwMiAxNi45MTAzIDI4LjgzOTggMTIuNTI0NSAyOS4yODc0IDEyLjc1MDQgMjEuNDk1MyA5LjI4MjIyIDIyLjAxNTEgOS40ODA3IDE0LjE3NjcgNi45NjI4MiAxNC43NjY2IDcuMTE0NTIgNi44OTc1IDUuNTc5NzYgNy41NDU5NiA1LjY2Mzk5LTAuMzM4NTkyIDUuMTQ1MTJaTTMxMC4yMDQgNjkzLjQzNSAzMzYuNTE2IDcxNS44ODcgMzAyLjc2NyA3MjMuNDY1WiIgdHJhbnNmb3JtPSJtYXRyaXgoLTEuODM2OTdlLTE2IC0xIC0xIDEuODM2OTdlLTE2IDE5OTkuODkgMTc0MC41MikiLz48cGF0aCBkPSJNMjcxMC4wNSAxMDk1Ljc2IDIxNjEuMzIgNzYwLjgzMiAyMTY2LjY5IDc1Mi4wMyAyNzE1LjQyIDEwODYuOTZaTTIxNjAuMzUgNzcyLjMyMSAyMTQyIDc0MyAyMTc2LjQ3IDc0NS45MTRaIi8+PC9nPjwvc3ZnPg==" alt="MoE MLP architecture" style="width:100%;height:100%;object-fit:contain"></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">8 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
+</section>
+
+<section class="slide slide--content cols-4-6" data-index="8">
+<h2>Architecture Composition</h2>
+<div class="slide-content colloquium-grid" style="grid-template-columns: minmax(0, 4fr) minmax(0, 6fr);"><div class="col"><p><strong>Three-stage pipeline:</strong></p>
+<ul>
+<li><strong>Stage 1 — VGAE:</strong> Unsupervised anomaly detection; reconstruction error <span class="math inline">\|A - \hat{A}\|_F^2</span> identifies hard normal samples for the Stage 2 curriculum</li>
+<li><strong>Stage 2 — GAT:</strong> Supervised classification; GATv2Conv with LSTM jumping knowledge</li>
+<li><strong>Stage 3 — Fusion:</strong> Adaptive learning per-sample. <span class="math inline">\alpha</span> weighting for DQN or Bandit over VGAE + GAT predictions from a 18-dimensional state vector.</li>
+<li><strong>Knowledge Distillation:</strong> Each model has its smaller counterpart that would meet on-board resource requirements</li>
+</ul></div><div class="col"><div class="colloquium-iframe-container" style="width:100%;height:auto;min-height:480px;"><iframe src="https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/kd-gat.html" width="100%" height="480" title="KD-GAT architecture" frameborder="0" allowfullscreen style="border:none;display:block;width:100%;height:480px"></iframe></div></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">9 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
+</section>
+
+<section class="slide slide--content size-small" data-index="9">
+<h2>Ablation Results</h2>
+<div class="slide-content"><p><em>F1 macro (multiclass, pooled across test splits) · n=1 seed · bold = best in axis × dataset</em></p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Variant</th>
+<th style="text-align:right">hcrl_sa</th>
+<th style="text-align:right">set_01</th>
+<th style="text-align:right">set_02</th>
+<th style="text-align:right">set_03</th>
+<th style="text-align:right">set_04</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>Loss function</strong></td>
+<td style="text-align:right"></td>
+<td style="text-align:right"></td>
+<td style="text-align:right"></td>
+<td style="text-align:right"></td>
+<td style="text-align:right"></td>
+</tr>
+<tr>
+<td style="text-align:left">CE</td>
+<td style="text-align:right"><strong>0.835</strong></td>
+<td style="text-align:right"><strong>0.617</strong></td>
+<td style="text-align:right"><strong>0.539</strong></td>
+<td style="text-align:right">0.676</td>
+<td style="text-align:right">0.385</td>
+</tr>
+<tr>
+<td style="text-align:left">Focal</td>
+<td style="text-align:right">0.835</td>
+<td style="text-align:right">0.574</td>
+<td style="text-align:right">0.521</td>
+<td style="text-align:right"><strong>0.682</strong></td>
+<td style="text-align:right">0.418</td>
+</tr>
+<tr>
+<td style="text-align:left">Weighted CE</td>
+<td style="text-align:right"><strong>0.835</strong></td>
+<td style="text-align:right">0.569</td>
+<td style="text-align:right">0.533</td>
+<td style="text-align:right">0.681</td>
+<td style="text-align:right"><strong>0.570</strong></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Sampling strategy</strong></td>
+<td style="text-align:right"></td>
+<td style="text-align:right"></td>
+<td style="text-align:right"></td>
+<td style="text-align:right"></td>
+<td style="text-align:right"></td>
+</tr>
+<tr>
+<td style="text-align:left">None</td>
+<td style="text-align:right"><strong>0.835</strong></td>
+<td style="text-align:right"><strong>0.577</strong></td>
+<td style="text-align:right">0.522</td>
+<td style="text-align:right">0.682</td>
+<td style="text-align:right">0.415</td>
+</tr>
+<tr>
+<td style="text-align:left">Curriculum (random)</td>
+<td style="text-align:right"><strong>0.835</strong></td>
+<td style="text-align:right">—</td>
+<td style="text-align:right"><strong>0.530</strong></td>
+<td style="text-align:right"><strong>0.683</strong></td>
+<td style="text-align:right"><strong>0.432</strong></td>
+</tr>
+<tr>
+<td style="text-align:left">Curriculum (VGAE)</td>
+<td style="text-align:right">0.770</td>
+<td style="text-align:right">0.556</td>
+<td style="text-align:right">0.522</td>
+<td style="text-align:right">0.674</td>
+<td style="text-align:right">0.411</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>ID encoding</strong></td>
+<td style="text-align:right"></td>
+<td style="text-align:right"></td>
+<td style="text-align:right"></td>
+<td style="text-align:right"></td>
+<td style="text-align:right"></td>
+</tr>
+<tr>
+<td style="text-align:left">Hash</td>
+<td style="text-align:right"><strong>0.835</strong></td>
+<td style="text-align:right"><strong>0.574</strong></td>
+<td style="text-align:right">0.507</td>
+<td style="text-align:right"><strong>0.685</strong></td>
+<td style="text-align:right">0.389</td>
+</tr>
+<tr>
+<td style="text-align:left">Lookup</td>
+<td style="text-align:right">0.760</td>
+<td style="text-align:right">0.566</td>
+<td style="text-align:right"><strong>0.536</strong></td>
+<td style="text-align:right">0.682</td>
+<td style="text-align:right"><strong>0.426</strong></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">10 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
+</section>
+
+<section class="slide slide--content size-small" data-index="10">
+<h2>Main Results</h2>
+<div class="slide-content"><p><em>F1 macro (multiclass, pooled across test splits) · n=1 seed · bold = best per dataset · — = not yet run</em></p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Model</th>
+<th style="text-align:right">hcrl_sa</th>
+<th style="text-align:right">set_01</th>
+<th style="text-align:right">set_02</th>
+<th style="text-align:right">set_03</th>
+<th style="text-align:right">set_04</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>Fusion</strong></td>
+<td style="text-align:right"></td>
+<td style="text-align:right"></td>
+<td style="text-align:right"></td>
+<td style="text-align:right"></td>
+<td style="text-align:right"></td>
+</tr>
+<tr>
+<td style="text-align:left">MoE</td>
+<td style="text-align:right"><strong>0.997</strong></td>
+<td style="text-align:right">0.546</td>
+<td style="text-align:right">0.522</td>
+<td style="text-align:right">0.682</td>
+<td style="text-align:right"><strong>0.878</strong></td>
+</tr>
+<tr>
+<td style="text-align:left">MoE (no aux loss)</td>
+<td style="text-align:right">—</td>
+<td style="text-align:right">0.544</td>
+<td style="text-align:right">0.521</td>
+<td style="text-align:right"><strong>0.682</strong></td>
+<td style="text-align:right">0.423</td>
+</tr>
+<tr>
+<td style="text-align:left">DQN</td>
+<td style="text-align:right">0.993</td>
+<td style="text-align:right"><strong>0.549</strong></td>
+<td style="text-align:right">0.404</td>
+<td style="text-align:right">0.662</td>
+<td style="text-align:right">0.440</td>
+</tr>
+<tr>
+<td style="text-align:left">MLP</td>
+<td style="text-align:right">0.852</td>
+<td style="text-align:right"><strong>0.574</strong></td>
+<td style="text-align:right"><strong>0.522</strong></td>
+<td style="text-align:right">0.680</td>
+<td style="text-align:right">0.424</td>
+</tr>
+<tr>
+<td style="text-align:left">Bandit</td>
+<td style="text-align:right">0.953</td>
+<td style="text-align:right">0.505</td>
+<td style="text-align:right">0.405</td>
+<td style="text-align:right">0.601</td>
+<td style="text-align:right">0.272</td>
+</tr>
+<tr>
+<td style="text-align:left">Weighted avg</td>
+<td style="text-align:right">0.781</td>
+<td style="text-align:right">0.422</td>
+<td style="text-align:right">0.516</td>
+<td style="text-align:right">0.657</td>
+<td style="text-align:right">0.417</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Student</strong></td>
+<td style="text-align:right"></td>
+<td style="text-align:right"></td>
+<td style="text-align:right"></td>
+<td style="text-align:right"></td>
+<td style="text-align:right"></td>
+</tr>
+<tr>
+<td style="text-align:left">GAT + KD</td>
+<td style="text-align:right">0.835</td>
+<td style="text-align:right">—</td>
+<td style="text-align:right">—</td>
+<td style="text-align:right">—</td>
+<td style="text-align:right">—</td>
+</tr>
+<tr>
+<td style="text-align:left">GAT (no KD)</td>
+<td style="text-align:right">0.743</td>
+<td style="text-align:right">0.572</td>
+<td style="text-align:right">0.527</td>
+<td style="text-align:right">0.681</td>
+<td style="text-align:right">0.438</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">11 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
+</section>
+
+<section class="slide slide--content" data-index="11">
+<h2>Dimensionality (UMAP) Analysis</h2>
+<div class="slide-content"><div class="colloquium-iframe-container" style="width:100%;height:auto;min-height:520px;"><iframe src="https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/umap.html" width="100%" height="520" title="UMAP embedding analysis" frameborder="0" allowfullscreen style="border:none;display:block;width:100%;height:520px"></iframe></div>
+</div>
+<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">12 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
+</section>
+
+<section class="slide slide--content" data-index="12">
+<h2>Key Result: Representational Alignment (CKA)</h2>
+<div class="slide-content"><p><strong>What CKA measures:</strong> Centered Kernel Alignment scores linear similarity between two sets of layer activations; 1.0 = identical representations.</p>
+<div class="colloquium-iframe-container" style="width:100%;height:auto;min-height:480px;"><iframe src="https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/cka.html" width="100%" height="480" title="CKA representational similarity" frameborder="0" allowfullscreen style="border:none;display:block;width:100%;height:480px"></iframe></div>
+</div>
+<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">13 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
+</section>
+
+<section class="slide slide--section-break" data-index="13">
+<h2>Proposed Research</h2>
+<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">14 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
+</section>
+
+<section class="slide slide--content" data-index="14">
+<h2>Proposed Work: Composition Pipeline</h2>
+<div class="slide-content"><ul>
+<li><strong>Physics-Informed Neural Network (PINN):</strong> Encode vehicle dynamics as a physics residual loss; provide a causally-independent channel that prevents physically implausible detections and is structurally hard to spoof alongside the data-driven signal</li>
+<li><strong>Explainability (XAI):</strong> Expose GAT attention weights and SHAP/LIME attributions as per-message attribution maps, satisfying ISO 26262 ASIL C/D auditability requirements</li>
+<li><strong>Federated Learning (FL):</strong> Train across OEM fleets without sharing raw CAN data; address data-privacy barriers to industry adoption while preserving cross-vehicle generalization</li>
+<li><strong>Model Sizing (KD):</strong> Map the teacher→student compression frontier systematically; answer how small the model can be before performance degrades under the ARM Cortex-A7/A53 envelope</li>
+</ul>
+</div>
+<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">15 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
+</section>
+
+<section class="slide slide--content cols-2" data-index="15">
+<h2>Q1: Physics &amp; Dynamic Controls</h2>
+<div class="slide-content colloquium-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr));"><div class="col"><p><strong>When to trust physics vs. data-driven?</strong></p>
+<p>Four-quadrant decision on two axes — <em>on/off the physics manifold</em> × <em>in/out of training distribution</em>:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>In distribution</th>
+<th>Out of distribution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>On manifold</strong></td>
+<td>Both apply; trivial fusion</td>
+<td>Physics carries the trust</td>
+</tr>
+<tr>
+<td><strong>Off manifold</strong></td>
+<td>Data-driven carries the trust</td>
+<td>Neither alone suffices — the research contribution</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Channel orthogonality is the structural defense:</strong> data-driven reads raw bytes; physics reads dynamics. Simultaneous corruption requires two structurally different attacks, converting a single attack surface into two independent ones.</p></div><div class="col"><div class="colloquium-iframe-container" style="width:100%;height:auto;min-height:480px;"><iframe src="https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/vehicle-pinn.html" width="100%" height="480" title="Vehicle CAN to PINN pipeline" frameborder="0" allowfullscreen style="border:none;display:block;width:100%;height:480px"></iframe></div></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">16 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
+</section>
+
+<section class="slide slide--content" data-index="16">
+<h2>Q2: Model Interpretability &amp; Calibration</h2>
+<div class="slide-content"><!-- TODO: 2 cols add another relevant visualization with description underneath each  -->
+<div class="colloquium-iframe-container" style="width:100%;height:auto;min-height:480px;"><iframe src="https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/attention.html" width="100%" height="480" title="Attention weight visualization" frameborder="0" allowfullscreen style="border:none;display:block;width:100%;height:480px"></iframe></div>
+</div>
+<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">17 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
+</section>
+
+<section class="slide slide--content" data-index="17">
+<h2>Q3: Federated Learning &amp; Convergence</h2>
+<div class="slide-content"><div class="colloquium-iframe-container" style="width:100%;height:auto;min-height:480px;"><iframe src="https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/fedavg-drift.html" width="100%" height="480" title="FedAvg calibration drift" frameborder="0" allowfullscreen style="border:none;display:block;width:100%;height:480px"></iframe></div>
+</div>
+<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">18 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
+</section>
+
+<section class="slide slide--content cols-2" data-index="18">
+<h2>Q4: Reinforcement Learning</h2>
+<div class="slide-content colloquium-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr));"><div class="col"><p><strong>Reward shift at deployment:</strong></p>
+<div class="math block">
+\underbrace{\mathbb{E}_{p_\text{deploy}}[R_\text{true}] - \mathbb{E}_{p_\text{train}}[R_\text{train}]}_{\text{total}} = \underbrace{\Delta p(s)}_{\substack{\text{covariate} \\ \text{shift}}} + \underbrace{\Delta R}_{\substack{\text{proxy–target} \\ \text{divergence}}}
+</div>
+<ul>
+<li><strong>Covariate shift:</strong> detectable from the input distribution; importance reweighting applies</li>
+<li><strong>Proxy–target divergence:</strong> the policy optimizes against its own confidence, which is least trustworthy exactly when the policy is most wrong — undetectable from inputs alone</li>
+<li><strong>Structural fix:</strong> physics provides a channel decoupled from optimization pressure; simultaneous corruption requires structurally different attacks on two independent channels</li>
+</ul></div><div class="col"><p><strong>Adaptive Weighting per sample:</strong></p>
+<div class="colloquium-iframe-container" style="width:100%;height:auto;min-height:480px;"><iframe src="https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/fusion.html" width="100%" height="480" title="Expert fusion mechanism" frameborder="0" allowfullscreen style="border:none;display:block;width:100%;height:480px"></iframe></div></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">19 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
+</section>
+
+<section class="slide slide--content cols-4-6 size-small" data-index="19">
+<h2>Building towards a thesis (work in progress)</h2>
+<div class="slide-content colloquium-grid" style="grid-template-columns: minmax(0, 4fr) minmax(0, 6fr);"><div class="col"><ul>
+<li>Goal structured notation (GSN) is a grammar to structure and visualize arguments</li>
+</ul>
+<div class="colloquium-iframe-container" style="width:100%;height:auto;min-height:290px;"><iframe src="../tables/gsn_blocks.html" width="100%" height="290" title="GSN building blocks" frameborder="0" allowfullscreen style="border:none;display:block;width:100%;height:290px"></iframe></div></div><div class="col"><div class="colloquium-iframe-container" style="width:100%;height:auto;min-height:600px;"><iframe src="https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/gsn-thesis.html" width="100%" height="600" title="Draft of working thesis in GSN" frameborder="0" allowfullscreen style="border:none;display:block;width:100%;height:600px"></iframe></div></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">20 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
+</section>
+</div>
+
+<button class="colloquium-present" title="Present (F)">&#9654;</button>
+
+<button class="colloquium-picker-trigger" title="Open slide picker">
+    <span class="colloquium-picker-trigger-label">Slides</span>
+    <span class="colloquium-picker-trigger-count">1 / 20</span>
+</button>
+
+<div class="colloquium-progress">
+    <div class="colloquium-progress-bar" style="width: 0%"></div>
+</div>
+
+<script>
+/**
+ * Colloquium Presentation Engine
+ * 16:9 scaled canvas, keyboard/click/touch navigation, hash routing, fullscreen
+ * Slide picker + per-slide footer
+ */
+class ColloquiumPresentation {
+    constructor() {
+        this.deck = document.querySelector('.colloquium-deck');
+        this.slides = Array.from(document.querySelectorAll('.slide'));
+        this.currentIndex = 0;
+        this.totalSlides = this.slides.length;
+
+        // Reference dimensions (16:9)
+        this.width = 1280;
+        this.height = 720;
+
+        // Capture mode — hide UI chrome for headless screenshots
+        if (new URLSearchParams(location.search).has('capture')) {
+            document.body.classList.add('colloquium-capture');
+        }
+
+        if (this.totalSlides === 0) return;
+
+        this.progressBar = document.querySelector('.colloquium-progress-bar');
+        this.pickerTrigger = document.querySelector('.colloquium-picker-trigger');
+        this.pickerTriggerCount = this.pickerTrigger
+            ? this.pickerTrigger.querySelector('.colloquium-picker-trigger-count')
+            : null;
+        this.pickerOpen = false;
+
+        this._scaleDeck();
+        window.addEventListener('resize', () => this._scaleDeck());
+
+        this._createPicker();
+        this._bindFooter();
+        this._bindPickerTrigger();
+        this._bindPresent();
+        this._bindKeyboard();
+        this._bindClick();
+        this._bindTouch();
+        this._bindHashChange();
+
+        // Navigate to hash or first slide
+        const hash = parseInt(location.hash.replace('#', ''), 10);
+        if (hash >= 1 && hash <= this.totalSlides) {
+            this.goTo(hash - 1);
+        } else {
+            this.goTo(0);
+        }
+    }
+
+    /**
+     * Check each slide for content overflow and add a visual warning.
+     * Temporarily shows all slides to measure, then restores.
+     */
+    _checkOverflow() {
+        const origDisplay = this.slides.map(s => s.style.display);
+        this.slides.forEach(s => s.style.display = 'flex');
+
+        this.slides.forEach((slide, i) => {
+            if (slide.scrollHeight > slide.clientHeight + 2) {
+                const warn = document.createElement('div');
+                warn.className = 'colloquium-overflow-warn';
+                warn.title = `Slide ${i + 1} content overflows`;
+                slide.appendChild(warn);
+            }
+        });
+
+        this.slides.forEach((s, i) => s.style.display = origDisplay[i]);
+    }
+
+    /**
+     * Scale the 1280x720 deck to fit the viewport while maintaining 16:9 aspect ratio.
+     * Centers the deck with black letterbox/pillarbox bars.
+     */
+    _scaleDeck() {
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const scale = Math.min(vw / this.width, vh / this.height);
+
+        const scaledW = this.width * scale;
+        const scaledH = this.height * scale;
+        const offsetX = (vw - scaledW) / 2;
+        const offsetY = (vh - scaledH) / 2;
+
+        this.deck.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+
+        if (window.colloquiumFitCaptionedFiguresIn) {
+            requestAnimationFrame(() => {
+                window.colloquiumFitCaptionedFiguresIn(this.slides[this.currentIndex]);
+            });
+        }
+    }
+
+    goTo(index) {
+        if (index < 0 || index >= this.totalSlides) return;
+
+        this.slides[this.currentIndex].classList.remove('active');
+        this.currentIndex = index;
+        this.slides[this.currentIndex].classList.add('active');
+
+        if (window.colloquiumFitDisplayMathIn) {
+            requestAnimationFrame(() => {
+                window.colloquiumFitDisplayMathIn(this.slides[this.currentIndex]);
+            });
+        }
+        if (window.colloquiumFitCaptionedFiguresIn) {
+            requestAnimationFrame(() => {
+                window.colloquiumFitCaptionedFiguresIn(this.slides[this.currentIndex]);
+            });
+        }
+
+        // Update hash
+        history.replaceState(null, '', '#' + (this.currentIndex + 1));
+
+        // Update progress bar
+        if (this.progressBar) {
+            const progress = this.totalSlides > 1
+                ? (this.currentIndex / (this.totalSlides - 1)) * 100
+                : 100;
+            this.progressBar.style.width = progress + '%';
+        }
+
+        this._updatePickerTrigger();
+    }
+
+    next() {
+        this.goTo(this.currentIndex + 1);
+    }
+
+    prev() {
+        this.goTo(this.currentIndex - 1);
+    }
+
+    first() {
+        this.goTo(0);
+    }
+
+    last() {
+        this.goTo(this.totalSlides - 1);
+    }
+
+    // --- Slide Picker ---
+
+    _getSlideTitle(slide, i) {
+        const h1 = slide.querySelector('h1');
+        if (h1) return h1.textContent;
+        const h2 = slide.querySelector('h2');
+        if (h2) return h2.textContent;
+        const img = slide.querySelector('img[alt]');
+        if (img && img.alt) return img.alt;
+        const text = slide.textContent.trim();
+        if (text) return text.substring(0, 50) + (text.length > 50 ? '…' : '');
+        return 'Slide ' + (i + 1);
+    }
+
+    _createPicker() {
+        this.overlay = document.createElement('div');
+        this.overlay.className = 'colloquium-picker-overlay';
+
+        const picker = document.createElement('div');
+        picker.className = 'colloquium-picker';
+
+        this.pickerItems = [];
+
+        this.slides.forEach((slide, i) => {
+            const btn = document.createElement('button');
+            btn.className = 'colloquium-picker-item';
+            btn.innerHTML =
+                '<span class="colloquium-picker-num">' + (i + 1) + '</span>' +
+                '<span class="colloquium-picker-title">' + this._getSlideTitle(slide, i) + '</span>';
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.goTo(i);
+                this._closePicker();
+            });
+            this.pickerItems.push(btn);
+            picker.appendChild(btn);
+        });
+
+        this.overlay.appendChild(picker);
+        document.body.appendChild(this.overlay);
+
+        // Close on click outside the picker card
+        this.overlay.addEventListener('click', (e) => {
+            if (e.target === this.overlay) {
+                this._closePicker();
+            }
+        });
+    }
+
+    _openPicker() {
+        // Highlight current slide
+        this.pickerItems.forEach((btn, i) => {
+            btn.classList.toggle('current', i === this.currentIndex);
+        });
+        this.overlay.classList.add('active');
+        this.pickerOpen = true;
+
+        // Scroll current item into view
+        const current = this.pickerItems[this.currentIndex];
+        if (current) {
+            current.scrollIntoView({ block: 'center' });
+        }
+    }
+
+    _closePicker() {
+        this.overlay.classList.remove('active');
+        this.pickerOpen = false;
+    }
+
+    _togglePicker() {
+        if (this.pickerOpen) {
+            this._closePicker();
+        } else {
+            this._openPicker();
+        }
+    }
+
+    _updatePickerTrigger() {
+        if (!this.pickerTriggerCount) return;
+        this.pickerTriggerCount.textContent = (this.currentIndex + 1) + ' / ' + this.totalSlides;
+    }
+
+    _bindFooter() {
+        // The entire right footer zone is the picker trigger.
+        document.querySelectorAll('.colloquium-footer-nav').forEach((target) => {
+            target.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this._togglePicker();
+            });
+        });
+    }
+
+    _bindPickerTrigger() {
+        if (!this.pickerTrigger) return;
+        this.pickerTrigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this._togglePicker();
+        });
+    }
+
+    _bindPresent() {
+        const btn = document.querySelector('.colloquium-present');
+        if (btn) {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this._toggleFullscreen();
+            });
+        }
+    }
+
+    // --- Navigation Bindings ---
+
+    _bindKeyboard() {
+        document.addEventListener('keydown', (e) => {
+            // Ignore if user is typing in an input
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            switch (e.key) {
+                case 'ArrowRight':
+                case 'ArrowDown':
+                case ' ':
+                case 'PageDown':
+                    e.preventDefault();
+                    this.next();
+                    break;
+                case 'ArrowLeft':
+                case 'ArrowUp':
+                case 'PageUp':
+                    e.preventDefault();
+                    this.prev();
+                    break;
+                case 'Home':
+                    e.preventDefault();
+                    this.first();
+                    break;
+                case 'End':
+                    e.preventDefault();
+                    this.last();
+                    break;
+                case 'f':
+                case 'F':
+                    e.preventDefault();
+                    this._toggleFullscreen();
+                    break;
+                case 'Escape':
+                    if (this.pickerOpen) {
+                        this._closePicker();
+                    } else if (document.fullscreenElement) {
+                        document.exitFullscreen();
+                    }
+                    break;
+            }
+        });
+    }
+
+    _bindClick() {
+        document.addEventListener('click', (e) => {
+            // Handle citation links — navigate to the slide containing the target ref
+            const citeLink = e.target.closest('a.colloquium-cite');
+            if (citeLink) {
+                e.preventDefault();
+                e.stopPropagation();
+                const href = citeLink.getAttribute('href');
+                if (href && href.startsWith('#')) {
+                    const target = document.getElementById(href.slice(1));
+                    if (target) {
+                        const slide = target.closest('.slide');
+                        if (slide) {
+                            const idx = this.slides.indexOf(slide);
+                            if (idx >= 0) this.goTo(idx);
+                        }
+                    }
+                }
+                return;
+            }
+
+            // Ignore clicks on links, interactive elements, footer, and picker
+            if (e.target.closest('a, button, input, textarea, select, .colloquium-footer, .colloquium-picker-overlay, .colloquium-present, .colloquium-picker-trigger')) return;
+
+            const x = e.clientX / window.innerWidth;
+            if (x < 0.33) {
+                this.prev();
+            } else {
+                this.next();
+            }
+        });
+    }
+
+    _bindTouch() {
+        let startX = 0;
+        let startY = 0;
+
+        document.addEventListener('touchstart', (e) => {
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+        }, { passive: true });
+
+        document.addEventListener('touchend', (e) => {
+            const dx = e.changedTouches[0].clientX - startX;
+            const dy = e.changedTouches[0].clientY - startY;
+
+            // Only trigger on horizontal swipes (more horizontal than vertical, min 50px)
+            if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
+                if (dx < 0) {
+                    this.next();
+                } else {
+                    this.prev();
+                }
+            }
+        }, { passive: true });
+    }
+
+    _bindHashChange() {
+        window.addEventListener('hashchange', () => {
+            const hash = parseInt(location.hash.replace('#', ''), 10);
+            if (hash >= 1 && hash <= this.totalSlides && hash - 1 !== this.currentIndex) {
+                this.goTo(hash - 1);
+            }
+        });
+    }
+
+    _toggleFullscreen() {
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+        } else {
+            document.documentElement.requestFullscreen().catch(() => {});
+        }
+    }
+}
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    window.colloquium = new ColloquiumPresentation();
+});
+
+</script>
+
+<script>
+window.colloquiumFitDisplayMathIn = function(root) {
+    var scope = root || document;
+    scope.querySelectorAll(".katex-display").forEach(function(display) {
+        display.style.fontSize = "";
+        var katexNode = display.querySelector(".katex");
+        if (!katexNode) return;
+
+        var availableWidth = display.clientWidth;
+        var contentWidth = katexNode.scrollWidth;
+        if (!availableWidth || !contentWidth || contentWidth <= availableWidth) return;
+
+        var scale = availableWidth / contentWidth;
+        display.style.fontSize = (scale * 100) + "%";
+    });
+};
+
+window.colloquiumFitCaptionedFiguresIn = function(root) {
+    var scope = root || document;
+    var selector = [
+        ".slide-content > figure.colloquium-figure:first-child:last-child",
+        ".colloquium-grid > .col > figure.colloquium-figure:first-child:last-child",
+        ".colloquium-row > figure.colloquium-figure:first-child:last-child"
+    ].join(", ");
+
+    scope.querySelectorAll(selector).forEach(function(figure) {
+        var img = figure.querySelector("img");
+        var caption = figure.querySelector("figcaption");
+        if (!img || !caption) return;
+
+        var container = figure.parentElement;
+        if (!container) return;
+
+        figure.style.width = "";
+        img.style.width = "";
+        img.style.height = "";
+        img.style.maxWidth = "";
+        img.style.maxHeight = "";
+
+        var naturalWidth = img.naturalWidth || 0;
+        var naturalHeight = img.naturalHeight || 0;
+        if (!naturalWidth || !naturalHeight) {
+            img.addEventListener("load", function() {
+                window.colloquiumFitCaptionedFiguresIn(scope);
+            }, { once: true });
+            return;
+        }
+
+        var availableWidth = container.clientWidth;
+        var availableHeight = container.clientHeight;
+        if (!availableWidth || !availableHeight) return;
+
+        var scale = Math.min(
+            availableWidth / naturalWidth,
+            availableHeight / naturalHeight
+        );
+        if (!isFinite(scale) || scale <= 0) return;
+
+        var renderWidth = Math.max(1, Math.floor(naturalWidth * scale));
+        var renderHeight = Math.max(1, Math.floor(naturalHeight * scale));
+
+        figure.style.width = renderWidth + "px";
+        img.style.width = renderWidth + "px";
+        img.style.height = renderHeight + "px";
+        img.style.maxWidth = "none";
+        img.style.maxHeight = "none";
+    });
+};
+
+// Render KaTeX math elements and highlight code after deferred scripts load
+window.addEventListener("load", function() {
+    if (typeof katex !== "undefined") {
+        var mathEls = document.querySelectorAll(".math");
+        if (mathEls.length > 0) {
+            // Temporarily show all slides so KaTeX can measure container
+            // dimensions for delimiter sizing (e.g. tall parentheses)
+            var mathSlides = document.querySelectorAll(".slide");
+            var mathOrigDisplay = [];
+            var mathOrigVisibility = [];
+            mathSlides.forEach(function(s) {
+                mathOrigDisplay.push(s.style.display);
+                mathOrigVisibility.push(s.style.visibility);
+                s.style.display = "flex";
+                if (!s.classList.contains("active")) {
+                    s.style.visibility = "hidden";
+                }
+            });
+
+            mathEls.forEach(function(el) {
+                var displayMode = el.tagName === "DIV";
+                katex.render(el.textContent, el, {
+                    displayMode: displayMode,
+                    throwOnError: false
+                });
+            });
+            window.colloquiumFitDisplayMathIn(document);
+
+            // Restore original slide display and visibility
+            mathSlides.forEach(function(s, i) {
+                s.style.display = mathOrigDisplay[i];
+                s.style.visibility = mathOrigVisibility[i];
+            });
+        }
+
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(function() {
+                window.colloquiumFitDisplayMathIn(document);
+                window.colloquiumFitCaptionedFiguresIn(document);
+            });
+        }
+    }
+    if (typeof hljs !== "undefined") {
+        hljs.highlightAll();
+    }
+    window.colloquiumFitCaptionedFiguresIn(document);
+    // Initialize Chart.js charts — temporarily show all slides so canvases
+    // have dimensions, render charts, capture static print images, then restore.
+    if (typeof Chart !== "undefined") {
+        var chartCanvases = document.querySelectorAll("[data-chart-config]");
+        if (chartCanvases.length > 0) {
+            // Make all slides visible so Chart.js can measure canvas size
+            // Use visibility:hidden to avoid a visual flash
+            var slides = document.querySelectorAll(".slide");
+            var origDisplay = [];
+            slides.forEach(function(s) {
+                origDisplay.push(s.style.display);
+                s.style.display = "flex";
+                if (!s.classList.contains("active")) {
+                    s.style.visibility = "hidden";
+                }
+            });
+
+            chartCanvases.forEach(function(canvas) {
+                try {
+                    var config = JSON.parse(canvas.getAttribute("data-chart-config"));
+                    // Convert tick prefix/suffix strings into real callbacks
+                    var scales = config.options && config.options.scales;
+                    if (scales) {
+                        Object.keys(scales).forEach(function(axis) {
+                            var ticks = scales[axis].ticks;
+                            if (!ticks) return;
+                            var pre = ticks.prefix || "";
+                            var suf = ticks.suffix || "";
+                            if (pre || suf) {
+                                delete ticks.prefix;
+                                delete ticks.suffix;
+                                ticks.callback = function(v) { return pre + v + suf; };
+                            }
+                        });
+                    }
+                    new Chart(canvas, config);
+                } catch(e) {
+                    var slideEl = canvas.closest(".slide");
+                    var slideNum = slideEl ? (slideEl.getAttribute("data-index") || "?") : "?";
+                    var chartId = canvas.id || "unknown";
+                    console.error(
+                        "Colloquium: failed to render chart '" + chartId +
+                        "' on slide " + (parseInt(slideNum, 10) + 1) + ": " + e.message
+                    );
+                }
+            });
+
+            // After a frame, capture each chart as a static image for print,
+            // then always restore slide visibility (even if chart rendering failed).
+            requestAnimationFrame(function() {
+                chartCanvases.forEach(function(canvas) {
+                    try {
+                        var img = document.createElement("img");
+                        img.src = canvas.toDataURL("image/png");
+                        img.className = "colloquium-chart-print";
+                        canvas.parentNode.insertBefore(img, canvas.nextSibling);
+                    } catch(e) {}
+                });
+                // Restore original slide visibility
+                slides.forEach(function(s, i) {
+                    s.style.display = origDisplay[i];
+                    s.style.visibility = "";
+                });
+            });
+        }
+    }
+});
+</script>
+<script>
+/* Relay keydown events from same-origin iframes to the parent window so
+   colloquium slide navigation works after the user clicks inside a figure. */
+(function () {
+  function relay(iframe) {
+    try {
+      iframe.contentWindow.addEventListener('keydown', function (e) {
+        window.dispatchEvent(new KeyboardEvent('keydown', {
+          key: e.key, code: e.code, keyCode: e.keyCode, which: e.which,
+          shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, altKey: e.altKey,
+          metaKey: e.metaKey, bubbles: true, cancelable: true,
+        }));
+      }, true);
+    } catch (_) {}
+  }
+  function attachAll() {
+    document.querySelectorAll('iframe').forEach(function (f) {
+      if (f.contentDocument && f.contentDocument.readyState === 'complete') relay(f);
+      f.addEventListener('load', function () { relay(f); });
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', attachAll);
+  } else {
+    attachAll();
+  }
+})();
+</script>
+</body>
+</html>
