@@ -1,13 +1,13 @@
 <script lang="ts">
-  import { Handle, type NodeProps, Position } from '@xyflow/svelte';
+  import { Handle, NodeToolbar, type NodeProps, Position } from '@xyflow/svelte';
 
-  let { data }: NodeProps = $props();
+  let { data, selected }: NodeProps = $props();
 
   let w = $state(0);
   let h = $state(0);
 
   const shape = $derived(data.shape as string | undefined);
-  const line = $derived((data.line as 'solid' | 'dashed' | undefined) ?? 'dashed');
+  const line = $derived((data.line as 'solid' | 'dashed' | undefined) ?? 'solid');
   const padding = $derived(data.padding as string | undefined);
   const isSvgShape = $derived(
     shape === 'trapezoid-r' || shape === 'trapezoid-l' || shape === 'parallelogram'
@@ -28,6 +28,15 @@
   const skew = 0.05;
   const xskew = 0.1; // horizontal skew for parallelogram (Strategy)
 </script>
+
+{#if selected}
+  <NodeToolbar isVisible={selected} position={Position.Top}>
+    <div class="gsn-detail">
+      <span class="gsn-detail-type">{data.gsnType as string} · {(data.layer as string) ?? ''}</span>
+      <p class="gsn-detail-statement">{(data.statement as string) ?? (data.label as string)}</p>
+    </div>
+  </NodeToolbar>
+{/if}
 
 <Handle type="target" position={Position.Left} />
 <Handle type="target" position={Position.Top} id="top" />
@@ -117,11 +126,38 @@
     z-index: 1;
   }
 
+  .gsn-detail {
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 8px 10px;
+    max-width: 280px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 10px;
+  }
+
+  .gsn-detail-type {
+    display: block;
+    font-weight: bold;
+    color: #555;
+    margin-bottom: 4px;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .gsn-detail-statement {
+    margin: 0;
+    line-height: 1.4;
+    color: #222;
+  }
+
   /* GSN undeveloped decorator — hollow diamond at bottom-center of node.
      Visually signals "claim awaiting further support" per SCSC GSN v3 §1:2.1.4. */
   .undeveloped-mark {
     position: absolute;
-    bottom: -8px;
+    bottom: -6px;
     left: 50%;
     width: 12px;
     height: 12px;

@@ -2,10 +2,13 @@
   import '@xyflow/svelte/dist/style.css';
   import 'virtual:theme-vars.css';
 
+  import type { Snippet } from 'svelte';
   import {
+    Controls,
     type DefaultEdgeOptions,
     type EdgeTypes,
     MarkerType,
+    MiniMap,
     type NodeTypes,
     SvelteFlow,
   } from '@xyflow/svelte';
@@ -23,6 +26,8 @@
     width?: string;
     height?: string;
     fitView?: boolean;
+    selectable?: boolean;
+    children?: Snippet;
   };
 
   let {
@@ -31,6 +36,8 @@
     width = '100%',
     height = '400px',
     fitView = true,
+    selectable = false,
+    children,
   }: DiagramCanvasProps = $props();
 
   const nodeTypes: NodeTypes = {
@@ -59,12 +66,15 @@
     {fitView}
     nodesDraggable={false}
     nodesConnectable={false}
-    elementsSelectable={false}
+    elementsSelectable={selectable}
     panOnDrag={true}
     zoomOnScroll={true}
     minZoom={0.2}
     maxZoom={4}
     proOptions={{ hideAttribution: true }}>
+    <Controls />
+    <MiniMap zoomable pannable />
+    {@render children?.()}
   </SvelteFlow>
 </div>
 

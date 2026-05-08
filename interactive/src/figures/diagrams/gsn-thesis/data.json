@@ -8,7 +8,8 @@
         "y": 0
       },
       "data": {
-        "label": "Proposed system delivers operational coverage on automotive IDS \u2014 some closed configuration of {orthogonal-channel ensemble, decoupled-approval gate, jointly-fit calibration apparatus, deployable compression} delivers a class-conditional rejection guarantee on the active subset, respecting K1-K9. (Caveat \u2014 no specific operational success threshold committed yet, e.g. detection-rate floor at a given abstain-rate ceiling on a named dataset; deferred to a content-side authoring pass.)",
+        "label": "Proposed system delivers operational coverage\u2026",
+        "statement": "Proposed system delivers operational coverage on automotive IDS \u2014 some closed configuration of {orthogonal-channel ensemble, decoupled-approval gate, jointly-fit calibration apparatus, deployable compression} delivers a class-conditional rejection guarantee on the active subset, respecting K1-K9. (Caveat \u2014 no specific operational success threshold committed yet, e.g. detection-rate floor at a given abstain-rate ceiling on a named dataset; deferred to a content-side authoring pass.)",
         "shape": "rectangle",
         "gsnType": "Goal",
         "undeveloped": false,
@@ -23,7 +24,8 @@
         "y": 0
       },
       "data": {
-        "label": "Operational rejection guarantee \u2014 the deployed system has class-conditional coverage on its active subset, distribution-free. Names no specific predictor; closed by exhibiting any one realization (existence claim).",
+        "label": "Operational rejection guarantee \u2014 the\u2026",
+        "statement": "Operational rejection guarantee \u2014 the deployed system has class-conditional coverage on its active subset, distribution-free. Names no specific predictor; closed by exhibiting any one realization (existence claim).",
         "shape": "rectangle",
         "gsnType": "Goal",
         "undeveloped": false,
@@ -39,7 +41,8 @@
         "y": 0
       },
       "data": {
-        "label": "Joint-fit principle \u2014 all trust thresholds, gates, and policy parameters must be jointly fit on a single held-out natural-distribution split. Independent fitting voids coverage (cf. N03).",
+        "label": "Joint-fit principle \u2014 all trust\u2026",
+        "statement": "Joint-fit principle \u2014 all trust thresholds, gates, and policy parameters must be jointly fit on a single held-out natural-distribution split. Independent fitting voids coverage (cf. N03).",
         "shape": "rectangle",
         "gsnType": "Goal",
         "undeveloped": false,
@@ -54,7 +57,8 @@
         "y": 0
       },
       "data": {
-        "label": "Coverage void under independent calibration \u2014 independent fitting of the conformal abstain rule and the drift detector can simultaneously fire and suppress on the same input, voiding operational coverage. Asserted in the candidacy report; not yet derived from CAN data.",
+        "label": "Coverage void under independent calibration\u2026",
+        "statement": "Coverage void under independent calibration \u2014 independent fitting of the conformal abstain rule and the drift detector can simultaneously fire and suppress on the same input, voiding operational coverage. Asserted in the candidacy report; not yet derived from CAN data.",
         "shape": "rectangle",
         "gsnType": "Goal",
         "undeveloped": true,
@@ -69,7 +73,8 @@
         "y": 0
       },
       "data": {
-        "label": "Constraint-respecting deployable compression \u2014 some compression strategy reduces the trained ensemble to a footprint that respects K1 (hardware) and K6 (per-window latency). Existence claim.",
+        "label": "Constraint-respecting deployable compression \u2014 some\u2026",
+        "statement": "Constraint-respecting deployable compression \u2014 some compression strategy reduces the trained ensemble to a footprint that respects K1 (hardware) and K6 (per-window latency). Existence claim.",
         "shape": "rectangle",
         "gsnType": "Goal",
         "undeveloped": false,
@@ -84,7 +89,8 @@
         "y": 0
       },
       "data": {
-        "label": "Mondrian + safety shield + joint apparatus closes the operational rejection guarantee for the candidacy's specific configuration.",
+        "label": "Mondrian + safety shield +\u2026",
+        "statement": "Mondrian + safety shield + joint apparatus closes the operational rejection guarantee for the candidacy's specific configuration.",
         "shape": "rectangle",
         "gsnType": "Goal",
         "undeveloped": false,
@@ -101,7 +107,8 @@
         "y": 0
       },
       "data": {
-        "label": "5-threshold list (tier threshold + 3 runtime gates + conformal alpha) jointly fit on the same held-out natural-distribution split. The candidacy's realization of N01-thesis.",
+        "label": "5-threshold list (tier threshold +\u2026",
+        "statement": "5-threshold list (tier threshold + 3 runtime gates + conformal alpha) jointly fit on the same held-out natural-distribution split. The candidacy's realization of N01-thesis.",
         "shape": "rectangle",
         "gsnType": "Goal",
         "undeveloped": false,
@@ -117,7 +124,8 @@
         "y": 0
       },
       "data": {
-        "label": "Mondrian conformal abstain \u2014 class-conditional conformal predictor on the PINN-active subset.",
+        "label": "Mondrian conformal abstain \u2014 class-conditional\u2026",
+        "statement": "Mondrian conformal abstain \u2014 class-conditional conformal predictor on the PINN-active subset.",
         "shape": "rectangle",
         "gsnType": "Goal",
         "undeveloped": false,
@@ -133,7 +141,8 @@
         "y": 0
       },
       "data": {
-        "label": "PINN safety shield projects the simplex so alpha_PINN \u2264 lambda_physics(s_t); remaining mass redistributes across {GAT, VGAE, CWD}. One specific instantiation of decoupled approval (N31).",
+        "label": "PINN safety shield projects the\u2026",
+        "statement": "PINN safety shield projects the simplex so alpha_PINN \u2264 lambda_physics(s_t); remaining mass redistributes across {GAT, VGAE, CWD}. One specific instantiation of decoupled approval (N31).",
         "shape": "rectangle",
         "gsnType": "Goal",
         "undeveloped": false,
@@ -150,7 +159,8 @@
         "y": 0
       },
       "data": {
-        "label": "Composite trust score lambda_physics = lambda_tier \u00d7 V_regime \u00d7 V_signal \u00d7 V_residual; product over three runtime gates with thresholds co-fit on the N01-instance split.",
+        "label": "Composite trust score lambda_physics =\u2026",
+        "statement": "Composite trust score lambda_physics = lambda_tier \u00d7 V_regime \u00d7 V_signal \u00d7 V_residual; product over three runtime gates with thresholds co-fit on the N01-instance split.",
         "shape": "rectangle",
         "gsnType": "Goal",
         "undeveloped": false,
@@ -166,7 +176,8 @@
         "y": 0
       },
       "data": {
-        "label": "KD pipeline with ~68\u00d7 reduction \u2014 logit-level + latent-space knowledge distillation; meets K1 ceiling at 7 ms per CAN window on Cortex-A7.",
+        "label": "KD pipeline with ~68\u00d7 reduction\u2026",
+        "statement": "KD pipeline with ~68\u00d7 reduction \u2014 logit-level + latent-space knowledge distillation; meets K1 ceiling at 7 ms per CAN window on Cortex-A7.",
         "shape": "rectangle",
         "gsnType": "Goal",
         "undeveloped": false,
@@ -182,7 +193,8 @@
         "y": 0
       },
       "data": {
-        "label": "GAT+VGAE byte-channel + physics chain \u2014 the candidacy's specific orthogonal-channel realization. GAT+VGAE reads raw frames; PINN reads physics state via ByCAN. The two branches share no estimation pipeline. Empirical fact about the as-built architecture.",
+        "label": "GAT+VGAE byte-channel + physics chain\u2026",
+        "statement": "GAT+VGAE byte-channel + physics chain \u2014 the candidacy's specific orthogonal-channel realization. GAT+VGAE reads raw frames; PINN reads physics state via ByCAN. The two branches share no estimation pipeline. Empirical fact about the as-built architecture.",
         "shape": "circle",
         "gsnType": "Solution",
         "undeveloped": false,
@@ -198,7 +210,8 @@
         "y": 0
       },
       "data": {
-        "label": "Mondrian abstain-rate is operationally bounded under K7 imbalance. Asserted that N17's per-class abstain rate on minority attack classes does not dominate; not yet quantified empirically nor reduced via mechanism choice. (Ding et al., OpenReview Dtxc7mlKRg).",
+        "label": "Mondrian abstain-rate is operationally bounded\u2026",
+        "statement": "Mondrian abstain-rate is operationally bounded under K7 imbalance. Asserted that N17's per-class abstain rate on minority attack classes does not dominate; not yet quantified empirically nor reduced via mechanism choice. (Ding et al., OpenReview Dtxc7mlKRg).",
         "shape": "rectangle",
         "gsnType": "Goal",
         "undeveloped": true,
@@ -213,7 +226,8 @@
         "y": 0
       },
       "data": {
-        "label": "A formal class-conditional coverage guarantee (N02-thesis) on a constraint-respecting compressed system (N19-thesis) using diagnostically-orthogonal channels (N04-thesis) closes the thesis.",
+        "label": "A formal class-conditional coverage guarantee\u2026",
+        "statement": "A formal class-conditional coverage guarantee (N02-thesis) on a constraint-respecting compressed system (N19-thesis) using diagnostically-orthogonal channels (N04-thesis) closes the thesis.",
         "shape": "parallelogram",
         "gsnType": "Strategy",
         "undeveloped": true
@@ -227,7 +241,8 @@
         "y": 0
       },
       "data": {
-        "label": "Existence proof \u2014 any closed instance closes the abstract guarantee.",
+        "label": "Existence proof \u2014 any closed\u2026",
+        "statement": "Existence proof \u2014 any closed instance closes the abstract guarantee.",
         "shape": "parallelogram",
         "gsnType": "Strategy",
         "undeveloped": false
@@ -241,7 +256,8 @@
         "y": 0
       },
       "data": {
-        "label": "If independent calibration produces a coverage void (N03), joint fitting on a single split is the forced fix.",
+        "label": "If independent calibration produces a\u2026",
+        "statement": "If independent calibration produces a coverage void (N03), joint fitting on a single split is the forced fix.",
         "shape": "parallelogram",
         "gsnType": "Strategy",
         "undeveloped": false
@@ -255,7 +271,8 @@
         "y": 0
       },
       "data": {
-        "label": "Existence proof \u2014 the KD pipeline (N19-instance) closes the constraint-respecting compression requirement.",
+        "label": "Existence proof \u2014 the KD\u2026",
+        "statement": "Existence proof \u2014 the KD pipeline (N19-instance) closes the constraint-respecting compression requirement.",
         "shape": "parallelogram",
         "gsnType": "Strategy",
         "undeveloped": false
@@ -269,7 +286,8 @@
         "y": 0
       },
       "data": {
-        "label": "Composing Mondrian (N17) with the safety shield (N12) on the joint-fit apparatus (N01-instance) yields a class-conditional rejection bound on the PINN-active subset, conditional on operationally-bounded abstain rate under K7 imbalance (N50).",
+        "label": "Composing Mondrian (N17) with the\u2026",
+        "statement": "Composing Mondrian (N17) with the safety shield (N12) on the joint-fit apparatus (N01-instance) yields a class-conditional rejection bound on the PINN-active subset, conditional on operationally-bounded abstain rate under K7 imbalance (N50).",
         "shape": "parallelogram",
         "gsnType": "Strategy",
         "undeveloped": true
@@ -283,7 +301,8 @@
         "y": 0
       },
       "data": {
-        "label": "The 5-threshold list is one specific calibration apparatus realizing N01-thesis on the natural-distribution split.",
+        "label": "The 5-threshold list is one\u2026",
+        "statement": "The 5-threshold list is one specific calibration apparatus realizing N01-thesis on the natural-distribution split.",
         "shape": "parallelogram",
         "gsnType": "Strategy",
         "undeveloped": false
@@ -297,7 +316,8 @@
         "y": 0
       },
       "data": {
-        "label": "Mondrian conformal predictors with class-conditional coverage are standard (Vovk et al. 2003); the kd-gat instantiation specializes to the PINN-active subset.",
+        "label": "Mondrian conformal predictors with class-conditional\u2026",
+        "statement": "Mondrian conformal predictors with class-conditional coverage are standard (Vovk et al. 2003); the kd-gat instantiation specializes to the PINN-active subset.",
         "shape": "parallelogram",
         "gsnType": "Strategy",
         "undeveloped": false
@@ -311,7 +331,8 @@
         "y": 0
       },
       "data": {
-        "label": "Implementing the decoupled-approval principle (N31) via the composite trust score (N13) yields the projection step on the simplex.",
+        "label": "Implementing the decoupled-approval principle (N31)\u2026",
+        "statement": "Implementing the decoupled-approval principle (N31) via the composite trust score (N13) yields the projection step on the simplex.",
         "shape": "parallelogram",
         "gsnType": "Strategy",
         "undeveloped": false
@@ -325,7 +346,8 @@
         "y": 0
       },
       "data": {
-        "label": "lambda_physics is the product lambda_tier \u00d7 V_regime \u00d7 V_signal \u00d7 V_residual; each gate is an empirical runtime check whose validity is definitional. Joint-fit thresholds inherit from N01-instance.",
+        "label": "lambda_physics is the product lambda_tier\u2026",
+        "statement": "lambda_physics is the product lambda_tier \u00d7 V_regime \u00d7 V_signal \u00d7 V_residual; each gate is an empirical runtime check whose validity is definitional. Joint-fit thresholds inherit from N01-instance.",
         "shape": "parallelogram",
         "gsnType": "Strategy",
         "undeveloped": false
@@ -339,7 +361,8 @@
         "y": 0
       },
       "data": {
-        "label": "The capacity gap law (N20) determines whether the resulting 68\u00d7 ratio falls in the viable region for binary CAN classification, governed InContextOf K1 (hardware envelope).",
+        "label": "The capacity gap law (N20)\u2026",
+        "statement": "The capacity gap law (N20) determines whether the resulting 68\u00d7 ratio falls in the viable region for binary CAN classification, governed InContextOf K1 (hardware envelope).",
         "shape": "parallelogram",
         "gsnType": "Strategy",
         "undeveloped": false
@@ -353,7 +376,8 @@
         "y": 0
       },
       "data": {
-        "label": "Decoupled approval principle \u2014 the signal that evaluates behavior must be independent of the signal that trains it. Goodhart-flavored auxiliary-verification principle.",
+        "label": "Decoupled approval principle \u2014 the\u2026",
+        "statement": "Decoupled approval principle \u2014 the signal that evaluates behavior must be independent of the signal that trains it. Goodhart-flavored auxiliary-verification principle.",
         "shape": "circle",
         "gsnType": "Solution",
         "undeveloped": false,
@@ -373,7 +397,8 @@
         "y": 0
       },
       "data": {
-        "label": "Channel-disagreement principle \u2014 heterogeneous channels with non-overlapping estimation pipelines produce diagnostic disagreement on attack inputs. Empirical, not a theorem; structural prerequisite for any ensemble-as-arbitration design.",
+        "label": "Channel-disagreement principle \u2014 heterogeneous channels\u2026",
+        "statement": "Channel-disagreement principle \u2014 heterogeneous channels with non-overlapping estimation pipelines produce diagnostic disagreement on attack inputs. Empirical, not a theorem; structural prerequisite for any ensemble-as-arbitration design.",
         "shape": "stadium",
         "gsnType": "Context",
         "undeveloped": false,
@@ -388,7 +413,8 @@
         "y": 0
       },
       "data": {
-        "label": "Vovk et al. 2003 \u2014 Mondrian conformal prediction. Class-conditional conformal predictors with distribution-free coverage guarantees.",
+        "label": "Vovk et al. 2003 \u2014\u2026",
+        "statement": "Vovk et al. 2003 \u2014 Mondrian conformal prediction. Class-conditional conformal predictors with distribution-free coverage guarantees.",
         "shape": "circle",
         "gsnType": "Solution",
         "undeveloped": false,
@@ -407,7 +433,8 @@
         "y": 0
       },
       "data": {
-        "label": "Knowledge-distillation viability under teacher\u2013student capacity gap. Mirzadeh et al. (2020) document that distillation benefit degrades when the teacher\u2013student gap grows too large, and introduce a Teacher Assistant intermediate to bridge it; Zhang et al. (2025) further formalize this as a \"law of capacity gap\" in distilling language models. Together they establish that the 68\u00d7 ratio targeted by N19-instance lies in the viable region only because the task complexity is bounded \u2014 binary CAN-window classification \u2014 and is not a universal claim. Cited from the literature, not derived in this candidacy.",
+        "label": "Knowledge-distillation viability under teacher\u2013student capacity\u2026",
+        "statement": "Knowledge-distillation viability under teacher\u2013student capacity gap. Mirzadeh et al. (2020) document that distillation benefit degrades when the teacher\u2013student gap grows too large, and introduce a Teacher Assistant intermediate to bridge it; Zhang et al. (2025) further formalize this as a \"law of capacity gap\" in distilling language models. Together they establish that the 68\u00d7 ratio targeted by N19-instance lies in the viable region only because the task complexity is bounded \u2014 binary CAN-window classification \u2014 and is not a universal claim. Cited from the literature, not derived in this candidacy.",
         "shape": "circle",
         "gsnType": "Solution",
         "undeveloped": false,
@@ -428,7 +455,8 @@
         "y": 0
       },
       "data": {
-        "label": "Regime validity gate V_regime \u2014 runtime check whether the current vehicle state is inside the operating regime on which the PINN was trained. Definitional / instrumented.",
+        "label": "Regime validity gate V_regime \u2014\u2026",
+        "statement": "Regime validity gate V_regime \u2014 runtime check whether the current vehicle state is inside the operating regime on which the PINN was trained. Definitional / instrumented.",
         "shape": "circle",
         "gsnType": "Solution",
         "undeveloped": false,
@@ -443,7 +471,8 @@
         "y": 0
       },
       "data": {
-        "label": "Signal reliability gate V_signal \u2014 runtime check whether the ByCAN-extracted CAN signals are of sufficient quality. Tier from K8 propagates here. Fires on estimator drift.",
+        "label": "Signal reliability gate V_signal \u2014\u2026",
+        "statement": "Signal reliability gate V_signal \u2014 runtime check whether the ByCAN-extracted CAN signals are of sufficient quality. Tier from K8 propagates here. Fires on estimator drift.",
         "shape": "circle",
         "gsnType": "Solution",
         "undeveloped": false,
@@ -458,7 +487,8 @@
         "y": 0
       },
       "data": {
-        "label": "Residual uncertainty gate V_residual \u2014 runtime check whether the PINN's residual uncertainty is tight enough to be informative. Fires on over-wide uncertainty.",
+        "label": "Residual uncertainty gate V_residual \u2014\u2026",
+        "statement": "Residual uncertainty gate V_residual \u2014 runtime check whether the PINN's residual uncertainty is tight enough to be informative. Fires on over-wide uncertainty.",
         "shape": "circle",
         "gsnType": "Solution",
         "undeveloped": false,
@@ -473,7 +503,8 @@
         "y": 0
       },
       "data": {
-        "label": "Embedded-hardware envelope \u2014 ARM Cortex-A7/A53; 256-512 MB RAM; <100 mW; <50-100 ms latency; 173K FP32 parameter ceiling at 7 ms per CAN window. (paper/content/introduction.md:21-23)",
+        "label": "Embedded-hardware envelope \u2014 ARM Cortex-A7/A53;\u2026",
+        "statement": "Embedded-hardware envelope \u2014 ARM Cortex-A7/A53; 256-512 MB RAM; <100 mW; <50-100 ms latency; 173K FP32 parameter ceiling at 7 ms per CAN window. (paper/content/introduction.md:21-23)",
         "shape": "stadium",
         "gsnType": "Context",
         "undeveloped": false,
@@ -488,7 +519,8 @@
         "y": 0
       },
       "data": {
-        "label": "ASIL C/D classification under ISO 26262 \u2014 for software-implemented IDS functions, Part 6 requires (i) structural code coverage at the unit level with branch coverage highly recommended for ASIL C/D and MC/DC highly recommended for ASIL D, (ii) bidirectional traceability across the V-model from safety requirements through design and code to verification artifacts, and (iii) Freedom From Interference (FFI) evidence \u2014 backed by Dependent Failure Analysis \u2014 when the IDS coexists on a mixed-criticality ECU with QM or lower-ASIL software. Black-box-only models cannot supply the requirement-to-code traces or the per-decision verification evidence these clauses demand. (paper/content/introduction.md:25-27)",
+        "label": "ASIL C/D classification under ISO\u2026",
+        "statement": "ASIL C/D classification under ISO 26262 \u2014 for software-implemented IDS functions, Part 6 requires (i) structural code coverage at the unit level with branch coverage highly recommended for ASIL C/D and MC/DC highly recommended for ASIL D, (ii) bidirectional traceability across the V-model from safety requirements through design and code to verification artifacts, and (iii) Freedom From Interference (FFI) evidence \u2014 backed by Dependent Failure Analysis \u2014 when the IDS coexists on a mixed-criticality ECU with QM or lower-ASIL software. Black-box-only models cannot supply the requirement-to-code traces or the per-decision verification evidence these clauses demand. (paper/content/introduction.md:25-27)",
         "shape": "stadium",
         "gsnType": "Context",
         "undeveloped": false,
@@ -506,7 +538,8 @@
         "y": 0
       },
       "data": {
-        "label": "ISO/PAS 8800:2024 (AI-in-vehicle SOTIF extension) \u2014 released December 2024; mandates runtime monitor and OOD detection; sibling to K2.",
+        "label": "ISO/PAS 8800:2024 (AI-in-vehicle SOTIF extension)\u2026",
+        "statement": "ISO/PAS 8800:2024 (AI-in-vehicle SOTIF extension) \u2014 released December 2024; mandates runtime monitor and OOD detection; sibling to K2.",
         "shape": "stadium",
         "gsnType": "Context",
         "undeveloped": false,
@@ -524,7 +557,8 @@
         "y": 0
       },
       "data": {
-        "label": "UN R155 / WP.29 IDS regulatory mandate \u2014 UNECE R155 \u00a77.3.7 mandates vehicle-resident detection systems for new EU type-approval since 07/2022; all new EU vehicles since 07/2024.",
+        "label": "UN R155 / WP.29 IDS\u2026",
+        "statement": "UN R155 / WP.29 IDS regulatory mandate \u2014 UNECE R155 \u00a77.3.7 mandates vehicle-resident detection systems for new EU type-approval since 07/2022; all new EU vehicles since 07/2024.",
         "shape": "stadium",
         "gsnType": "Context",
         "undeveloped": false,
@@ -542,7 +576,8 @@
         "y": 0
       },
       "data": {
-        "label": "CAN protocol lacks authentication \u2014 injected messages are indistinguishable from legitimate traffic at the protocol level. (paper/content/introduction.md:8-10)",
+        "label": "CAN protocol lacks authentication \u2014\u2026",
+        "statement": "CAN protocol lacks authentication \u2014 injected messages are indistinguishable from legitimate traffic at the protocol level. (paper/content/introduction.md:8-10)",
         "shape": "stadium",
         "gsnType": "Context",
         "undeveloped": false,
@@ -557,7 +592,8 @@
         "y": 0
       },
       "data": {
-        "label": "Per-window detection semantic \u2014 detection is per-CAN-window (W=100 messages, ~1 ms wallclock at 1 Mbps), not per-message. FPGA-IDS literature operates per-message at 0.24 ms/message; this candidacy operates per-window.",
+        "label": "Per-window detection semantic \u2014 detection\u2026",
+        "statement": "Per-window detection semantic \u2014 detection is per-CAN-window (W=100 messages, ~1 ms wallclock at 1 Mbps), not per-message. FPGA-IDS literature operates per-message at 0.24 ms/message; this candidacy operates per-window.",
         "shape": "stadium",
         "gsnType": "Context",
         "undeveloped": false,
@@ -576,7 +612,8 @@
         "y": 0
       },
       "data": {
-        "label": "Severe class imbalance (36:1 to 927:1) \u2014 across CAN-IDS datasets. Forces class-conditional evaluation; aggregate accuracy is uninformative on minority attack classes. (paper/content/experiments.md:27)",
+        "label": "Severe class imbalance (36:1 to\u2026",
+        "statement": "Severe class imbalance (36:1 to 927:1) \u2014 across CAN-IDS datasets. Forces class-conditional evaluation; aggregate accuracy is uninformative on minority attack classes. (paper/content/experiments.md:27)",
         "shape": "stadium",
         "gsnType": "Context",
         "undeveloped": false,
@@ -591,7 +628,8 @@
         "y": 0
       },
       "data": {
-        "label": "DBC unavailability + ByCAN tier envelope \u2014 OEMs do not release DBC files; ByCAN reverse engineering recovers ~80% slicing accuracy and ~69% labeling accuracy; 50% on Vehicle-Speed. Establishes tier-3 noise on physical-state extraction.",
+        "label": "DBC unavailability + ByCAN tier\u2026",
+        "statement": "DBC unavailability + ByCAN tier envelope \u2014 OEMs do not release DBC files; ByCAN reverse engineering recovers ~80% slicing accuracy and ~69% labeling accuracy; 50% on Vehicle-Speed. Establishes tier-3 noise on physical-state extraction.",
         "shape": "stadium",
         "gsnType": "Context",
         "undeveloped": false,
@@ -609,7 +647,8 @@
         "y": 0
       },
       "data": {
-        "label": "Cross-vehicle generalization is orthogonal \u2014 different OEMs assign different arbitration IDs and encode different signals; declared orthogonal future work in this candidacy. (paper/content/methodology.md:50)",
+        "label": "Cross-vehicle generalization is orthogonal \u2014\u2026",
+        "statement": "Cross-vehicle generalization is orthogonal \u2014 different OEMs assign different arbitration IDs and encode different signals; declared orthogonal future work in this candidacy. (paper/content/methodology.md:50)",
         "shape": "stadium",
         "gsnType": "Context",
         "undeveloped": false,
@@ -625,7 +664,7 @@
       "id": "e0",
       "source": "S-thesis",
       "target": "C-thesis",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrowclosed"
       },
@@ -637,7 +676,7 @@
       "id": "e1",
       "source": "N02-thesis",
       "target": "S-thesis",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrowclosed"
       },
@@ -649,7 +688,7 @@
       "id": "e2",
       "source": "N19-thesis",
       "target": "S-thesis",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrowclosed"
       },
@@ -661,7 +700,7 @@
       "id": "e3",
       "source": "S-N02-thesis",
       "target": "N02-thesis",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrowclosed"
       },
@@ -673,7 +712,7 @@
       "id": "e4",
       "source": "N02-instance",
       "target": "S-N02-thesis",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrowclosed"
       },
@@ -685,7 +724,7 @@
       "id": "e5",
       "source": "S-N01-thesis",
       "target": "N01-thesis",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrowclosed"
       },
@@ -697,7 +736,7 @@
       "id": "e6",
       "source": "N03",
       "target": "S-N01-thesis",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrowclosed"
       },
@@ -709,7 +748,7 @@
       "id": "e7",
       "source": "S-N19-thesis",
       "target": "N19-thesis",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrowclosed"
       },
@@ -721,7 +760,7 @@
       "id": "e8",
       "source": "N19-instance",
       "target": "S-N19-thesis",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrowclosed"
       },
@@ -733,7 +772,7 @@
       "id": "e9",
       "source": "S-N02-instance",
       "target": "N02-instance",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrowclosed"
       },
@@ -745,7 +784,7 @@
       "id": "e10",
       "source": "N17",
       "target": "S-N02-instance",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrowclosed"
       },
@@ -757,7 +796,7 @@
       "id": "e11",
       "source": "N12",
       "target": "S-N02-instance",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrowclosed"
       },
@@ -769,7 +808,7 @@
       "id": "e12",
       "source": "N01-instance",
       "target": "S-N02-instance",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrowclosed"
       },
@@ -781,7 +820,7 @@
       "id": "e13",
       "source": "N50",
       "target": "S-N02-instance",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrowclosed"
       },
@@ -793,7 +832,7 @@
       "id": "e14",
       "source": "N04-instance",
       "target": "S-N02-instance",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrowclosed"
       },
@@ -805,7 +844,7 @@
       "id": "e15",
       "source": "S-N01-instance",
       "target": "N01-instance",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrowclosed"
       },
@@ -817,7 +856,7 @@
       "id": "e16",
       "source": "N01-thesis",
       "target": "S-N01-instance",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrowclosed"
       },
@@ -829,7 +868,7 @@
       "id": "e17",
       "source": "S-N17",
       "target": "N17",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrowclosed"
       },
@@ -841,7 +880,7 @@
       "id": "e18",
       "source": "V03",
       "target": "S-N17",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrowclosed"
       },
@@ -853,7 +892,7 @@
       "id": "e19",
       "source": "S-N12",
       "target": "N12",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrowclosed"
       },
@@ -865,7 +904,7 @@
       "id": "e20",
       "source": "N31",
       "target": "S-N12",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrowclosed"
       },
@@ -877,7 +916,7 @@
       "id": "e21",
       "source": "N13",
       "target": "S-N12",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrowclosed"
       },
@@ -889,7 +928,7 @@
       "id": "e22",
       "source": "S-N13",
       "target": "N13",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrowclosed"
       },
@@ -901,7 +940,7 @@
       "id": "e23",
       "source": "N14",
       "target": "S-N13",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrowclosed"
       },
@@ -913,7 +952,7 @@
       "id": "e24",
       "source": "N15",
       "target": "S-N13",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrowclosed"
       },
@@ -925,7 +964,7 @@
       "id": "e25",
       "source": "N16",
       "target": "S-N13",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrowclosed"
       },
@@ -937,7 +976,7 @@
       "id": "e26",
       "source": "S-N19-instance",
       "target": "N19-instance",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrowclosed"
       },
@@ -949,7 +988,7 @@
       "id": "e27",
       "source": "N20",
       "target": "S-N19-instance",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrowclosed"
       },
@@ -961,7 +1000,7 @@
       "id": "e28",
       "source": "S-N19-instance",
       "target": "K1",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrow"
       },
@@ -973,7 +1012,7 @@
       "id": "e29",
       "source": "C-thesis",
       "target": "N04-thesis",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrow"
       },
@@ -985,7 +1024,7 @@
       "id": "e30",
       "source": "C-thesis",
       "target": "K2",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrow"
       },
@@ -997,7 +1036,7 @@
       "id": "e31",
       "source": "C-thesis",
       "target": "K3",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrow"
       },
@@ -1009,7 +1048,7 @@
       "id": "e32",
       "source": "C-thesis",
       "target": "K4",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrow"
       },
@@ -1021,7 +1060,7 @@
       "id": "e33",
       "source": "C-thesis",
       "target": "K5",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrow"
       },
@@ -1033,7 +1072,7 @@
       "id": "e34",
       "source": "C-thesis",
       "target": "K6",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrow"
       },
@@ -1045,7 +1084,7 @@
       "id": "e35",
       "source": "C-thesis",
       "target": "K7",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrow"
       },
@@ -1057,7 +1096,7 @@
       "id": "e36",
       "source": "C-thesis",
       "target": "K8",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrow"
       },
@@ -1069,7 +1108,7 @@
       "id": "e37",
       "source": "C-thesis",
       "target": "K9",
-      "type": "default",
+      "type": "smoothstep",
       "markerEnd": {
         "type": "arrow"
       },

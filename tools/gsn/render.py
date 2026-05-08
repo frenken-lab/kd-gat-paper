@@ -93,6 +93,16 @@ def load_yaml() -> dict:
         return yaml.safe_load(f)
 
 
+def _short_label(elem: dict) -> str:
+    """First 5 words of statement, ellipsis-capped; fall back to element id."""
+    statement = elem.get("statement", "")
+    words = statement.split()
+    if not words:
+        return elem.get("id", "")
+    label = " ".join(words[:5])
+    return label + "…" if len(words) > 5 else label
+
+
 def build_node(elem: dict) -> dict:
     """Map one YAML element to a SvelteFlow node record (single ContainerNode type)."""
     gsn_type = elem["type"]
@@ -100,7 +110,8 @@ def build_node(elem: dict) -> dict:
         raise ValueError(f"unknown element type {gsn_type!r} on id {elem.get('id')}")
 
     data: dict = {
-        "label": elem.get("statement", ""),
+        "label": _short_label(elem),
+        "statement": elem.get("statement", ""),
         "shape": GSN_TO_SHAPE[gsn_type],
         "gsnType": gsn_type,
         "undeveloped": bool(elem.get("undeveloped", False)),
@@ -135,7 +146,7 @@ def build_edge(link: dict, idx: int) -> dict:
         "id": f"e{idx}",
         "source": source,
         "target": target,
-        "type": "default",
+        "type": "smoothstep",
         "markerEnd": {"type": EDGE_MARKER[link_type]},
         "data": {"linkType": link_type},
     }
