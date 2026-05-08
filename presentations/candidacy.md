@@ -2,7 +2,15 @@
 title: KD-GAT — Candidacy Talk
 author: Robert Frenken
 date: "2026"
+theme: default
+aspect_ratio: "16:9"
 bibliography: paper/references/own.bib
+citation_style: author-year
+citation_order: auto
+footer:
+  left: "Robert Frenken · The Ohio State University"
+  center: "{n} / {total}"
+  right: "Candidacy · 2026"
 ---
 
 # KD-GAT
@@ -104,15 +112,9 @@ title: Full architecture diagram
 
 ---
 
-<!-- rows: 1/2 -->
+<!-- columns: 7/3 -->
 
 ## Fusion: MoE
-
-<img src="MoE_MLP.svg" alt="MoE MLP architecture" style="width:100%;max-height:180px;object-fit:contain;display:block;margin:auto">
-
-===
-
-<!-- row-columns: 1/1/1 -->
 
 **MLP Layers**
 
@@ -126,9 +128,7 @@ layers.append(nn.Linear(cur, out_dim))
 return nn.Sequential(*layers)
 ```
 
-|||
-
-**Load Balancing**
+**Load Balancing** — $\alpha = 0.01$
 
 ```python
 P = self._last_gate_weights.mean(dim=0)
@@ -136,17 +136,15 @@ K = P.numel()
 return K * (P * P).sum()
 ```
 
-- $\alpha = 0.01$
-
-|||
-
-**Loss Function**
+**Loss Function** — $0 =$ collapsed · $\log K =$ uniform
 
 ```python
 entropy = -(w * w.clamp_min(1e-9).log()).sum(-1).mean()
 ```
 
-- 0 = collapsed to one expert, $\log K$ = uniform routing
+|||
+
+<img src="MoE_MLP.svg" alt="MoE MLP architecture" style="width:100%;height:100%;object-fit:contain">
 
 ---
 
@@ -259,4 +257,3 @@ src: https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/gsn-thesi
 height: 600
 title: kd-gat thesis argument — GSN safety case
 ```
-

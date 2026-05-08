@@ -1,99 +1,106 @@
-.PHONY: data validate validate-inputs validate-semantic validate-gsn gsn gsn-render gsn-figure-data figures tables site dev dev-myst candidacy-site candidacy-dev tmlr tmlr-anon preview deploy sync sync-editor bib test all clean watch-tables pre-commit pre-commit-install lint-editor slides speceditor
+.PHONY: data validate validate-inputs validate-semantic validate-gsn gsn gsn-render gsn-figure-data figures tables site dev dev-myst candidacy-site candidacy-dev tmlr tmlr-anon preview deploy sync sync-editor bib test all clean watch-tables pre-commit pre-commit-install lint-editor slides speceditor help
 
-data:
+.DEFAULT_GOAL := help
+
+help: ## Show this help
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage: make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) }' $(MAKEFILE_LIST)
+
+##@ Data & Validation
+
+data: ## Pull from buckeyeguy/GraphIDS (HF) + validate against schemas.yaml
 	uv run python tools/pull_data.py
 
-# Layer 1 — input contract: schemas + bib structure.
-validate-inputs: bib
+validate: validate-inputs validate-semantic validate-gsn ## Run all validation layers (CI + pre-commit entry point)
+
+validate-inputs: bib ## Layer 1: schema + bib structure
 	uv run python tools/validate/inputs/data.py
 
-# Layer 2 — semantic contract over _build/site/content/*.json (cross-refs + citations).
-# Requires _build/site/ to exist; run `make site` first if it doesn't.
-# See tools/validate/README.md and AUTHORING.md.
-validate-semantic:
+validate-semantic: ## Layer 2: AST cross-refs + citations (requires make site first)
 	cd tools/validate && bun install --silent && bun lint.mjs
 
-# Layer 3 — GSN schema + gap inventory over data/gsn/gsn-dag.yaml.
-# Walks the GSN-conformant graph from C-thesis, validates SupportedBy/InContextOf
-# permitted-target rules, scope counts, and orphan-Strategy detection. Prints
-# the current gap inventory. See data/gsn/DAG.md and GSN_SCHEMA.md.
-validate-gsn gsn:
+validate-gsn gsn: ## Layer 3: GSN safety argument schema + gap inventory (gsn is an alias)
 	uv run python tools/gsn/walker.py
 
-# Convert gsn-dag.yaml to SvelteFlow-compatible JSON (data/gsn/gsn-flow.json)
-# for inspection / commit. Validates first.
-gsn-render:
+gsn-render: ## Convert gsn-dag.yaml → gsn-flow.json for inspection/commit
 	uv run python tools/gsn/render.py
 
-# Same conversion, written directly into the gsn-thesis figure folder so
-# `make figures` can pick it up. `make figures` depends on this — touching
-# data/gsn/gsn-dag.yaml triggers a fresh figure build.
 gsn-figure-data: data/gsn/gsn-dag.yaml tools/gsn/render.py
 	uv run python tools/gsn/render.py --output interactive/src/figures/diagrams/gsn-thesis/data.json
 
-# Meta: run all validation layers. Single entry point for CI + pre-commit.
-validate: validate-inputs validate-semantic validate-gsn
+bib: ## Validate bibliography files only
+	uv run python tools/validate/inputs/bib.py
 
-# FIGURE=name builds only one figure. FORCE=1 bypasses the mtime cache.
-# Depends on gsn-figure-data so the gsn-thesis diagram has fresh data.json.
-figures: data gsn-figure-data
-	cd interactive && bun install && FIGURE="$(FIGURE)" FORCE="$(FORCE)" bun run build
+##@ Dev
 
-tables: data
-	uv run python tools/tables/build.py
-
-site: figures tables
-	myst build --site
-
-# Orchestrated dev: myst + vite (figures) + entr-driven table rebuild.
-# Requires `overmind` (https://github.com/DarthSim/overmind) and `entr`.
-# `make dev-myst` runs only myst (no figure HMR, no table watcher).
-dev:
+dev: ## Full dev loop: myst + vite (figures HMR) + table watcher — requires overmind + entr
 	@command -v overmind >/dev/null 2>&1 || { echo "overmind not found. Install: go install github.com/DarthSim/overmind/v2@latest (binary lands in ~/go/bin) — or use mprocs if you prefer Rust"; exit 1; }
 	@command -v entr >/dev/null 2>&1 || { echo "entr not found. Install: https://eradman.com/entrproject/"; exit 1; }
 	overmind start -f Procfile.dev
 
-dev-myst:
+dev-myst: ## MyST dev server, paper config — clears site cache on start
+	rm -rf _build/site _build/html
 	myst start
 
-# Bundled stylesheet for the candidacy site. book-theme's `style:` option
-# only takes one file; we concat our two source CSS files into a single
-# bundle so curvenote/scms picks them up.
+candidacy-dev: ## MyST dev server, candidacy config — clears site cache on start
+	rm -rf _build/site _build/html
+	myst start --config myst.candidacy.yml
+
+watch-tables: ## Watch data/csv + specs, rebuild tables on change — requires entr
+	@command -v entr >/dev/null 2>&1 || { echo "entr not found. Install: https://eradman.com/entrproject/"; exit 1; }
+	@echo "Watching data/csv, schemas.yaml, tools/tables/spec.yaml..."
+	@find data/csv data/schemas.yaml tools/tables/spec.yaml | entr -r make tables
+
+##@ Build
+
+figures: data gsn-figure-data ## Build all interactive figures → _build/figures/  (FIGURE=name  FORCE=1)
+	cd interactive && bun install && FIGURE="$(FIGURE)" FORCE="$(FORCE)" bun run build
+
+tables: data ## Build markdown tables → _build/tables/
+	uv run python tools/tables/build.py
+
+site: figures tables ## Full site build: figures → tables → myst build
+	myst build --site
+
 _static/site.bundle.css: _static/custom.css _static/story.css
 	cat $^ > $@
 
-candidacy-site: figures tables _static/site.bundle.css
+candidacy-site: figures tables _static/site.bundle.css ## Build candidacy site
 	myst build --site --config myst.candidacy.yml
 
-candidacy-dev:
-	myst start --config myst.candidacy.yml
+slides: ## Build colloquium slides → _build/slides/
+	uv run python tools/slides/build.py presentations/candidacy.md _build/slides
+	cp presentations/*.svg _build/slides/
 
-tmlr: site
+slides-dev: ## Colloquium live-reload server for slides (port 8080, no tunnel needed locally)
+	@echo "Slides → http://localhost:8080/candidacy.html"
+	uv run python tools/slides/serve.py presentations/candidacy.md --port 8080
+
+speceditor: ## Build spec editor widget
+	cd interactive && bun run build:widget
+
+all: site ## Full pipeline: data → figures → tables → site
+
+##@ TMLR
+
+tmlr: site ## Build TMLR submission → _build/submission/
 	cd tools/tmlr && bun install --silent && bun build.mjs --output ../../_build/submission/
 
-tmlr-anon: site
+tmlr-anon: site ## Build anonymous TMLR submission
 	cd tools/tmlr && bun install --silent && bun build.mjs --output ../../_build/submission/ --anonymous
 
-# Merge submission into TMLR author kit and preview with Docker
-preview: tmlr
+preview: tmlr ## Build TMLR + Jekyll preview via Docker
 	cp _build/submission/submission.md tmlr_do_not_modify/_under_review/submission.md
 	cp -r _build/submission/assets/* tmlr_do_not_modify/assets/ 2>/dev/null || true
 	cd tmlr_do_not_modify && bash ./bin/docker_run.sh
 
-deploy: tmlr
+deploy: tmlr ## Merge submission into TMLR author kit
 	cp _build/submission/submission.md tmlr_do_not_modify/_under_review/submission.md
 	cp -r _build/submission/assets/* tmlr_do_not_modify/assets/ 2>/dev/null || true
 	@echo "Push to main to deploy via GitHub Pages"
 
-# Pull editor changes from curvenote.com into the repo. DESTRUCTIVE — overwrites
-# files in paper/from-editor/ with whatever's on curvenote.com. Aborts if working
-# tree is dirty.
-#
-# Runs from inside paper/from-editor/, which has its own curvenote.yml (with
-# id + remote). Do NOT run curvenote work push / clone / pull from the repo
-# root — bunx writes back to the loaded myst.yml AND to myst.candidacy.yml,
-# stripping committee/exports blocks. See memory project_curvenote_cli_writeback.
-sync:
+##@ Sync
+
+sync: ## Pull Curvenote editor → paper/from-editor/  DESTRUCTIVE — commit/stash first
 	@if [ ! -f paper/from-editor/curvenote.yml ]; then \
 	  echo "ERROR: paper/from-editor/curvenote.yml not present."; \
 	  echo "       Create a Project at https://editor.curvenote.com/@<user>/<slug>,"; \
@@ -108,12 +115,7 @@ sync:
 	cd paper/from-editor && bunx -y curvenote@0.14.3 pull --yes
 	@echo "Done. Review changes with: git diff paper/from-editor/"
 
-# Push the candidacy as 7 Articles (one per TOC section) to the curvenote.com
-# editor Project via api.curvenote.com. Idempotent: reuses named blocks and
-# deletes stale ones from prior builds.
-#
-# CURVENOTE_TOKEN must be exported (we source ~/.env.local before running).
-sync-editor: lint-editor
+sync-editor: lint-editor ## Push candidacy to Curvenote editor via API (requires CURVENOTE_TOKEN)
 	@if [ ! -f paper/from-editor/curvenote.yml ]; then \
 	  echo "ERROR: paper/from-editor/curvenote.yml not present (clone the curvenote.com Project first)."; \
 	  exit 1; \
@@ -124,38 +126,20 @@ sync-editor: lint-editor
 	cd tools/curvenote && bun install --silent && cd - >/dev/null; \
 	bun tools/curvenote/buildv2.mjs
 
-# Lint: check that all table/figure/iframe directives in the candidacy source
-# have +++ {"type":"..."} wrappers. Without them the editor silently drops them.
-lint-editor:
+lint-editor: ## Lint editor directive wrappers before sync-editor
 	cd tools/curvenote && bun install --silent && cd - >/dev/null
 	bun tools/curvenote/buildv2.mjs --lint
 
-speceditor:
-	cd interactive && bun run build:widget
+##@ Meta
 
-slides:
-	uv run python tools/slides/build.py presentations/candidacy.md _build/slides
-	cp presentations/*.svg _build/slides/
-
-bib:
-	uv run python tools/validate/inputs/bib.py
-
-test:
+test: ## Run TMLR serializer tests (bun test)
 	cd tools/tmlr && bun test
 
-all: site
+pre-commit: ## Run pre-commit hooks on all files
+	pre-commit run --all-files
 
-clean:
-	rm -rf _build
-
-# Live rebuild of tables when data/specs change (requires `entr`).
-watch-tables:
-	@command -v entr >/dev/null 2>&1 || { echo "entr not found. Install: https://eradman.com/entrproject/"; exit 1; }
-	@echo "Watching data/csv, schemas.yaml, tools/tables/spec.yaml..."
-	@find data/csv data/schemas.yaml tools/tables/spec.yaml | entr -r make tables
-
-pre-commit-install:
+pre-commit-install: ## Install pre-commit hooks
 	uv tool install pre-commit && pre-commit install
 
-pre-commit:
-	pre-commit run --all-files
+clean: ## Remove _build/
+	rm -rf _build

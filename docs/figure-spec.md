@@ -8,18 +8,31 @@ Catalog of all interactive figures under `interactive/src/figures/{data,diagrams
 |---|---|---|
 | `algorithm` | Pseudocode | `data.json` |
 | `attention` | Network graph | `data.json` |
+| `attention-heatmap` | Heatmap | `data.json` |
+| `bubble-metrics` | Bubble chart | `data.json` |
 | `cka` | Heatmap | `data.json` |
+| `counting-stats` | Stats | `data.json` |
+| `dataset-stats` | Stats | `data.json` |
+| `fedavg-drift` | Line chart | `data.json` |
 | `fusion` | Histogram | `data.json` |
+| `graph-samples` | Network graph | `data.json` |
+| `kd-transfer` | Transfer vis | `data.json` |
+| `parameter-calculator` | Interactive calc | `data.json` |
+| `pareto-frontier` | Scatter | `data.json` |
 | `reconstruction` | Multi-panel | `data.json` |
+| `resource-stats` | Stats | `data.json` |
 | `results-table` | Data table | `data.json` |
+| `training-stats` | Line chart | `data.json` |
 | `umap` | Scatter | `data.json` |
 | `architecture` | Diagram | `spec.yaml` (composes `vgae` + `gat`) |
 | `composition-pipeline` | Diagram (candidacy) | `spec.yaml` |
 | `gat` | Diagram | `spec.yaml` |
 | `gat-layer` | Diagram | Inline spec |
 | `graph-base` | Diagram | Inline spec |
+| `gsn-thesis` | Diagram | `data.json` (from `data/gsn/gsn-dag.yaml` via `tools/gsn/render.py`) |
 | `kd-gat` | Diagram | `spec.yaml` |
 | `kd-vgae` | Diagram | `spec.yaml` |
+| `vehicle-pinn` | Diagram (candidacy) | `spec.yaml` |
 | `vgae` | Diagram | `spec.yaml` |
 
 ## Data-Driven Figures

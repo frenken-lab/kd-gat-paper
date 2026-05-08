@@ -7,8 +7,8 @@ Data flows from the [KD-GAT](https://github.com/frenken-lab/KD-GAT) evaluation a
 ```
 KD-GAT eval artifacts
   → export_paper_data.py (in KD-GAT)
-  → ESS exports/paper/ (_manifest.json + _provenance.json)
-  → pull_data.py (this repo, validates schemas.yaml)
+  → buckeyeguy/GraphIDS (Hugging Face dataset)
+  → tools/pull_data.py (validates against schemas.yaml)
   → data/csv/ + interactive/src/figures/data/*/data.json
   → make figures → _build/figures/*.html
   → make tables → _build/tables/*.md
@@ -37,8 +37,8 @@ For each declared JSON file:
 
 | Command | What it does |
 |---------|-------------|
-| `make data` | Pulls from ESS + validates against `schemas.yaml` |
-| `make validate` | Validates committed data only (no ESS pull, used in CI) |
+| `make data` | Pulls from `buckeyeguy/GraphIDS` (HF) + validates against `schemas.yaml` |
+| `make validate` | Validates committed data only (no HF pull, used in CI) |
 
 ## Adding a New Data File
 

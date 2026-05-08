@@ -69,6 +69,50 @@ _static/                  Custom CSS
 _build/                   All generated output (gitignored)
 ```
 
+## OSC (Headless) Development via SSH Tunnel
+
+No browser on a login node — forward the dev server port to your local machine.
+
+### One-time SSH config (local `~/.ssh/config`)
+
+```
+Host pitzer* pitzer-login01.hpc.osc.edu
+    User rf15
+    ServerAliveInterval 60
+    ServerAliveCountMax 5
+```
+
+`ServerAliveInterval` prevents the login node from killing idle sessions.
+
+### Workflow
+
+**Terminal 1 — open tunnel (local machine, keep open):**
+
+```bash
+ssh -L 3000:localhost:3000 pitzer-login01.hpc.osc.edu
+```
+
+**Terminal 2 — start dev server (on OSC):**
+
+```bash
+cd ~/kd-gat-paper
+make dev-myst        # paper (myst.yml)
+# or
+make candidacy-dev   # candidacy superset
+```
+
+Open `http://localhost:3000` in your local browser. Closing Terminal 1 drops the tunnel.
+
+### What reloads automatically vs. manually
+
+| Change | Auto-reload? | Manual step |
+|---|---|---|
+| `.md` content files | Yes | — |
+| `.svelte` figure source | No | `make figures`, then hard-refresh |
+| Table spec / CSV | No | `make tables`, then refresh |
+| `myst.yml` config | No | Restart `make dev-myst` (clears cache on start) |
+| CSS in `_static/` | No | Hard-refresh (Ctrl+Shift+R) |
+
 ## Validation
 
 ```bash

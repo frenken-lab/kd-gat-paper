@@ -21,6 +21,7 @@ Global defaults (edit constants below):
 
 from __future__ import annotations
 
+import base64
 import html as html_module
 import re
 import sys
@@ -100,13 +101,35 @@ _KEYBOARD_RELAY_JS = """\
 """
 
 
+_SVG_IMG_RE = re.compile(r'<img([^>]*)\bsrc="([^"]+\.svg)"([^>]*)>', re.IGNORECASE)
+
+
+def apply_keyboard_relay(html: str) -> str:
+    if "</body>" not in html:
+        return html
+    return html.replace("</body>", _KEYBOARD_RELAY_JS + "</body>", 1)
+
+
+def apply_inline_svgs(html: str, base_dir: Path) -> str:
+    def _replace(m: re.Match) -> str:
+        pre, svg_path, post = m.group(1), m.group(2), m.group(3)
+        full = base_dir / svg_path
+        if not full.exists():
+            return m.group(0)
+        b64 = base64.b64encode(full.read_bytes()).decode("ascii")
+        return f'<img{pre}src="data:image/svg+xml;base64,{b64}"{post}>'
+
+    return _SVG_IMG_RE.sub(_replace, html)
+
+
 def _inject_keyboard_relay(html_path: str) -> None:
-    """Post-process built HTML to inject same-origin iframe keyboard relay."""
     p = Path(html_path)
-    src = p.read_text(encoding="utf-8")
-    if "</body>" not in src:
-        return
-    p.write_text(src.replace("</body>", _KEYBOARD_RELAY_JS + "</body>", 1), encoding="utf-8")
+    p.write_text(apply_keyboard_relay(p.read_text(encoding="utf-8")), encoding="utf-8")
+
+
+def _inline_svgs(html_path: str, base_dir: Path) -> None:
+    p = Path(html_path)
+    p.write_text(apply_inline_svgs(p.read_text(encoding="utf-8"), base_dir), encoding="utf-8")
 
 
 # --- inject into colloquium registry before importing build_file -------------
@@ -131,4 +154,5 @@ if __name__ == "__main__":
 
     result = build_file(str(input_path), output_path)
     _inject_keyboard_relay(result)
+    _inline_svgs(result, input_path.parent)
     print(f"Built: {result}")
