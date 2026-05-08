@@ -13,7 +13,7 @@ export { default as DiagramCanvas } from './DiagramCanvas.svelte';
 export type * from './types.ts';
 
 // Utilities
-export { loadSpec, specToFlow } from './convert.ts';
+export { loadSpec, specToFlow, specToFlowELK } from './convert.ts';
 export type { FloatingEdgeParams } from './floating.ts';
 export { getEdgeParams } from './floating.ts';
 export { circularPositions } from './layout.ts';

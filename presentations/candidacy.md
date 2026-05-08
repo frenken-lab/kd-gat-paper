@@ -51,9 +51,28 @@ content: |
 
 ---
 
-## KD-GAT Architecture
+<!-- columns: 2 -->
 
-<!-- TODO: three things the audience needs to track: teacher, student, distillation loss path. The figure does the work. -->
+## GAT Architecture
+
+<!-- TODO: -->
+
+![Graph Attention](GAT.svg)
+
+- Inspired by attention models, Graph Attention Transformer (GAT) adds a learnable attention variable $𝛼_𝑣𝑢$ to dynamically weight the importance of a node’s neighbors
+
+$$
+\alpha_{vu} = \mathrm{softmax}\left(
+    \mathrm{LeakyReLU}\left(
+        \mathbf{a}^\top
+        \left[
+            \mathbf{W}\mathbf{h}_v \| \mathbf{W}\mathbf{h}_u
+        \right]
+    \right)
+\right)
+$$
+
+|||
 
 ```iframe
 src: https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/kd-gat.html
@@ -70,6 +89,55 @@ src: https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/architect
 height: 480
 title: Full architecture diagram
 ```
+
+---
+
+---
+
+<!-- columns: 3 -->
+
+## Fusion: MoE
+
+MLP Layers
+
+```python
+layers: list[nn.Module] = []
+cur = in_dim
+for h in hidden:
+    layers.extend([nn.Linear(cur, h), nn.ReLU(), nn.Dropout(0.2)])
+    cur = h
+layers.append(nn.Linear(cur, out_dim))
+return nn.Sequential(*layers)
+```
+
+- 3 MLP layers with identical shapes
+- Linear → ReLU → Dropout × hidden -> Linear
+
+|||
+Load Balancing
+
+```python
+if self._last_gate_weights is None:
+            return torch.tensor(0.0, device=self.device)
+P = self._last_gate_weights.mean(dim=0)  # [K]
+K = P.numel()
+return K * (P * P).sum()
+```
+
+- $/alpha$ = 0.01
+  |||
+
+Loss Function
+
+```python
+w = self._last_gate_weights.detach()
+s = self._last_expert_scores.detach()
+entropy = -(w * w.clamp_min(1e-9).log()).sum(-1).mean()
+self.log(f"{prefix}/gate_entropy", entropy.item())
+mean_w = w.mean(dim=0)
+```
+
+- Entropy: 0 = collapsed to one expert, log(K) = uniform routing.
 
 ---
 

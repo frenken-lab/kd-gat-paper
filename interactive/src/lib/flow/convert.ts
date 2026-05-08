@@ -1,11 +1,14 @@
 import { Position } from '@xyflow/svelte';
 
 import { getPaletteColor } from '../palette.ts';
+import { layoutWithELK, layoutHierarchicalWithELK } from './elk.ts';
+import type { ELKHierarchicalResult, ELKNodeIn } from './elk.ts';
 import { circularPositions } from './layout.ts';
 import type {
   DiagramEdge,
   DiagramNode,
   FigureSpec,
+  GraphComponentSpec,
   LayoutNode,
 } from './types.ts';
 
@@ -688,6 +691,409 @@ export async function specToFlow(
       const parent = byId.get(n.parentId);
       if (parent) emit(parent);
     }
+    sorted.push(n);
+  }
+  for (const n of nodes) emit(n);
+  nodes.length = 0;
+  nodes.push(...sorted);
+
+  return { nodes, edges };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// specToFlowELK — same spec format as specToFlow but uses ELK for layout
+// instead of the custom hstack/vstack/pipeline engine.
+//
+// Supports: box and graph components; hstack / vstack / pipeline layout nodes;
+// layout nodes with container: become ELK groups.
+// Does NOT support: spec component type, corner-anchor bridges.
+// ─────────────────────────────────────────────────────────────────────────────
+export async function specToFlowELK(
+  spec: FigureSpec,
+  opts?: { direction?: 'LR' | 'TB' },
+): Promise<{ nodes: DiagramNode[]; edges: DiagramEdge[] }> {
+  const nodes: DiagramNode[] = [];
+  const edges: DiagramEdge[] = [];
+  const direction = opts?.direction ?? 'LR';
+
+  const componentNodes = new Map<string, string[]>();
+  const componentContainers = new Map<string, string>();
+  let edgeIdx = 0;
+
+  // ── Step 1: build component nodes (box + graph) ──────────────────────────
+
+  for (const [id, comp] of Object.entries(spec.components)) {
+    if (comp.type === 'box') {
+      const { stroke, fill } = getPaletteColor(comp.color ?? 'grey');
+      const w = comp.width ?? 90;
+      const h = comp.height ?? 32;
+      nodes.push({
+        id,
+        type: 'default',
+        position: { x: 0, y: 0 },
+        data: { label: comp.label },
+        style: `--ns: ${stroke}; --nf: ${fill};`,
+        width: w,
+        height: h,
+        sourcePosition: direction === 'LR' ? Position.Right : Position.Bottom,
+        targetPosition: direction === 'LR' ? Position.Left : Position.Top,
+      });
+      componentNodes.set(id, [id]);
+    } else if (comp.type === 'graph') {
+      const labels = resolveLabels(comp.labels, comp.n);
+      const radius = (comp.scale ?? 80) / 2;
+      const positions = circularPositions(comp.n, 0, 0, radius);
+      const nodeIds: string[] = [];
+      const circleR = comp.r ?? (radius < 30 ? 10 : 14);
+
+      for (let i = 0; i < comp.n; i++) {
+        const nodeId = `${id}_${i}`;
+        nodeIds.push(nodeId);
+        nodes.push({
+          id: nodeId,
+          type: 'circle',
+          position: { x: positions[i].x, y: positions[i].y },
+          data: { label: labels[i], color: comp.color ?? 'grey', r: circleR },
+          sourcePosition: direction === 'LR' ? Position.Right : Position.Bottom,
+          targetPosition: direction === 'LR' ? Position.Left : Position.Top,
+        });
+      }
+
+      const v = comp.variant;
+      const edgeData = (i: number, j: number) => ({
+        color: comp.color ?? 'grey',
+        ...(v !== undefined && { highlighted: i === v - 1 || j === v - 1 }),
+      });
+      if (comp.topology === 'full') {
+        for (let i = 0; i < comp.n; i++)
+          for (let j = i + 1; j < comp.n; j++)
+            edges.push({ id: `e${edgeIdx++}`, source: nodeIds[i], target: nodeIds[j], type: 'structural', data: edgeData(i, j) });
+      } else if (comp.topology === 'sparse') {
+        for (let i = 0; i < comp.n; i++) {
+          const j = (i + 1) % comp.n;
+          edges.push({ id: `e${edgeIdx++}`, source: nodeIds[i], target: nodeIds[j], type: 'structural', data: edgeData(i, j) });
+        }
+        if (comp.n > 3)
+          edges.push({ id: `e${edgeIdx++}`, source: nodeIds[0], target: nodeIds[2], type: 'structural', data: edgeData(0, 2) });
+      }
+
+      componentNodes.set(id, nodeIds);
+
+      if (comp.container) {
+        const containerId = `${id}__container`;
+        const { stroke: cs, fill: cf } = getPaletteColor(comp.container.color ?? comp.color ?? 'grey');
+        nodes.push({
+          id: containerId,
+          type: 'container',
+          position: { x: 0, y: 0 },
+          data: {
+            label: comp.container.label,
+            style: `border-color: ${cs}; background: ${cf};`,
+            labelStyle: `color: ${cs};`,
+            shape: comp.container.shape,
+            line: comp.container.line,
+            padding: comp.container.padding,
+          },
+          width: radius * 2 + 80,
+          height: radius * 2 + 60,
+          style: 'z-index: -1;',
+        });
+        componentContainers.set(id, containerId);
+        for (const nodeId of nodeIds) {
+          const node = nodes.find(n => n.id === nodeId);
+          if (node) node.parentId = containerId;
+        }
+      }
+    }
+  }
+
+  // ── Step 2: bboxes for graph components (with x0/y0 for parent-rel math) ─
+
+  type CompBox = { w: number; h: number; cx: number; cy: number; x0: number; y0: number };
+  const compBoxes = new Map<string, CompBox>();
+  for (const [compId, nodeIds] of componentNodes.entries()) {
+    const compNodes = nodeIds
+      .map(id => nodes.find(n => n.id === id))
+      .filter((n): n is DiagramNode => !!n && n.type !== 'container');
+    if (compNodes.length === 0) continue;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const n of compNodes) {
+      const w = nodeBoxW(n);
+      const h = nodeBoxH(n);
+      x0 = Math.min(x0, n.position.x);
+      y0 = Math.min(y0, n.position.y);
+      x1 = Math.max(x1, n.position.x + w);
+      y1 = Math.max(y1, n.position.y + h);
+    }
+    compBoxes.set(compId, { w: x1 - x0, h: y1 - y0, cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, x0, y0 });
+  }
+
+  // ── Step 3: walk layout tree → ELK structure ────────────────────────────
+
+  const ELK_COMP_PAD = 16;
+  const ELK_LABEL_PAD = 18;
+
+  function compELKSize(compId: string): { width: number; height: number } {
+    const box = compBoxes.get(compId);
+    const comp = spec.components[compId];
+    if (comp?.type === 'graph' && comp.container) {
+      const lp = (comp as GraphComponentSpec).container?.label ? ELK_LABEL_PAD : 0;
+      return { width: (box?.w ?? 80) + 2 * ELK_COMP_PAD, height: (box?.h ?? 40) + 2 * ELK_COMP_PAD + lp };
+    }
+    const n = nodes.find(nd => nd.id === compId);
+    return { width: n?.width ?? 90, height: n?.height ?? 32 };
+  }
+
+  function elkIdFor(compId: string): string {
+    return componentContainers.get(compId) ?? componentNodes.get(compId)?.[0] ?? compId;
+  }
+
+  type ELKFlatNode = { id: string; width: number; height: number };
+  type ELKGroupSpec = {
+    id: string;
+    direction: 'LR' | 'TB';
+    children: ELKFlatNode[];
+    containerSpec: LayoutNode['container'];
+  };
+
+  const elkGroupSpecs: ELKGroupSpec[] = [];
+  let groupIdx = 0;
+
+  interface WalkResult {
+    elkNodes: ELKFlatNode[];
+    pipelineEdges: Array<{ id: string; source: string; target: string }>;
+    repId: string | null; // representative ELK ID for pipeline chaining
+  }
+
+  function walkForELK(layout: string | LayoutNode): WalkResult {
+    if (typeof layout === 'string') {
+      const size = compELKSize(layout);
+      const elkId = elkIdFor(layout);
+      return { elkNodes: [{ id: elkId, ...size }], pipelineEdges: [], repId: elkId };
+    }
+
+    const children = layout.children ?? layout.elements ?? [];
+    const childResults = children.map(c => walkForELK(c));
+    const allPipelineEdges = childResults.flatMap(r => r.pipelineEdges);
+
+    if (layout.type === 'pipeline') {
+      const repIds = childResults.map(r => r.repId).filter((id): id is string => id !== null);
+      for (let i = 0; i < repIds.length - 1; i++)
+        allPipelineEdges.push({ id: `pe${edgeIdx++}`, source: repIds[i], target: repIds[i + 1] });
+    }
+
+    const allChildNodes = childResults.flatMap(r => r.elkNodes);
+    // pipeline → repId = last child; hstack/vstack → repId = first child
+    const repId =
+      layout.type === 'pipeline'
+        ? (childResults[childResults.length - 1]?.repId ?? null)
+        : (childResults[0]?.repId ?? null);
+
+    if (layout.container) {
+      const groupId = layout.id ? `__layout_${layout.id}` : `__layout_group_${groupIdx++}`;
+      const groupDir: 'LR' | 'TB' = layout.type === 'vstack' ? 'TB' : 'LR';
+      elkGroupSpecs.push({ id: groupId, direction: groupDir, children: allChildNodes, containerSpec: layout.container });
+      return { elkNodes: [{ id: groupId, width: 0, height: 0 }], pipelineEdges: allPipelineEdges, repId: groupId };
+    }
+
+    return { elkNodes: allChildNodes, pipelineEdges: allPipelineEdges, repId };
+  }
+
+  const { elkNodes: rootELKNodes, pipelineEdges } = walkForELK(spec.layout);
+
+  // ── Step 4: ELK edges from pipelines + bridges ────────────────────────────
+
+  function resolveToELKId(ref: string): string | null {
+    const sideMatch = ref.match(/^(.+)__(?:top|bottom|left|right)$/);
+    const baseId = sideMatch ? sideMatch[1] : ref;
+    const ctr = componentContainers.get(baseId);
+    if (ctr) return ctr;
+    const ids = componentNodes.get(baseId);
+    if (ids?.length) return ids[0];
+    const gid = `__layout_${baseId}`;
+    if (elkGroupSpecs.some(g => g.id === gid)) return gid;
+    if (nodes.some(n => n.id === baseId)) return baseId;
+    return null;
+  }
+
+  const allELKEdges: Array<{ id: string; source: string; target: string }> = [...pipelineEdges];
+  if (spec.bridges) {
+    for (const b of spec.bridges) {
+      const src = resolveToELKId(b.from);
+      const tgt = resolveToELKId(b.to);
+      if (src && tgt && src !== tgt)
+        allELKEdges.push({ id: `be${edgeIdx++}`, source: src, target: tgt });
+    }
+  }
+
+  // ── Step 5: run ELK ──────────────────────────────────────────────────────
+
+  let elkResult: ELKHierarchicalResult;
+
+  if (elkGroupSpecs.length > 0) {
+    const groupIds = new Set(elkGroupSpecs.map(g => g.id));
+    elkResult = await layoutHierarchicalWithELK(
+      elkGroupSpecs.map(g => ({ id: g.id, direction: g.direction, children: g.children })),
+      allELKEdges,
+      {
+        direction,
+        nodeSpacing: 18,
+        rankSpacing: 60,
+        groupSpacing: 60,
+        flatNodes: rootELKNodes.filter(n => !groupIds.has(n.id)),
+      },
+    );
+  } else {
+    const flat = await layoutWithELK(rootELKNodes, allELKEdges, {
+      direction,
+      nodeSpacing: 50,
+      rankSpacing: 80,
+    });
+    elkResult = { groups: new Map(), nodes: flat.nodes };
+  }
+
+  // ── Step 6: apply ELK positions ──────────────────────────────────────────
+
+  const byId = new Map(nodes.map(n => [n.id, n]));
+
+  // Component containers: ELK placed the container node; set children parent-relative.
+  for (const [compId, containerId] of componentContainers.entries()) {
+    const container = byId.get(containerId);
+    if (!container) continue;
+    const elkPos = elkResult.nodes.get(containerId);
+    if (!elkPos) continue;
+
+    container.position = { x: elkPos.x, y: elkPos.y };
+    container.width = elkPos.width;
+    container.height = elkPos.height;
+
+    const box = compBoxes.get(compId);
+    const gComp = spec.components[compId] as GraphComponentSpec | undefined;
+    const lp = gComp?.container?.label ? ELK_LABEL_PAD : 0;
+
+    for (const nid of componentNodes.get(compId) ?? []) {
+      const circleNode = byId.get(nid);
+      if (!circleNode) continue;
+      const orig = circleNode.position;
+      circleNode.position = {
+        x: orig.x - (box?.x0 ?? 0) + ELK_COMP_PAD,
+        y: orig.y - (box?.y0 ?? 0) + ELK_COMP_PAD + lp,
+      };
+    }
+  }
+
+  // Flat box nodes: apply root-relative ELK position.
+  for (const [compId, nodeIds] of componentNodes.entries()) {
+    if (componentContainers.has(compId)) continue;
+    for (const nid of nodeIds) {
+      const n = byId.get(nid);
+      if (!n) continue;
+      const elkPos = elkResult.nodes.get(nid);
+      if (elkPos) n.position = { x: elkPos.x, y: elkPos.y };
+    }
+  }
+
+  // Layout groups: create SvelteFlow container nodes; set children parent-relative.
+  for (const groupSpec of elkGroupSpecs) {
+    const groupPos = elkResult.groups.get(groupSpec.id);
+    if (!groupPos) continue;
+
+    const { stroke: cs, fill: cf } = getPaletteColor(groupSpec.containerSpec?.color ?? 'grey');
+    const containerNode: DiagramNode = {
+      id: groupSpec.id,
+      type: 'container',
+      position: { x: groupPos.x, y: groupPos.y },
+      data: {
+        label: groupSpec.containerSpec?.label,
+        style: `border-color: ${cs}; background: ${cf};`,
+        labelStyle: `color: ${cs};`,
+        shape: groupSpec.containerSpec?.shape,
+        line: groupSpec.containerSpec?.line,
+      },
+      width: groupPos.width,
+      height: groupPos.height,
+      style: 'z-index: -1;',
+    };
+    nodes.push(containerNode);
+    byId.set(groupSpec.id, containerNode);
+
+    for (const child of groupSpec.children) {
+      const childNode = byId.get(child.id);
+      if (!childNode) continue;
+      const childPos = elkResult.nodes.get(child.id);
+      if (childPos) {
+        childNode.position = { x: childPos.x, y: childPos.y };
+        childNode.parentId = groupSpec.id;
+      }
+    }
+  }
+
+  // ── Step 7: bridge edges (SvelteFlow rendering) ───────────────────────────
+
+  const nodeIdSet = new Set(nodes.map(n => n.id));
+
+  function resolveRef(ref: string): string | null {
+    if (nodeIdSet.has(ref)) return ref;
+    const sideMatch = ref.match(/^(.+)__(?:top|bottom|left|right)$/);
+    if (sideMatch) {
+      const baseId = sideMatch[1];
+      const ctr = componentContainers.get(baseId);
+      if (ctr) return ctr;
+      const ids = componentNodes.get(baseId);
+      if (ids?.length) return ids.find(id => nodeIdSet.has(id)) ?? null;
+      const gid = `__layout_${baseId}`;
+      if (nodeIdSet.has(gid)) return gid;
+    }
+    const ctr = componentContainers.get(ref);
+    if (ctr) return ctr;
+    const ids = componentNodes.get(ref);
+    if (ids?.length) return ids.find(id => nodeIdSet.has(id)) ?? null;
+    return null;
+  }
+
+  if (spec.bridges) {
+    for (const b of spec.bridges) {
+      const source = resolveRef(b.from);
+      const target = resolveRef(b.to);
+      if (!source || !target) {
+        console.warn(`[specToFlowELK] unresolved bridge: ${b.from} -> ${b.to}`);
+        continue;
+      }
+      const isKd = b.type === 'kd';
+      const isLine = b.type === 'line';
+      const data: Record<string, unknown> = {
+        color: b.color ?? (isKd ? 'kd' : 'grey'),
+        label: b.label ?? (isKd ? 'KD' : undefined),
+        dashed: b.style === 'dashed' || isKd,
+      };
+      if (isKd) {
+        data.strokeWidth = 2;
+        data.dashArray = '6 4';
+        data.boldLabel = true;
+        data.labelOnStroke = true;
+        data.labelOffsetX = 10;
+        data.labelLeftAlign = true;
+      }
+      if (isLine) data.straight = true;
+      edges.push({
+        id: `e${edgeIdx++}`,
+        source,
+        target,
+        type: b.type === 'flow' || b.type === undefined || isKd || isLine ? 'flow' : b.type,
+        data: data as DiagramEdge['data'],
+      });
+    }
+  }
+
+  // ── Step 8: topo-sort (SvelteFlow requires parents before children) ───────
+
+  const visited = new Set<string>();
+  const sorted: DiagramNode[] = [];
+  const byId2 = new Map(nodes.map(n => [n.id, n]));
+  function emit(n: DiagramNode): void {
+    if (visited.has(n.id)) return;
+    visited.add(n.id);
+    if (n.parentId) { const p = byId2.get(n.parentId); if (p) emit(p); }
     sorted.push(n);
   }
   for (const n of nodes) emit(n);

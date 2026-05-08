@@ -127,9 +127,12 @@ export async function layoutHierarchicalWithELK(
     nodeSpacing?: number;
     rankSpacing?: number;
     groupSpacing?: number;
+    // Root-level flat nodes that participate in the same ELK layout as the groups.
+    // Positions returned in ELKHierarchicalResult.nodes (root-relative).
+    flatNodes?: ELKNodeIn[];
   } = {},
 ): Promise<ELKHierarchicalResult> {
-  const { direction = 'TB', nodeSpacing = 18, rankSpacing = 28, groupSpacing = 50 } = opts;
+  const { direction = 'TB', nodeSpacing = 18, rankSpacing = 28, groupSpacing = 50, flatNodes = [] } = opts;
   const rootDir = direction === 'LR' ? 'RIGHT' : direction === 'RL' ? 'LEFT' : direction === 'BT' ? 'UP' : 'DOWN';
 
   const graph = {
@@ -143,20 +146,23 @@ export async function layoutHierarchicalWithELK(
       'elk.layered.spacing.nodeNodeBetweenLayers': String(groupSpacing),
       'elk.padding': '[top=20,left=20,bottom=20,right=20]',
     },
-    children: groups.map(g => {
-      const gDir = g.direction ? (g.direction === 'LR' ? 'RIGHT' : 'DOWN') : 'RIGHT';
-      return {
-        id: g.id,
-        layoutOptions: {
-          'elk.algorithm': 'layered',
-          'elk.direction': gDir,
-          'elk.spacing.nodeNode': String(nodeSpacing),
-          'elk.layered.spacing.nodeNodeBetweenLayers': String(rankSpacing),
-          'elk.padding': '[top=24,left=12,bottom=12,right=12]',
-        },
-        children: g.children.map(n => ({ id: n.id, width: n.width, height: n.height })),
-      };
-    }),
+    children: [
+      ...groups.map(g => {
+        const gDir = g.direction ? (g.direction === 'LR' ? 'RIGHT' : 'DOWN') : 'RIGHT';
+        return {
+          id: g.id,
+          layoutOptions: {
+            'elk.algorithm': 'layered',
+            'elk.direction': gDir,
+            'elk.spacing.nodeNode': String(nodeSpacing),
+            'elk.layered.spacing.nodeNodeBetweenLayers': String(rankSpacing),
+            'elk.padding': '[top=24,left=12,bottom=12,right=12]',
+          },
+          children: g.children.map(n => ({ id: n.id, width: n.width, height: n.height })),
+        };
+      }),
+      ...flatNodes.map(n => ({ id: n.id, width: n.width, height: n.height })),
+    ],
     edges: edges.map(e => ({ id: e.id, sources: [e.source], targets: [e.target] })),
   };
 
@@ -168,9 +174,15 @@ export async function layoutHierarchicalWithELK(
   const nodesMap = new Map<string, { x: number; y: number; width: number; height: number }>();
 
   for (const g of (result.children ?? []) as ELKChild[]) {
-    groupsMap.set(g.id, { x: g.x ?? 0, y: g.y ?? 0, width: g.width ?? 0, height: g.height ?? 0 });
-    for (const c of (g.children ?? []) as ELKChild[]) {
-      nodesMap.set(c.id, { x: c.x ?? 0, y: c.y ?? 0, width: c.width ?? 0, height: c.height ?? 0 });
+    if ((g.children ?? []).length > 0) {
+      // Group: record group bbox + child positions (parent-relative from ELK).
+      groupsMap.set(g.id, { x: g.x ?? 0, y: g.y ?? 0, width: g.width ?? 0, height: g.height ?? 0 });
+      for (const c of (g.children ?? []) as ELKChild[]) {
+        nodesMap.set(c.id, { x: c.x ?? 0, y: c.y ?? 0, width: c.width ?? 0, height: c.height ?? 0 });
+      }
+    } else {
+      // Flat root-level node: position is root-relative.
+      nodesMap.set(g.id, { x: g.x ?? 0, y: g.y ?? 0, width: g.width ?? 0, height: g.height ?? 0 });
     }
   }
 
