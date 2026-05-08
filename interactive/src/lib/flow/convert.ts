@@ -919,6 +919,9 @@ export async function specToFlowELK(
   const allELKEdges: Array<{ id: string; source: string; target: string }> = [...pipelineEdges];
   if (spec.bridges) {
     for (const b of spec.bridges) {
+      // kd and encoded bridges are visual annotations between same-layer nodes;
+      // feeding them to ELK as layout edges displaces nodes into wrong layers.
+      if (b.type === 'kd' || b.type === 'encoded') continue;
       const src = resolveToELKId(b.from);
       const tgt = resolveToELKId(b.to);
       if (src && tgt && src !== tgt)
