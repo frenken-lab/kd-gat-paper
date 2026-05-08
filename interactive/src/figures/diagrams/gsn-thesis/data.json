@@ -14,7 +14,8 @@
         "gsnType": "Goal",
         "undeveloped": false,
         "layer": "thesis"
-      }
+      },
+      "parentId": "group_thesis"
     },
     {
       "id": "N02-thesis",
@@ -31,7 +32,8 @@
         "undeveloped": false,
         "layer": "thesis",
         "formal_object": true
-      }
+      },
+      "parentId": "group_thesis"
     },
     {
       "id": "N01-thesis",
@@ -47,7 +49,8 @@
         "gsnType": "Goal",
         "undeveloped": false,
         "layer": "thesis"
-      }
+      },
+      "parentId": "group_thesis"
     },
     {
       "id": "N03",
@@ -63,7 +66,8 @@
         "gsnType": "Goal",
         "undeveloped": true,
         "layer": "thesis"
-      }
+      },
+      "parentId": "group_thesis"
     },
     {
       "id": "N19-thesis",
@@ -79,7 +83,8 @@
         "gsnType": "Goal",
         "undeveloped": false,
         "layer": "thesis"
-      }
+      },
+      "parentId": "group_thesis"
     },
     {
       "id": "N02-instance",
@@ -97,7 +102,8 @@
         "layer": "instance",
         "instantiates": "N02-thesis",
         "formal_object": true
-      }
+      },
+      "parentId": "group_instance"
     },
     {
       "id": "N01-instance",
@@ -114,7 +120,8 @@
         "undeveloped": false,
         "layer": "instance",
         "instantiates": "N01-thesis"
-      }
+      },
+      "parentId": "group_instance"
     },
     {
       "id": "N17",
@@ -131,7 +138,8 @@
         "undeveloped": false,
         "layer": "instance",
         "formal_object": true
-      }
+      },
+      "parentId": "group_instance"
     },
     {
       "id": "N12",
@@ -149,7 +157,8 @@
         "layer": "instance",
         "instantiates": "N31",
         "formal_object": true
-      }
+      },
+      "parentId": "group_instance"
     },
     {
       "id": "N13",
@@ -166,7 +175,8 @@
         "undeveloped": false,
         "layer": "instance",
         "formal_object": true
-      }
+      },
+      "parentId": "group_instance"
     },
     {
       "id": "N19-instance",
@@ -183,7 +193,8 @@
         "undeveloped": false,
         "layer": "instance",
         "instantiates": "N19-thesis"
-      }
+      },
+      "parentId": "group_instance"
     },
     {
       "id": "N04-instance",
@@ -200,7 +211,8 @@
         "undeveloped": false,
         "layer": "instance",
         "instantiates": "N04-thesis"
-      }
+      },
+      "parentId": "group_instance"
     },
     {
       "id": "N50",
@@ -216,7 +228,8 @@
         "gsnType": "Goal",
         "undeveloped": true,
         "layer": "instance"
-      }
+      },
+      "parentId": "group_instance"
     },
     {
       "id": "S-thesis",
@@ -230,8 +243,10 @@
         "statement": "A formal class-conditional coverage guarantee (N02-thesis) on a constraint-respecting compressed system (N19-thesis) using diagnostically-orthogonal channels (N04-thesis) closes the thesis.",
         "shape": "parallelogram",
         "gsnType": "Strategy",
-        "undeveloped": true
-      }
+        "undeveloped": true,
+        "layer": "thesis"
+      },
+      "parentId": "group_thesis"
     },
     {
       "id": "S-N02-thesis",
@@ -245,8 +260,10 @@
         "statement": "Existence proof \u2014 any closed instance closes the abstract guarantee.",
         "shape": "parallelogram",
         "gsnType": "Strategy",
-        "undeveloped": false
-      }
+        "undeveloped": false,
+        "layer": "thesis"
+      },
+      "parentId": "group_thesis"
     },
     {
       "id": "S-N01-thesis",
@@ -260,8 +277,10 @@
         "statement": "If independent calibration produces a coverage void (N03), joint fitting on a single split is the forced fix.",
         "shape": "parallelogram",
         "gsnType": "Strategy",
-        "undeveloped": false
-      }
+        "undeveloped": false,
+        "layer": "thesis"
+      },
+      "parentId": "group_thesis"
     },
     {
       "id": "S-N19-thesis",
@@ -275,8 +294,10 @@
         "statement": "Existence proof \u2014 the KD pipeline (N19-instance) closes the constraint-respecting compression requirement.",
         "shape": "parallelogram",
         "gsnType": "Strategy",
-        "undeveloped": false
-      }
+        "undeveloped": false,
+        "layer": "thesis"
+      },
+      "parentId": "group_thesis"
     },
     {
       "id": "S-N02-instance",
@@ -290,8 +311,10 @@
         "statement": "Composing Mondrian (N17) with the safety shield (N12) on the joint-fit apparatus (N01-instance) yields a class-conditional rejection bound on the PINN-active subset, conditional on operationally-bounded abstain rate under K7 imbalance (N50).",
         "shape": "parallelogram",
         "gsnType": "Strategy",
-        "undeveloped": true
-      }
+        "undeveloped": true,
+        "layer": "instance"
+      },
+      "parentId": "group_instance"
     },
     {
       "id": "S-N01-instance",
@@ -305,8 +328,10 @@
         "statement": "The 5-threshold list is one specific calibration apparatus realizing N01-thesis on the natural-distribution split.",
         "shape": "parallelogram",
         "gsnType": "Strategy",
-        "undeveloped": false
-      }
+        "undeveloped": false,
+        "layer": "instance"
+      },
+      "parentId": "group_instance"
     },
     {
       "id": "S-N17",
@@ -320,8 +345,10 @@
         "statement": "Mondrian conformal predictors with class-conditional coverage are standard (Vovk et al. 2003); the kd-gat instantiation specializes to the PINN-active subset.",
         "shape": "parallelogram",
         "gsnType": "Strategy",
-        "undeveloped": false
-      }
+        "undeveloped": false,
+        "layer": "instance"
+      },
+      "parentId": "group_instance"
     },
     {
       "id": "S-N12",
@@ -335,8 +362,10 @@
         "statement": "Implementing the decoupled-approval principle (N31) via the composite trust score (N13) yields the projection step on the simplex.",
         "shape": "parallelogram",
         "gsnType": "Strategy",
-        "undeveloped": false
-      }
+        "undeveloped": false,
+        "layer": "instance"
+      },
+      "parentId": "group_instance"
     },
     {
       "id": "S-N13",
@@ -350,8 +379,10 @@
         "statement": "lambda_physics is the product lambda_tier \u00d7 V_regime \u00d7 V_signal \u00d7 V_residual; each gate is an empirical runtime check whose validity is definitional. Joint-fit thresholds inherit from N01-instance.",
         "shape": "parallelogram",
         "gsnType": "Strategy",
-        "undeveloped": false
-      }
+        "undeveloped": false,
+        "layer": "instance"
+      },
+      "parentId": "group_instance"
     },
     {
       "id": "S-N19-instance",
@@ -365,8 +396,10 @@
         "statement": "The capacity gap law (N20) determines whether the resulting 68\u00d7 ratio falls in the viable region for binary CAN classification, governed InContextOf K1 (hardware envelope).",
         "shape": "parallelogram",
         "gsnType": "Strategy",
-        "undeveloped": false
-      }
+        "undeveloped": false,
+        "layer": "instance"
+      },
+      "parentId": "group_instance"
     },
     {
       "id": "N31",
@@ -387,7 +420,8 @@
           "krakovna2020specification",
           "uesato2020decoupled"
         ]
-      }
+      },
+      "parentId": "group_thesis"
     },
     {
       "id": "N04-thesis",
@@ -403,7 +437,8 @@
         "gsnType": "Context",
         "undeveloped": false,
         "layer": "thesis"
-      }
+      },
+      "parentId": "group_thesis"
     },
     {
       "id": "V03",
@@ -423,7 +458,8 @@
           "vovk2003mondrian"
         ],
         "formal_object": true
-      }
+      },
+      "parentId": "group_instance"
     },
     {
       "id": "N20",
@@ -445,7 +481,8 @@
           "Towards-Law-of-Capacity-Gap2025"
         ],
         "formal_object": true
-      }
+      },
+      "parentId": "group_instance"
     },
     {
       "id": "N14",
@@ -461,7 +498,8 @@
         "gsnType": "Solution",
         "undeveloped": false,
         "layer": "instance"
-      }
+      },
+      "parentId": "group_instance"
     },
     {
       "id": "N15",
@@ -477,7 +515,8 @@
         "gsnType": "Solution",
         "undeveloped": false,
         "layer": "instance"
-      }
+      },
+      "parentId": "group_instance"
     },
     {
       "id": "N16",
@@ -493,7 +532,8 @@
         "gsnType": "Solution",
         "undeveloped": false,
         "layer": "instance"
-      }
+      },
+      "parentId": "group_instance"
     },
     {
       "id": "K1",
@@ -509,7 +549,8 @@
         "gsnType": "Context",
         "undeveloped": false,
         "layer": "constraint"
-      }
+      },
+      "parentId": "group_constraint"
     },
     {
       "id": "K2",
@@ -528,7 +569,8 @@
         "citations": [
           "iso26262_part6"
         ]
-      }
+      },
+      "parentId": "group_constraint"
     },
     {
       "id": "K3",
@@ -547,7 +589,8 @@
         "citations": [
           "iso8800"
         ]
-      }
+      },
+      "parentId": "group_constraint"
     },
     {
       "id": "K4",
@@ -566,7 +609,8 @@
         "citations": [
           "unece_r155"
         ]
-      }
+      },
+      "parentId": "group_constraint"
     },
     {
       "id": "K5",
@@ -582,7 +626,8 @@
         "gsnType": "Context",
         "undeveloped": false,
         "layer": "constraint"
-      }
+      },
+      "parentId": "group_constraint"
     },
     {
       "id": "K6",
@@ -602,7 +647,8 @@
           "fpga_ids_ecu_2024",
           "real_time_zero_day_fpga_2024"
         ]
-      }
+      },
+      "parentId": "group_constraint"
     },
     {
       "id": "K7",
@@ -618,7 +664,8 @@
         "gsnType": "Context",
         "undeveloped": false,
         "layer": "constraint"
-      }
+      },
+      "parentId": "group_constraint"
     },
     {
       "id": "K8",
@@ -637,7 +684,8 @@
         "citations": [
           "bycan_2024"
         ]
-      }
+      },
+      "parentId": "group_constraint"
     },
     {
       "id": "K9",
@@ -656,7 +704,8 @@
         "citations": [
           "iv_ids_survey_2025"
         ]
-      }
+      },
+      "parentId": "group_constraint"
     }
   ],
   "edges": [

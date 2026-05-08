@@ -18,6 +18,7 @@
   import StructuralEdge from './edges/StructuralEdge.svelte';
   import CircleNode from './nodes/CircleNode.svelte';
   import ContainerNode from './nodes/ContainerNode.svelte';
+  import GroupNode from './nodes/GroupNode.svelte';
   import type { DiagramEdge, DiagramNode } from './types.ts';
 
   type DiagramCanvasProps = {
@@ -43,6 +44,7 @@
   const nodeTypes: NodeTypes = {
     circle: CircleNode,
     container: ContainerNode,
+    group: GroupNode,
   };
 
   const edgeTypes: EdgeTypes = {

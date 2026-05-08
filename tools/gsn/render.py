@@ -85,6 +85,39 @@ EDGE_MARKER = {
 }
 
 
+def _assign_layers(doc: dict) -> dict[str, str]:
+    """Return a {elem_id: layer} mapping for every element.
+
+    Goals/Solutions/Contexts have explicit `layer:` in the YAML. Strategies do
+    not — infer their layer from the Goal/element they directly support via
+    SupportedBy links (supporter_of[strategy] = [goals it supports]).
+    Iterates to closure so a Strategy-supports-Strategy chain resolves too.
+    """
+    layers: dict[str, str] = {}
+    for elem in doc.get("elements", []):
+        if "layer" in elem:
+            layers[elem["id"]] = elem["layer"]
+
+    # supporter_of[s] = list of elements s directly supports (s is `to` in link)
+    supporter_of: dict[str, list[str]] = {}
+    for link in doc.get("links", []):
+        if link["type"] == "SupportedBy":
+            supporter_of.setdefault(link["to"], []).append(link["from"])
+
+    changed = True
+    while changed:
+        changed = False
+        for elem in doc.get("elements", []):
+            if elem["id"] not in layers:
+                for supported_id in supporter_of.get(elem["id"], []):
+                    if supported_id in layers:
+                        layers[elem["id"]] = layers[supported_id]
+                        changed = True
+                        break
+
+    return layers
+
+
 def load_yaml() -> dict:
     if not YAML_PATH.exists():
         sys.stderr.write(f"ERROR: {YAML_PATH} not found\n")
@@ -103,12 +136,13 @@ def _short_label(elem: dict) -> str:
     return label + "…" if len(words) > 5 else label
 
 
-def build_node(elem: dict) -> dict:
+def build_node(elem: dict, layer_override: str | None = None) -> dict:
     """Map one YAML element to a SvelteFlow node record (single ContainerNode type)."""
     gsn_type = elem["type"]
     if gsn_type not in GSN_TO_SHAPE:
         raise ValueError(f"unknown element type {gsn_type!r} on id {elem.get('id')}")
 
+    layer = layer_override or elem.get("layer")
     data: dict = {
         "label": _short_label(elem),
         "statement": elem.get("statement", ""),
@@ -116,18 +150,24 @@ def build_node(elem: dict) -> dict:
         "gsnType": gsn_type,
         "undeveloped": bool(elem.get("undeveloped", False)),
     }
+    if layer:
+        data["layer"] = layer
     # Carry through optional annotations the Svelte side may use for styling
     # (color by layer, citation badge, instance↔thesis hover, etc.).
-    for opt in ("layer", "citations", "instantiates", "formal_object"):
+    for opt in ("citations", "instantiates", "formal_object"):
         if opt in elem:
             data[opt] = elem[opt]
 
-    return {
+    node: dict = {
         "id": elem["id"],
         "type": "container",  # all GSN nodes share ContainerNode
         "position": {"x": 0, "y": 0},
         "data": data,
     }
+    if layer:
+        node["parentId"] = f"group_{layer}"
+
+    return node
 
 
 def build_edge(link: dict, idx: int) -> dict:
@@ -153,7 +193,8 @@ def build_edge(link: dict, idx: int) -> dict:
 
 
 def convert(doc: dict) -> dict:
-    nodes = [build_node(e) for e in doc.get("elements", [])]
+    layers = _assign_layers(doc)
+    nodes = [build_node(e, layers.get(e["id"])) for e in doc.get("elements", [])]
     edges = [build_edge(l, i) for i, l in enumerate(doc.get("links", []))]
     return {
         "nodes": nodes,
