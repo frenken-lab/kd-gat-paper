@@ -1,9 +1,38 @@
 {
   "matrix": [
-    [0.9900156855583191, 0.9559815526008606],
-    [0.9273306727409363, 0.9917904734611511],
-    [0.9437931180000305, 0.9887343049049377]
+    [
+      0.9523,
+      0.9547,
+      0.9431,
+      0.951,
+      0.9127,
+      0.9696,
+      0.9591,
+      0.9692
+    ],
+    [
+      0.8812,
+      0.9062,
+      0.887,
+      0.8552,
+      0.7301,
+      0.8415,
+      0.8156,
+      0.9194
+    ]
   ],
-  "teacher_layers": ["Teacher L1", "Teacher L2", "Teacher L3"],
-  "student_layers": ["Student L1", "Student L2"]
+  "teacher_layers": [
+    "Layer 0",
+    "Layer 1"
+  ],
+  "student_layers": [
+    "ce",
+    "focal",
+    "weighted_ce",
+    "none",
+    "curriculum_vgae",
+    "curriculum_random",
+    "hash",
+    "lookup"
+  ]
 }

@@ -35,12 +35,15 @@ csv:
 json:
   umap:
     type: object
-    required_keys: [points, bounds, metrics]
-    # points: [{x, y, label, attack_type}] — every GAT embedding; svelteplot's
-    #         <Density> + densityX/Y compute KDE/contours/marginals client-side.
+    required_keys: [datasets]
+    # datasets: {dataset_name: {points, bounds, metrics}} — one entry per dataset.
+    # points: [{x, y, label, attack_type}] — UMAP-projected GAT embeddings.
+    #         label: 0=Normal, 1=Attack (binary). attack_type: "Normal"/"Attack".
+    #         Multi-class subclass labels require a GraphIDS analyze export fix.
     # bounds: {x1, y1, x2, y2} — pinned Plot domain so toggling classes doesn't
-    #         reflow the axes.
+    #         reflow the axes. Per-dataset since each projection has its own range.
     # metrics: {overlap_integral, wasserstein_2d, energy_distance} — class separability.
+    # Source: graphids-data analysis/{dataset}/{UMAP_GROUP}/{UMAP_VARIANT}/seed_42/embeddings.npz
 
   reconstruction:
     type: object
@@ -56,7 +59,12 @@ json:
 
   cka:
     type: object
-    required_keys: [matrix, teacher_layers, student_layers]
+    required_keys: [matrices, teacher_layers, student_layers]
+    # matrices: {dataset: [n_layers][n_variants]} — per-dataset teacher-student CKA,
+    #           averaged across seeds within each dataset. Missing variants → null cells.
+    # teacher_layers: ["Layer 0", "Layer 1"] — GAT layer labels (Y axis).
+    # student_layers: variant name list (X axis), ordered by VARIANT_ORDER in pull_data.py.
+    # Source: graphids-data analysis/{dataset}/{group}/{variant}/seed_*/cka.json
 
   attention:
     type: array

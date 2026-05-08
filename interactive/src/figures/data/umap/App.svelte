@@ -15,33 +15,51 @@
   import { useToggleFilter } from '../../../lib/useToggleFilter.svelte.ts';
   import rawData from './data.json';
 
-  // Guard against missing/malformed JSON
-  const data = rawData;
-  const isEmpty = !data?.points?.length;
+  type PointRecord = { x: number; y: number; label: number; attack_type: string };
+  type DatasetEntry = {
+    points: PointRecord[];
+    bounds: { x1: number; y1: number; x2: number; y2: number };
+    metrics: { overlap_integral: number; wasserstein_2d: number; energy_distance: number };
+  };
 
-  // Toggle filters control visibility of each attack type
-  const { visible, toggle, types } = useToggleFilter(
-    () => (isEmpty ? [] : data.points),
-    d => d.attack_type,
+  const data = rawData;
+  const isEmpty = !data?.datasets || Object.keys(data.datasets).length === 0;
+
+  const datasets = isEmpty ? [] : Object.keys(data.datasets as Record<string, unknown>).sort();
+  let selectedDataset = $state(datasets[0] ?? '');
+
+  const currentData = $derived(
+    isEmpty ? null : (data.datasets as Record<string, DatasetEntry>)[selectedDataset],
   );
 
-  // Stable insertion-order list of unique attack types for consistent color assignment
+  // Attack types are stable across datasets (binary: Normal/Attack) — build color map once
   const attackTypes: string[] = isEmpty
     ? []
-    : [...new Set(data.points.map(d => d.attack_type))];
+    : [
+        ...new Set(
+          Object.values(data.datasets as Record<string, DatasetEntry>).flatMap(d =>
+            d.points.map(p => p.attack_type),
+          ),
+        ),
+      ];
   const colorMap = buildColorMap(attackTypes);
 
-  // Pre-split by type so Dot layers never re-filter on every render
-  const pointsByType = Object.fromEntries(
-    attackTypes.map(t => [
-      t,
-      isEmpty ? [] : data.points.filter(d => d.attack_type === t),
-    ]),
+  // Per-dataset split by type — recalculated when selectedDataset changes
+  const pointsByType = $derived(
+    Object.fromEntries(
+      attackTypes.map(t => [
+        t,
+        currentData ? currentData.points.filter(p => p.attack_type === t) : [],
+      ]),
+    ),
   );
 
-  const { x1, y1, x2, y2 } = isEmpty
-    ? { x1: 0, y1: 0, x2: 1, y2: 1 }
-    : data.bounds;
+  const { visible, toggle, types } = useToggleFilter(
+    () => currentData?.points ?? [],
+    (d: PointRecord) => d.attack_type,
+  );
+
+  const bounds = $derived(currentData?.bounds ?? { x1: 0, y1: 0, x2: 1, y2: 1 });
 
   // ─── Reactive controls ────────────────────────────────────────────────────
   let density = $state({ bandwidth: 20, thresholds: 12 });
@@ -51,24 +69,23 @@
     x2: null as number | null,
   });
 
-  // pointsBrushed[t]: per-class points filtered by brush x-range. Drag direction
-  // is normalized so right-to-left works the same as left-to-right.
+  // Reset brush on dataset switch — each projection has a different x-range
+  $effect(() => {
+    selectedDataset;
+    brush = { enabled: false, x1: null, x2: null };
+  });
+
   const pointsBrushed = $derived.by(() => {
-    if (!brush.enabled || brush.x1 == null || brush.x2 == null)
-      return pointsByType;
+    if (!brush.enabled || brush.x1 == null || brush.x2 == null) return pointsByType;
     const lo = Math.min(+brush.x1, +brush.x2);
     const hi = Math.max(+brush.x1, +brush.x2);
     return Object.fromEntries(
-      attackTypes.map(t => [
-        t,
-        pointsByType[t].filter(d => d.x >= lo && d.x <= hi),
-      ]),
+      attackTypes.map(t => [t, pointsByType[t].filter(d => d.x >= lo && d.x <= hi)]),
     );
   });
 
-  // visiblePoints: flat union across visible classes — HTMLTooltip quadtree source
   const visiblePoints = $derived(
-    isEmpty ? [] : data.points.filter(d => visible[d.attack_type]),
+    currentData ? currentData.points.filter(d => visible[d.attack_type]) : [],
   );
 </script>
 
@@ -76,6 +93,15 @@
   {#if isEmpty}
     <p class="empty">Awaiting data export from KD-GAT</p>
   {:else}
+    <!-- Dataset selector -->
+    <div class="dataset-tabs">
+      {#each datasets as ds}
+        <button class:active={ds === selectedDataset} onclick={() => (selectedDataset = ds)}>
+          {ds}
+        </button>
+      {/each}
+    </div>
+
     <!-- Class toggles + brush reset when active -->
     <div class="controls">
       {#each types as t (t)}
@@ -87,42 +113,30 @@
           onclick={() => toggle(t)}>{t}</button>
       {/each}
       {#if brush.enabled}
-        <button class="toggle" onclick={() => (brush.enabled = false)}
-          >Reset brush</button>
+        <button class="toggle" onclick={() => (brush.enabled = false)}>Reset brush</button>
       {/if}
     </div>
 
-    <!-- KDE control sliders — bandwidth (Gaussian σ) and iso-density band count -->
+    <!-- KDE control sliders -->
     <div class="controls sliders">
       <label>
         Bandwidth: <strong>{density.bandwidth}px</strong>
-        <input
-          type="range"
-          min={5}
-          max={60}
-          step={1}
-          bind:value={density.bandwidth} />
+        <input type="range" min={5} max={60} step={1} bind:value={density.bandwidth} />
       </label>
       <label>
         Thresholds: <strong>{density.thresholds}</strong>
-        <input
-          type="range"
-          min={4}
-          max={30}
-          step={1}
-          bind:value={density.thresholds} />
+        <input type="range" min={4} max={30} step={1} bind:value={density.thresholds} />
       </label>
     </div>
 
-    <!-- 2×2 marginal layout: top KDE / main scatter / right KDE
-         All three panels share pinned [x1,x2]/[y1,y2] domains so axes stay aligned. -->
+    <!-- 2×2 marginal layout: top KDE / main scatter / right KDE -->
     <div class="plot-with-marginal">
       <!-- Panel 1/3: top marginal — 1D KDE along UMAP 1 -->
       <div class="marginal-top">
         <Plot
           width={580}
           height={80}
-          x={{ domain: [x1, x2] }}
+          x={{ domain: [bounds.x1, bounds.x2] }}
           grid={false}
           frame={false}
           axes={false}
@@ -133,13 +147,8 @@
           marginRight={0}>
           {#each attackTypes as t (t)}
             {#if visible[t]}
-              <!-- densityX is a transform, not a mark — spread injects x/y into Line.
-                   Uses pointsBrushed so the curve re-fits to the brushed slice. -->
               <Line
-                {...densityX(
-                  { data: pointsBrushed[t], x: 'x' },
-                  { kernel: 'gaussian' },
-                )}
+                {...densityX({ data: pointsBrushed[t], x: 'x' }, { kernel: 'gaussian' })}
                 stroke={colorMap[t]}
                 strokeWidth={1.5} />
             {/if}
@@ -152,8 +161,8 @@
         <Plot
           height={400}
           width={580}
-          x={{ domain: [x1, x2], label: 'UMAP 1' }}
-          y={{ domain: [y1, y2], label: 'UMAP 2' }}
+          x={{ domain: [bounds.x1, bounds.x2], label: 'UMAP 1' }}
+          y={{ domain: [bounds.y1, bounds.y2], label: 'UMAP 2' }}
           grid={false}
           frame={false}
           inset={0}
@@ -162,8 +171,6 @@
           marginRight={0}>
           {#each attackTypes as t (t)}
             {#if visible[t]}
-              <!-- 2D Gaussian KDE → marching-squares iso-density bands.
-                   fillOpacity low so stacked bands accumulate into a soft gradient. -->
               <Density
                 data={pointsBrushed[t]}
                 x="x"
@@ -175,8 +182,6 @@
                 stroke={colorMap[t]}
                 strokeOpacity={0.35}
                 strokeWidth={0.6} />
-              <!-- Scatter uses pointsByType (NOT pointsBrushed) so unselected
-                   context stays visible while brushing — highlight+link pattern. -->
               <Dot
                 data={pointsByType[t]}
                 x="x"
@@ -187,11 +192,8 @@
             {/if}
           {/each}
 
-          <!-- BrushX: drag to define an x-range; flows into pointsBrushed -->
           <BrushX bind:brush />
 
-          <!-- HTMLTooltip: quadtree nearest-point lookup over visible classes only.
-               {#if datum} guard prevents datum=false from throwing on initial mount. -->
           <HTMLTooltip data={visiblePoints} x="x" y="y">
             {#snippet children({ datum })}
               {#if datum}
@@ -212,7 +214,7 @@
         <Plot
           width={80}
           height={400}
-          y={{ domain: [y1, y2] }}
+          y={{ domain: [bounds.y1, bounds.y2] }}
           grid={false}
           frame={false}
           axes={false}
@@ -223,12 +225,8 @@
           marginRight={0}>
           {#each attackTypes as t (t)}
             {#if visible[t]}
-              <!-- densityY: same as densityX but vertical — density becomes the x channel -->
               <Line
-                {...densityY(
-                  { data: pointsBrushed[t], y: 'y' },
-                  { kernel: 'gaussian' },
-                )}
+                {...densityY({ data: pointsBrushed[t], y: 'y' }, { kernel: 'gaussian' })}
                 stroke={colorMap[t]}
                 strokeWidth={1.5} />
             {/if}
@@ -237,15 +235,38 @@
       </div>
     </div>
 
-    <!-- Separability metrics — precomputed in Python, describe global embedding quality.
-         These do NOT update with the brush; they reflect the full point set. -->
-    <div class="metrics">
-      <span>Wasserstein: <strong>{data.metrics.wasserstein_2d}</strong></span>
-      <span>Energy dist: <strong>{data.metrics.energy_distance}</strong></span>
-      <span
-        >KDE overlap: <strong
-          >{data.metrics.overlap_integral.toExponential(1)}</strong
-        ></span>
-    </div>
+    <!-- Separability metrics — precomputed in Python, reflect the full point set -->
+    {#if currentData}
+      <div class="metrics">
+        <span>Wasserstein: <strong>{currentData.metrics.wasserstein_2d}</strong></span>
+        <span>Energy dist: <strong>{currentData.metrics.energy_distance}</strong></span>
+        <span
+          >KDE overlap: <strong
+            >{currentData.metrics.overlap_integral.toExponential(1)}</strong
+          ></span>
+      </div>
+    {/if}
   {/if}
 </Figure>
+
+<style>
+  .dataset-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .dataset-tabs button {
+    padding: 3px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: #f5f5f5;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .dataset-tabs button.active {
+    background: #1a6faf;
+    color: white;
+    border-color: #1a6faf;
+  }
+</style>

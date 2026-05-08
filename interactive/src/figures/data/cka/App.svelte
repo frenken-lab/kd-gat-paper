@@ -11,33 +11,45 @@
     value: number;
   };
 
-  // Guard against missing/malformed JSON
   const data = rawData;
-  const isEmpty = !data?.matrix?.length;
+  const isEmpty = !data?.matrices || Object.keys(data.matrices).length === 0;
 
-  // Flatten the 2D matrix into a flat record array for svelteplot's Cell mark
-  const records: CKARecord[] = [];
-  if (!isEmpty) {
-    for (let r = 0; r < data.matrix.length; r++)
-      for (let c = 0; c < data.matrix[r].length; c++)
-        records.push({
-          teacher: data.teacher_layers[r],
-          student: data.student_layers[c],
-          value: data.matrix[r][c],
-        });
+  const datasets = isEmpty ? [] : Object.keys(data.matrices as Record<string, unknown>).sort();
+  let selectedDataset = $state(datasets[0] ?? '');
+
+  function getRecords(dataset: string): CKARecord[] {
+    if (isEmpty || !dataset) return [];
+    const matrix = (data.matrices as Record<string, (number | null)[][]>)[dataset];
+    if (!matrix) return [];
+    const out: CKARecord[] = [];
+    for (let r = 0; r < matrix.length; r++)
+      for (let c = 0; c < matrix[r].length; c++) {
+        const v = matrix[r][c];
+        if (v !== null)
+          out.push({ teacher: data.teacher_layers[r], student: data.student_layers[c], value: v });
+      }
+    return out;
   }
 
-  // Two-stop color scheme from the shared palette — light fill to dark stroke
+  const records = $derived(getRecords(selectedDataset));
+
   const colorScheme = [
     getPaletteColor('blue').fill,
     getPaletteColor('blue').stroke,
   ];
 </script>
 
-<Figure title="CKA Teacher-Student Layer Similarity">
+<Figure title="CKA Layer Alignment by Ablation Variant">
   {#if isEmpty}
     <p class="empty">Awaiting data export from KD-GAT</p>
   {:else}
+    <div class="dataset-tabs">
+      {#each datasets as ds}
+        <button class:active={ds === selectedDataset} onclick={() => (selectedDataset = ds)}>
+          {ds}
+        </button>
+      {/each}
+    </div>
     <Plot
       padding={0}
       aspectRatio={1}
@@ -45,11 +57,11 @@
       marginLeft={90}
       x={{
         type: 'band',
-        label: 'Student Layer',
+        label: 'Ablation Variant',
         axis: 'bottom',
         tickRotate: -45,
       }}
-      y={{ type: 'band', label: 'Teacher Layer' }}
+      y={{ type: 'band', label: 'GAT Layer' }}
       color={{ scheme: colorScheme, label: 'CKA', legend: true }}>
       <Cell data={records} x="student" y="teacher" fill="value" inset={1} />
       <Text
@@ -63,3 +75,25 @@
     </Plot>
   {/if}
 </Figure>
+
+<style>
+  .dataset-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .dataset-tabs button {
+    padding: 3px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: #f5f5f5;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .dataset-tabs button.active {
+    background: #1a6faf;
+    color: white;
+    border-color: #1a6faf;
+  }
+</style>

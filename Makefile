@@ -7,7 +7,7 @@ help: ## Show this help
 
 ##@ Data & Validation
 
-data: ## Pull from buckeyeguy/GraphIDS (HF) + validate against schemas.yaml
+data: ## Pull metrics (graphids-kd-gat) + analysis artifacts (graphids-data) + validate
 	uv run python tools/pull_data.py
 
 validate: validate-inputs validate-semantic validate-gsn ## Run all validation layers (CI + pre-commit entry point)
