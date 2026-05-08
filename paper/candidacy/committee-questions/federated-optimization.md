@@ -51,7 +51,7 @@ Since the outer gradient is intractable, the approach is to reason about the sha
 
 ### Reconstructing the outer surface without gradients
 
-Three approaches sample rather than differentiate $\mathcal{R}_{\text{val}}(|f_S|)$: direct capacity-gap sweeps [@Towards-Law-of-Capacity-Gap2025]; teacher-assistant chains [@Mirzadeh-TAKD2020] that bridge large capacity gaps by inserting intermediate models, each approximating an incremental step toward the outer minimum; and distillation scaling laws [@distillation-scaling-laws] that fit a power-law to many (teacher, student) pairs, though only tractable at LLM scale.
+Three approaches sample rather than differentiate $\mathcal{R}_{\text{val}}(|f_S|)$: direct capacity-gap sweeps [@Towards-Law-of-Capacity-Gap2025]; teacher-assistant chains [@Mirzadeh-TAKD2020] that bridge large capacity gaps by inserting intermediate models, each approximating an incremental step toward the outer minimum; and distillation scaling laws [@distillation-scaling-laws] that fit a power-law to many (teacher, student) pairs, though most thoroughly characterized at LLM scale where training many model sizes is feasible.
 
 In the CAN bus context, binary attack/benign sits at the easy end of the $\mathcal{T}$ axis — wide basin, large compression ratios tolerable. Extending to multi-class attacks or federated multi-vehicle training narrows the basin and tightens the viable $\Delta^\star_{\text{cap}}$.
 
@@ -104,7 +104,7 @@ Federate the shared substrate; localise OEM-specific pieces:
 
 ### Poisoning and privacy
 
-A malicious client shifts the FedAvg aggregate by $\Theta(1/K)$ per round. Defences: geometric-median aggregation (Krum [@blanchard2017krum]), norm clipping, and gradient-level anomaly detection using the same VGAE+GAT pattern applied one level up. This adds an attack surface absent from the Q1.2 taxonomy — the federated backbone is exactly what an adversary targets.
+A malicious client shifts the FedAvg aggregate by $\Theta(1/K)$ per round. Defences: Byzantine-robust aggregation (geometric median or Krum [@blanchard2017krum]), norm clipping on client updates, and per-round outlier detection on gradient norms. This adds an attack surface absent from the Q1.2 taxonomy — the federated backbone is exactly what an adversary targets.
 
 ---
 

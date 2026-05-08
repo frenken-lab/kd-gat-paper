@@ -1,0 +1,43 @@
+figure: vehicle-pinn
+
+# Q1 — Physics & Dynamic Controls
+# (v, δ) → Bicycle PINN → ψ̇_pred; |ψ̇_obs − ψ̇_pred| → V_residual gate → pass/anomaly
+
+components:
+  speed:    { type: box, label: 'Speed v',       color: data, width: 85,  height: 30 }
+  steer:    { type: box, label: 'Steer δ',       color: data, width: 85,  height: 30 }
+  yaw_obs:  { type: box, label: 'Yaw ψ̇ (obs)',  color: data, width: 105, height: 30 }
+
+  pinn:     { type: box, label: 'Bicycle PINN',              color: vgae, width: 150, height: 36 }
+  residual: { type: box, label: '|ψ̇_obs − ψ̇_pred|',        color: vgae, width: 165, height: 36 }
+  gate:     { type: box, label: 'V_residual (ε > τ)',        color: kd,   width: 155, height: 36 }
+
+  to_fusion: { type: box, label: 'to Fusion',  color: gat, width: 90, height: 32 }
+  flag:      { type: box, label: 'Anomaly',    color: kd,  width: 90, height: 32 }
+
+layout:
+  type: hstack
+  gap: 44
+  align: center
+  children:
+    - type: vstack
+      gap: 10
+      align: center
+      container: { label: 'CAN Bus', color: data }
+      children: [speed, steer, yaw_obs]
+    - pinn
+    - residual
+    - gate
+    - type: vstack
+      gap: 32
+      align: center
+      children: [to_fusion, flag]
+
+bridges:
+  - { from: speed,    to: pinn,     type: flow, color: grey }
+  - { from: steer,    to: pinn,     type: flow, color: grey }
+  - { from: pinn,     to: residual, type: flow, color: vgae, label: 'ψ̇_pred' }
+  - { from: yaw_obs,  to: residual, type: flow, color: grey, label: 'ψ̇_obs' }
+  - { from: residual, to: gate,     type: flow, color: grey }
+  - { from: gate,     to: to_fusion, type: flow, color: grey, label: 'ε ≤ τ' }
+  - { from: gate,     to: flag,      type: flow, color: kd,   style: dashed, label: 'ε > τ' }

@@ -135,6 +135,7 @@ speceditor:
 
 slides:
 	uv run python tools/slides/build.py presentations/candidacy.md _build/slides
+	cp presentations/*.svg _build/slides/
 
 bib:
 	uv run python tools/validate/inputs/bib.py

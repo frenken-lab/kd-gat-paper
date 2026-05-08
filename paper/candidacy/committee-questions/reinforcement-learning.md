@@ -8,20 +8,18 @@ title: "4. Reinforcement Learning"
 
 A system at deployment has no access to ground truth and must evaluate its own decisions using its own confidence as evidence. This is normally feasible for deployment states within the training distribution. However, states such as novel attacks, distribution shift, and sensor degradation have a compounding penalty where not only is the system least correct, but the confidence signal is also the least trustworthy. This is a structural property of any closed-loop learning system operating without external supervision.
 
-This creates a circular delimna where the evaluation signal and the target are one in the same. Decomposing the total shift between training and deployment reward:
+This creates a circular dilemma where the evaluation signal and the target are one and the same. Decomposing the total gap between what the policy optimizes at deployment versus what it optimized during training:
 
 $$
-\underbrace{R_{\text{deploy}}(s, a) - R_{\text{train}}(s, a)}_{\text{total shift}} \;=\; \underbrace{\bigl(\mathbb{E}_{p_{\text{deploy}}(s)}[R] - \mathbb{E}_{p_{\text{train}}(s)}[R]\bigr)}_{\text{state-distribution shift}} \;+\; \underbrace{\bigl(R_{\text{true}} - R_{\text{train}}\bigr)}_{\text{proxy–target divergence}}
+\underbrace{\mathbb{E}_{p_{\text{deploy}}}[R_{\text{true}}] - \mathbb{E}_{p_{\text{train}}}[R_{\text{train}}]}_{\text{total shift}} \;=\; \underbrace{\bigl(\mathbb{E}_{p_{\text{deploy}}}[R_{\text{true}}] - \mathbb{E}_{p_{\text{train}}}[R_{\text{true}}]\bigr)}_{\text{state-distribution shift}} \;+\; \underbrace{\bigl(\mathbb{E}_{p_{\text{train}}}[R_{\text{true}}] - \mathbb{E}_{p_{\text{train}}}[R_{\text{train}}]\bigr)}_{\text{proxy–target divergence}}
 $$
 
 where:
 
-- $R_{\text{deploy}}(s, a)$ is the proxy reward signal at deployment
-- $R_{\text{train}}(s, a)$ is the training reward signal
-- $\mathbb{E}_{p_{\text{deploy}}(s)}[R]$ is the expected reward under the deployment state distribution
-- $\mathbb{E}_{p_{\text{train}}(s)}[R]$ is the expected reward under the training state distribution
-- $R_{\text{true}}$ is the true reward, which is optimized on during training but unavailable at runtime
+- $R_{\text{true}}$ is the true reward — optimized during training but unavailable at runtime
 - $R_{\text{train}}$ is the training proxy, which approximates $R_{\text{true}}$ under training conditions but may diverge from it as the policy optimizes against it
+- The first term isolates covariate shift: the same reward function evaluated under two different state distributions
+- The second term isolates proxy–target divergence: the gap between proxy and true reward under the training distribution, which widens as the policy exploits the proxy
 
 The first term, **state-distribution shift**, captures covariate shift — the deployment state distribution $p_{\text{deploy}}(s)$ differs from the training distribution $p_{\text{train}}(s)$ due to environmental change, vehicle variation, or sensor degradation. This term is detectable in principle from the input distribution alone, and standard remedies apply: importance reweighting against $p_{\text{deploy}}/p_{\text{train}}$.
 
@@ -37,13 +35,13 @@ The structural answer is to expand beyond a single channel that is also independ
 
 > As the number of experts in an ensemble grows, the fusion policy's action space scales combinatorially. Compare approaches for keeping multi-expert coordination tractable without sacrificing expressiveness.
 
-The combinatorial explosion is real but it is a symptom of the wrong parameterization. The current 21-bin discretisation per expert produces a joint action space of $\binom{N+K-1}{N-1}$ under the simplex constraint — 2,024 at $N=4$, and $K^N \approx 1.94 \times 10^5$ on a free grid. Q-learning exploration time scales as $K^N/\epsilon_0 \approx 10^6$ episodes at $N=4$, far outside any practical training budget. The discrete grid is the wrong abstraction for a simplex action space. Move to a continuous parameterization and the problem dissolves:
+The combinatorial explosion is real but it is a symptom of the wrong parameterization. The current 21-bin discretisation per expert produces a joint action space of $\binom{N+K-1}{N-1}$ under the simplex constraint — 2,024 at $N=4$, and $K^N \approx 1.94 \times 10^5$ on a free grid. Either way, the action space grows super-exponentially with $N$, far outside any practical training budget. The discrete grid is the wrong abstraction for a simplex action space. Move to a continuous parameterization and the problem dissolves:
 
 $$
 \boldsymbol{\alpha} = \mathrm{softmax}(\boldsymbol{\ell}), \quad \boldsymbol{\ell} \in \mathbb{R}^N \qquad \text{or} \qquad \boldsymbol{\alpha} \sim \mathrm{Dirichlet}(\boldsymbol{\kappa}), \quad \boldsymbol{\kappa} \in \mathbb{R}^N_{>0}
 $$
 
-Action dimension drops from $K^N$ to $N$. The discrete-bandit regret penalty $\sqrt{K^N}$ becomes $\tilde{O}(d\sqrt{T})$ with $d = O(N)$. The Dirichlet form is not just an exploration convenience — concentration $\kappa = \sum_i \kappa_i$ controls how spread weight is across experts in expectation, which connects to a deeper problem.
+Action dimension drops from $K^N$ to $N$. The Neural-LinUCB bandit on the continuous simplex admits $\tilde{O}(d\sqrt{T})$ regret with $d = O(N)$; the DQN path avoids the combinatorial blowup but requires a separate convergence argument. The Dirichlet form is not just an exploration convenience — concentration $\kappa = \sum_i \kappa_i$ controls how spread weight is across experts in expectation, which connects to a deeper problem.
 
 Joint optimization of $\boldsymbol{\alpha}$ can silently collapse the independent authority structure that Q4.1 depends on. A fully expressive simplex policy learns which expert to trust in which regime — useful — but over time can converge to routing that systematically suppresses minority experts globally. Diversity collapse in ensemble RL is documented [@lin2024curse; @medrl2022]: shared optimization pressure causes members to converge even when initialized differently.
 

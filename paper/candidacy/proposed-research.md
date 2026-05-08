@@ -43,31 +43,13 @@ Per-question deliverables are mapped in [](committee-questions/index.md).
 
 #### Prior work and comparison to classical baselines
 
-Physics-informed ML encodes physical laws as ODE/PDE residual penalties [@Wu2024PIMLReview]; cyber-physical precedents include PIConvAE for power-grid FDI [@Nandanoori2023PIConvAE] and PIGCRN for chemical processes [@Wu2025PIGCRN]. The one direct vehicular precedent — HPINN [@Vyas2023HPINN] — is limited to longitudinal CACC dynamics on simulated platoon data. The proposed PINN extends to the *full* nonlinear bicycle model with lateral dynamics and Pacejka tire forces, runs on reverse-engineered CAN signals rather than V2X data, and integrates as a third expert in the fusion ensemble. Against CADD's pure analytical bicycle-model residuals [@Chen2024CADD] (>96% recall, <0.5% FPR on ROAD with OBD-II ground truth), the PINN buys nonlinear corrections outside the linear-tire region, a differentiable physics loss that regularises GAT/VGAE during joint training, and graceful degradation when extracted signals are missing.
+Physics-informed ML encodes physical laws as ODE/PDE residual penalties [@Wu2024PIMLReview]; cyber-physical precedents include PIConvAE for power-grid FDI [@Nandanoori2023PIConvAE] and PIGCRN for chemical processes [@Wu2025PIGCRN]. The one direct vehicular precedent — HPINN [@Vyas2023HPINN] — is limited to longitudinal CACC dynamics on simulated platoon data. The proposed PINN extends to the kinematic bicycle model with lateral state estimation, runs on reverse-engineered CAN signals rather than V2X data, and integrates as a third expert in the fusion ensemble. Against CADD's pure analytical bicycle-model residuals [@Chen2024CADD] (>96% recall, <0.5% FPR on ROAD with OBD-II ground truth), the PINN buys learned corrections where the linear-tire assumption breaks down, a differentiable physics loss that regularises GAT/VGAE during joint training, and graceful degradation when extracted signals are missing.
 
 #### PINN architecture and training
 
-The PINN is a compact MLP trained on vehicle dynamics from ByCAN-extracted [@bycan_2024] CAN signals plus EKF state estimation. Architecture, training objective, and anomaly score are in [](#tab:pinn-arch); the physics term decomposes as $L_{\text{physics}} = L_{v_x} + L_{v_y} + L_{\dot{\psi}}$, each subterm a bicycle-model ODE residual (full derivation in Appendix [](#app:pinn-physics)).
+The PINN is a compact MLP trained on vehicle dynamics from ByCAN-extracted [@bycan_2024] CAN signals plus EKF state estimation. The physics term decomposes as $L_{\text{physics}} = L_{v_x} + L_{v_y} + L_{\dot{\psi}}$, each subterm a kinematic bicycle-model ODE residual; the anomaly score is the $\ell_2$ residual between predicted and observed states (full derivation in Appendix [](#app:pinn-physics)). Training jointly optimises $L_\text{total} = L_\text{detection} + \lambda_\text{physics} \cdot L_\text{physics}$; architecture and hyperparameters are determined empirically.
 
-+++ {"type": "table"}
-
-:::{table} PINN Module Specification
-:label: tab:pinn-arch
-
-| Component | Specification |
-|---|---|
-| Architecture | 3-layer MLP (64 $\rightarrow$ 128 $\rightarrow$ 64 $\rightarrow$ 3) with GELU activation |
-| Input | Temporal window of $\tau=10$ vehicle states ($v_x, v_y, \dot{\psi}, \delta, a_x$) |
-| Output | Predicted next state $[\hat{v}_x^{t+1}, \hat{v}_y^{t+1}, \hat{\dot{\psi}}^{t+1}]$ |
-| Physics model | Nonlinear bicycle model with Pacejka tire forces (see [](#app:pinn-physics)) |
-| Training | Joint optimization: $L_\text{total} = L_\text{detection} + \lambda_\text{physics} \cdot L_\text{physics}$ |
-| Anomaly score | $\ell_2$ residual between predicted and observed states, sigmoid-normalized |
-
-:::
-
-+++
-
-**Adaptive $\lambda_{\text{physics}}$ weighting.** Static $\lambda_{\text{physics}}$ under-trains either branch (NTK analysis [@Wang2022NTK]); we use the self-adaptive weighting of @McClenny2023SAPINN with a tier-dependent cap. The gradient-balancing comparison [@Bischof2024MultiObj] is in Q1.1. Large residuals yield interpretable signals — "yaw rate impossible given steering angle and velocity"; the fusion policy up-weights the PINN during normal driving and down-weights it during aggressive maneuvers where nonlinear tire dynamics dominate.
+**Adaptive $\lambda_{\text{physics}}$ weighting.** Static $\lambda_{\text{physics}}$ under-trains either branch (NTK analysis [@Wang2022NTK]); we use the self-adaptive weighting of @McClenny2023SAPINN with a tier-dependent cap. The gradient-balancing comparison [@Bischof2024MultiObj] is in Q1.1. Large residuals yield interpretable signals — "yaw rate impossible given steering angle and velocity"; the fusion policy up-weights the PINN during normal driving and down-weights it during aggressive maneuvers where the linear-tire assumption breaks down.
 
 (pinn-trust-gates)=
 #### Trust gates and composite trust score
@@ -83,7 +65,7 @@ The PINN's deployment-time influence is conditioned by three runtime gates — r
 (subsec:DQN)=
 ### Dynamic Expert Fusion
 
-The framework implements two formulations: a DQN [@mnih2013playingatarideepreinforcement] and a Neural-LinUCB contextual bandit [@xu2022neural], both on a 15-dim state and $K=21$ discrete fusion settings. The bandit drops the sequential-MDP assumption that the DQN inherits without strictly needing — each CAN window is classified independently. Both currently fuse GAT and VGAE; the proposed extension scales to four experts (+ PINN, CWD). Bellman and bandit equations are in §Methodology.
+The framework implements two formulations: a DQN [@mnih2013playingatarideepreinforcement] and a Neural-LinUCB contextual bandit [@xu2022neural], both over a 15-dim fusion state and a discrete action space over mixture weights. The bandit drops the sequential-MDP assumption that the DQN inherits without strictly needing — each CAN window is classified independently. Both currently fuse GAT and VGAE; the proposed extension scales to four experts (+ PINN, CWD). Bellman and bandit equations are in §Methodology.
 
 #### Preliminary DQN results
 
@@ -108,7 +90,7 @@ Table [](#tab:ablation_DQN) reports initial DQN results on training data against
 
 #### Scaling fusion from $N=2$ to $N=4$ experts
 
-The $N=2$ implementation collapses the simplex constraint to a scalar; at $N=4$ the discrete grid blows up to $K^N \approx 1.94 \times 10^5$ at $K=21$. Lifting the action representation to a continuous simplex (softmax or Dirichlet) replaces the $\sqrt{K^N}$ regret penalty with the continuous-action LinUCB rate $\tilde{O}(d\sqrt{T})$, $d=O(N)$. Q4.2 carries the regret-bound argument and per-component architectural deltas; the empirical hint is that DQN at $N=2$ already converges to ~5 discrete operating modes [](#fig-fusion).
+The $N=2$ implementation collapses the simplex constraint to a scalar; at $N=4$ a fine-grained discrete grid blows up combinatorially. Lifting the action representation to a continuous simplex (softmax or Dirichlet) avoids the blowup; the Neural-LinUCB formulation then admits a regret bound of $\tilde{O}(d\sqrt{T})$, $d=O(N)$, though the DQN path requires a separate convergence argument. Q4.2 carries the regret-bound argument and per-component architectural deltas; the empirical hint is that DQN at $N=2$ already converges to ~5 discrete operating modes [](#fig-fusion).
 
 A continuous simplex actor introduces a second risk: **diversity collapse**. Joint optimisation of $\boldsymbol{\alpha}$ can silently converge experts onto correlated routings even under heterogeneous initialisation [@lin2024curse; @medrl2022], eroding the independent-authority structure that the decoupled-approval argument of Q4.1 depends on. Entropy regularisation on the marginal weight distribution is the candidate remedy; KL-UCB-style bandits give regret-compatible bounds of $\tilde{O}(\eta K \log^2 T)$ in the homogeneous setting [@ji2025klucb]. Whether that result carries to a *heterogeneous-authority* simplex — where experts have structurally different ground truths rather than only different parameters — is uncharacterised, and is the open methodological question for this dissertation.
 
@@ -238,7 +220,7 @@ The exploit modes are not a flat list — they trace back to the residual varian
 
 $$\mathrm{Var}[r_t] \;\approx\; \mathrm{Var}\!\left[\eta^{\text{sensor}}\right] + B^2_{\text{slice}} + \mathrm{tr}(Q_{\text{EKF}}) + \mathrm{Var}\!\left[\epsilon_{\text{model}}\right]$$
 
-where three of the four terms are processing artifacts with distinct exploitable shapes. *Plausibility-band injection* exploits the slicing bias $B^2_{\text{slice}}$ (symmetric thresholds miss one-sided offsets); *slow-drift residual attacks* exploit $\mathrm{tr}(Q_{\text{EKF}})$ (sub-threshold drift integrates silently across the filter window); *slicing-template poisoning* and *graph-aware decoy attacks* are per-stage rather than per-term, targeting the ByCAN template and the GAT branch respectively. The threat surface then decomposes by *access location* (where the attacker injects), *capability* (read / write / replace), and *signature* (what must remain undetectable). The cross-product over the five pipeline stages — bus-injection [@Miller; @Cho], ByCAN slicing-template, EKF state estimation, PINN residual, federated client (per [](#subsec:FL)) — and the four exploit modes is catalogued in `committee-questions/physics-dynamics.md` (Q1.2). The GAT+VGAE branch is structurally protected from estimator-pipeline compromise (it doesn't read the estimator); the PINN branch is not, but tier-based weighting caps the blast radius at $\lambda_{\max} = 0.3$ in the worst case, and composition with the trust gates of [](#subsec:PINN) tightens it further — each gate failure attenuates $\lambda_{\text{physics}}(s_t)$.
+where three of the four terms are processing artifacts with distinct exploitable shapes. *Plausibility-band injection* exploits the slicing bias $B^2_{\text{slice}}$ (symmetric thresholds miss one-sided offsets); *slow-drift residual attacks* exploit $\mathrm{tr}(Q_{\text{EKF}})$ (sub-threshold drift integrates silently across the filter window); *slicing-template poisoning* and *graph-aware decoy attacks* are per-stage rather than per-term, targeting the ByCAN template and the GAT branch respectively. The threat surface then decomposes by *access location* (where the attacker injects), *capability* (read / write / replace), and *signature* (what must remain undetectable). The cross-product over the five pipeline stages — bus-injection [@Miller; @Cho], ByCAN slicing-template, EKF state estimation, PINN residual, federated client (per [](#subsec:FL)) — and the four exploit modes is catalogued in `committee-questions/physics-dynamics.md` (Q1.2). The GAT+VGAE branch is structurally protected from estimator-pipeline compromise (it doesn't read the estimator); the PINN branch is not, but tier-based weighting bounds the blast radius, and composition with the trust gates of [](#subsec:PINN) tightens it further — each gate failure attenuates $\lambda_{\text{physics}}(s_t)$.
 
 #### Evaluation protocol
 

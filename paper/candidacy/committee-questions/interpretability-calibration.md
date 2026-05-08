@@ -80,8 +80,6 @@ Fitting the five failure types separately risks inconsistent coverage thresholds
 
 The standard XAI move when two explainers disagree is to pick the more faithful or stable method [@krishna2024disagreement]. The move here is the opposite — to read disagreement _as information_ about the input or the model. The experts feeding those explainers are structurally orthogonal: discriminative classification on raw features, generative reconstruction over relational structure, physics residual on derived state. Two explainers disagreeing across these report on different decision functions that the fusion policy combined. The operator's question is therefore not "which explainer wins" but "is this disagreement information or noise" — a question with a definite answer per sample, set by the architecture and the Q2.1 calibration apparatus.
 
-### Defining explainer disagreement
-
 For any prediction, two explainers can diverge across each of the three axes from Q2.1. Grouping by Hamming weight gives the full disagreement space:
 
 +++ {"type": "table"}
@@ -95,9 +93,7 @@ For any prediction, two explainers can diverge across each of the three axes fro
 
 +++
 
-A real ensemble of $n$ experts pushes pairwise-divergence states to $2^{3\binom{n}{2}}$; enumeration doesn't scale, so the question reduces to: which structural conditions make disagreement informative rather than noise?
-
-The standard XAI move is to pick the more faithful or stable method [@krishna2024disagreement]. The move here is the opposite — to read disagreement _as information_. The experts feeding those explainers are structurally orthogonal: discriminative classification on raw features, generative reconstruction over relational structure, physics residual on derived state. Two explainers disagreeing across these report on different decision functions the fusion policy combined. The operator's question is therefore not "which explainer wins" but "is this disagreement information or noise" — a question with a definite per-sample answer set by the architecture and the Q2.1 calibration apparatus.
+With $n$ experts, enumeration over all pairwise-divergence states doesn't scale, so the question reduces to: which structural conditions make disagreement informative rather than noise?
 
 Both the epistemic literature (Aumann [@aumann1976agreeing], Krogh–Vedelsby ambiguity decomposition [@krogh1995neural]) and the ML literature (Rashomon [@breiman2001statistical], underspecification [@damour2022underspecification]) converge on three conditions for productive disagreement: independence, boundedness, resolvability.
 
@@ -105,7 +101,7 @@ Both the epistemic literature (Aumann [@aumann1976agreeing], Krogh–Vedelsby am
 
 - **Independence:** the disagreers see different things. Heterogeneous experts buy this by construction — an attack that fools one is unlikely to fool all; the Krogh–Vedelsby ambiguity term collapses when ensemble members compute the same function.
 - **Boundedness:** magnitudes are comparable across experts. Without the Q2.1 joint-calibration vector, "the explainers disagree" reduces to vibes. Boundedness converts "two explainers said different things" to "the disagreement is $N$ standard deviations above benign baseline."
-- **Resolvability:** there is a downstream protocol that converts disagreement to action — conformal abstain (Q2.1), human review, or the physics-based safety shield (Q4.1). Without one, disagreement degenerates into manufactured doubt that an adversary can exploit [@black2024lessdiscriminatory].
+- **Resolvability:** there is a downstream protocol that converts disagreement to action — conformal abstain (Q2.1), human review, or the physics-based safety shield (Q4.1). Without one, disagreement degenerates into manufactured doubt that an adversary can exploit by engineering inputs that reliably trigger inter-explainer conflict.
 
 ### When disagreement is noise
 
