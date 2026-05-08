@@ -10,6 +10,7 @@
 #SBATCH --cpus-per-task=2
 #SBATCH --mem=16G
 #SBATCH --time=00:45:00
+#SBATCH --chdir=/users/PAS2022/rf15/kd-gat-paper
 #SBATCH --output=%x.%j.log
 
 set -euo pipefail
@@ -18,7 +19,7 @@ export PYTHONUNBUFFERED=1
 # Pick up HF_TOKEN (and any other secrets) from ~/.env.local if present
 [[ -f "$HOME/.env.local" ]] && set -a && source "$HOME/.env.local" && set +a
 
-REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+REPO_ROOT="$PWD"
 UV="$HOME/.local/bin/uv"
 
 echo "=== kd-gat pull_data ==="
@@ -27,7 +28,6 @@ echo "node: $(hostname)"
 echo "args: ${*:-<none>}"
 echo "========================"
 
-cd "$REPO_ROOT"
 "$UV" run python tools/pull_data.py "$@"
 
 echo "=== done ==="
