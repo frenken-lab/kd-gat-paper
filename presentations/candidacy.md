@@ -63,19 +63,13 @@ content: |
 
 ---
 
-<!-- columns: 2 -->
+<!-- align: center -->
 
 ## CAN Bus Network
 
 ![CAN Bus Network](CAN_BUS.svg)
 
 _CAN bus topology: ECUs broadcast on a shared bus with no sender authentication — injected messages are indistinguishable from legitimate traffic at the protocol level._
-
-|||
-
-![CAN Frame](CANframe.svg)
-
-_CAN frame anatomy: 11-bit arbitration ID (attack surface), DLC, and up to 8 bytes of payload — the graph node features are computed from these fields._
 
 ---
 
@@ -118,6 +112,10 @@ title: VGAE
 
 <img src="GAT.svg" alt="Graph Attention" style="width:100%;max-height:260px;object-fit:contain">
 
+|||
+
+**GAT — dynamic attention:**
+
 - Inspired by attention models, Graph Attention Transformer (GAT) adds a learnable attention variable $𝛼_𝑣𝑢$ to dynamically weight the importance of a node’s neighbors
 
 $$
@@ -131,19 +129,9 @@ $$
 \right)
 $$
 
-|||
-
-**GATv2 — dynamic attention:**
-
-$$
-\alpha_{vu} = \mathrm{softmax}\left(
-    \mathbf{a}^\top \mathrm{LeakyReLU}\left(
-        \mathbf{W}\left[\mathbf{h}_v \| \mathbf{h}_u\right]
-    \right)
-\right)
-$$
-
-GATv1 applies the nonlinearity _after_ the attention parameter, making rankings query-independent. GATv2 applies it _before_, enabling truly dynamic per-node attention — critical for CAN bus graphs where adversarial injection corrupts edge structure and static attention degrades uniformly.
+GAT variants:
+GATv1 applies the nonlinearity _after_ the attention parameter, making rankings query-independent.
+GATv2 applies it _before_, enabling truly dynamic per-node attention — critical for CAN bus graphs where adversarial injection corrupts edge structure and static attention degrades uniformly.
 
 **Aggregation:**
 
@@ -190,8 +178,6 @@ entropy = -(w * w.clamp_min(1e-9).log()).sum(-1).mean()
 
 ---
 
-<!-- columns: 4/6 -->
-
 ## Architecture Composition
 
 **Three-stage pipeline:**
@@ -200,14 +186,6 @@ entropy = -(w * w.clamp_min(1e-9).log()).sum(-1).mean()
 - **Stage 2 — GAT:** Supervised classification; GATv2Conv with LSTM jumping knowledge
 - **Stage 3 — Fusion:** Adaptive learning per-sample. $\alpha$ weighting for DQN or Bandit over VGAE + GAT predictions from a 18-dimensional state vector.
 - **Knowledge Distillation:** Each model has its smaller counterpart that would meet on-board resource requirements
-
-|||
-
-```iframe
-src: https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/kd-gat.html
-height: 480
-title: KD-GAT architecture
-```
 
 ---
 
@@ -237,7 +215,6 @@ title: KD-GAT architecture
 
 ---
 
-<!-- columns: 2 -->
 <!-- size: small -->
 <!-- footnote: val_discrimination_ratio = inter/intra-class reconstruction variance ratio · val_recon_max_gap = max gap between top normal and top anomaly scores · t02-UK = unknown vehicle · t03-KU = unknown attack type · t05 = suppress (ECU frame removal) -->
 
@@ -252,8 +229,6 @@ title: KD-GAT architecture
 | t02-UK  | 0.488 | Near-random — vehicle shift             |
 | t05     | 0.000 | Suppress — structural blind spot        |
 | t06     | —     | AP 0.378 — ranking ok, calibration poor |
-
-|||
 
 **Training Difficulties**
 
@@ -278,6 +253,9 @@ title: KD-GAT architecture
 | weighted_ce | 0.773   | 0.661  | 0.683  | 0.669  | 0.778  | 0.713 |
 | focal       | 0.796   | 0.693  | 0.696  | 0.677  | 0.771  | 0.727 |
 
+AUROC spread ≤ 0.014 — within single-seed noise. The decisive signal is calibration at high-precision operating points.
+
+|||
 **Calibration — set_04 (timing-perturbation attacks):**
 
 | variant     | MCC   | R@99P | AP (avg) |
@@ -287,20 +265,9 @@ title: KD-GAT architecture
 | none        | 0.226 | 0.154 | 0.690    |
 | focal       | 0.233 | 0.128 | 0.694    |
 
-|||
-
-AUROC spread ≤ 0.014 — within single-seed noise. The decisive signal is calibration at high-precision operating points.
-
 `ce` collapses despite AUROC 0.766: **MCC = 0.001, R@99P = 0.004**. Timing-perturbation attacks share in-vocabulary CAN IDs; inverse-frequency weighting drives the model to a degenerate threshold that AUROC cannot detect.
 
 `focal` avoids collapse (MCC 0.233) and leads AP across set_01–04 (0.694). The fusion stage consumes GAT probabilities as input features — a degenerate GAT output corrupts those features regardless of fusion architecture.
-
-```box
-title: Decision
-tone: muted
-content: |
-  gat_loss = focal
-```
 
 ---
 
@@ -318,6 +285,10 @@ content: |
 | curriculum_random | 0.793   | —      | 0.701  | 0.686  | 0.743  | —     |
 | curriculum_vgae   | 0.800   | 0.692  | 0.709  | 0.680  | 0.733  | 0.723 |
 
+Neither curriculum variant improves over `none` by more than single-seed noise on AUROC.
+
+|||
+
 **MCC · mean(t01–t04):**
 
 | variant           | hcrl_sa | set_01 | set_02 | set_03 | set_04 | avg   |
@@ -326,22 +297,11 @@ content: |
 | curriculum_random | 0.500   | —      | 0.112  | 0.282  | 0.232  | —     |
 | curriculum_vgae   | 0.430   | 0.187  | 0.137  | 0.267  | 0.139  | 0.232 |
 
-|||
-
-Neither curriculum variant improves over `none` by more than single-seed noise on AUROC.
-
 `curriculum_vgae` **degrades MCC** (0.232 vs 0.268): VGAE scores timing-perturbation attacks as _easy_ (in-vocabulary IDs → low reconstruction error → low difficulty rank), deprioritizing them in early epochs. Set_04 AUROC drops 0.766→0.733, MCC drops 0.226→0.139.
 
 `curriculum_random` matches `none` on AUROC but falls behind on R@99P across set_01–04 (0.125 vs 0.151).
 
 Both variants add a VGAE scoring pass each epoch. No variant justifies the overhead.
-
-```box
-title: Decision
-tone: muted
-content: |
-  gat_sampling = none
-```
 
 ---
 
@@ -359,6 +319,10 @@ content: |
 | id_hash   | 0.858   | 0.664  | 0.698  | 0.675  | 0.732  | 0.725 |
 | id_lookup | 0.845   | 0.679  | 0.701  | 0.669  | 0.722  | 0.724 |
 
+On set_01–04 (multi-vehicle, ~2048 unique IDs): **−0.018 / −0.019 AUROC vs baseline**. The vocabulary is too diverse for a fixed hash or lookup table to add signal beyond the learned embedding.
+
+|||
+
 **hcrl_sa t04 — unknown vehicle + unknown attack:**
 
 | variant   | AUROC | R@99P |
@@ -367,18 +331,7 @@ content: |
 | id_hash   | 0.920 | 0.499 |
 | id_lookup | 0.988 | 0.707 |
 
-|||
-
-On set_01–04 (multi-vehicle, ~2048 unique IDs): **−0.018 / −0.019 AUROC vs baseline**. The vocabulary is too diverse for a fixed hash or lookup table to add signal beyond the learned embedding.
-
 Using `none` also keeps GAT node features dataset-agnostic, preserving potential generalisation in future development.
-
-```box
-title: Decision
-tone: muted
-content: |
-  id_encoding = none
-```
 
 ---
 
@@ -399,6 +352,12 @@ content: |
 | bandit       | 0.914  | 0.460  | 0.570  | 0.743  | 0.978 |
 | dqn          | 0.818  | 0.460  | 0.573  | 0.743  | 0.955 |
 
+**MoE ≈ MLP ≈ MoE-noaux** — within ±0.015 AUROC and ±0.030 MCC across all (dataset, split) cells. MoE routing adds no systematic advantage over a plain MLP head.
+
+**weighted_avg collapses** on set_01 t01 (0.594 AUROC vs 0.969–0.980 for moe/mlp): a fixed linear combination of VGAE + GAT scores fails to preserve attack ranking for known attacks on the known vehicle.
+
+|||
+
 **Mean(t01–t04) AUROC across datasets:**
 
 | variant      | set_01 | set_02 | set_03 | set_04 |
@@ -408,12 +367,6 @@ content: |
 | weighted_avg | 0.496  | 0.627  | 0.602  | 0.634  |
 | bandit       | 0.672  | 0.679  | 0.631  | 0.654  |
 | dqn          | 0.648  | 0.690  | 0.659  | 0.610  |
-
-|||
-
-**MoE ≈ MLP ≈ MoE-noaux** — within ±0.015 AUROC and ±0.030 MCC across all (dataset, split) cells. MoE routing adds no systematic advantage over a plain MLP head.
-
-**weighted_avg collapses** on set_01 t01 (0.594 AUROC vs 0.969–0.980 for moe/mlp): a fixed linear combination of VGAE + GAT scores fails to preserve attack ranking for known attacks on the known vehicle.
 
 **bandit and dqn** reach competitive AUROC on t01/t04 but MCC remains near zero on t02–t04 across all datasets
 
@@ -441,7 +394,7 @@ Gear attack (set_01): t01 AUROC **0.976** → t02 AUROC **0.224** (−0.75 on th
 |||
 
 **Structural blind spot — t05 (suppress attacks):**
-AUROC = 0.000 across _every_ method and _every_ dataset. Frame suppression produces a sparser graph — the opposite of the model's anomaly signal. A complementary traffic-volume monitor is required.
+AUROC = 0.000 across _every_ method and _every_ dataset. Frame suppression produces no attack nodes
 
 **set_04 t03 reversal:**
 Known vehicle + novel attacks (0.88–0.89 AUROC) outperforms known vehicle + known attacks (0.70).
@@ -453,28 +406,6 @@ TODO: I don't know if this is actually true
 **Masquerade (t06) range:** 0.30–0.985 AUROC — widest inter-method spread. Set_03/mlp fails (0.30) while moe/moe_noaux score 0.83–0.84 on the same split.
 
 _Single seed (42): differences within ±0.01 AUROC on any (dataset, split) cell should be treated as noise. Multi-seed runs needed before definitve claims._
-
----
-
-## Dimensionality (UMAP) Analysis
-
-```iframe
-src: https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/umap.html
-height: 520
-title: UMAP embedding analysis
-```
-
----
-
-## Key Result: Representational Alignment (CKA)
-
-**What CKA measures:** Centered Kernel Alignment scores linear similarity between two sets of layer activations; 1.0 = identical representations.
-
-```iframe
-src: https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/cka.html
-height: 480
-title: CKA representational similarity
-```
 
 ---
 
@@ -520,15 +451,18 @@ title: Vehicle CAN to PINN pipeline
 
 ## Q2: Model Interpretability & Calibration
 
+<!-- align: center -->
+
 ```iframe
-src: https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/attention.html
-height: 480
-title: Attention weight visualization
+src: https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/umap.html
+height: 520
+title: UMAP embedding analysis
 ```
 
 ---
 
 <!-- columns: 2 -->
+<!-- size: small -->
 
 ## Q3 + Q4: Federated Learning, Reinforcement Learning, Convergence
 
@@ -552,20 +486,11 @@ $$
 
 ---
 
-<!-- columns: 4/6 -->
 <!-- size: small -->
 
 ## Building towards a thesis (work in progress)
 
 - Goal structured notation (GSN) is a grammar to structure and visualize arguments
-
-```iframe
-src: ../tables/gsn_blocks.html
-height: 290
-title: GSN building blocks
-```
-
-|||
 
 ```iframe
 src: https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/gsn-thesis.html
