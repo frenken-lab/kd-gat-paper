@@ -91,7 +91,9 @@
     "dqn": "DQN",
     "mlp": "MLP",
     "bandit": "Bandit",
-    "weighted_avg": "Weighted avg."
+    "weighted_avg": "Weighted avg.",
+    "teacher_vgae": "Teacher VGAE",
+    "teacher_gat": "Teacher GAT"
   },
   "rows": [
     {

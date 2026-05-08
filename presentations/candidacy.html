@@ -1824,249 +1824,637 @@ return K * (P * P).sum()
 <div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">9 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
 </section>
 
-<section class="slide slide--content size-small" data-index="9">
-<h2>Ablation Results</h2>
-<div class="slide-content"><p><em>F1 macro (multiclass, pooled across test splits) · n=1 seed · bold = best in axis × dataset</em></p>
-<table>
+<section class="slide slide--content cols-2 size-small" data-index="9">
+<h2>Metrics &amp; Split Codes</h2>
+<div class="slide-content colloquium-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr));"><div class="col"><table>
 <thead>
 <tr>
-<th style="text-align:left">Variant</th>
-<th style="text-align:right">hcrl_sa</th>
-<th style="text-align:right">set_01</th>
-<th style="text-align:right">set_02</th>
-<th style="text-align:right">set_03</th>
-<th style="text-align:right">set_04</th>
+<th>Metric</th>
+<th>Measures</th>
+<th>Range</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td style="text-align:left"><strong>Loss function</strong></td>
-<td style="text-align:right"></td>
-<td style="text-align:right"></td>
-<td style="text-align:right"></td>
-<td style="text-align:right"></td>
-<td style="text-align:right"></td>
+<td><strong>AUROC</strong></td>
+<td>Ranking quality — P(attack scored above benign), macro-avg over classes. Threshold-free.</td>
+<td>0–1 · 0.5 = random</td>
 </tr>
 <tr>
-<td style="text-align:left">CE</td>
-<td style="text-align:right"><strong>0.835</strong></td>
-<td style="text-align:right"><strong>0.617</strong></td>
-<td style="text-align:right"><strong>0.539</strong></td>
-<td style="text-align:right">0.676</td>
-<td style="text-align:right">0.385</td>
+<td><strong>AP</strong></td>
+<td>Area under precision-recall curve, macro-avg. Penalises miscalibration more than AUROC.</td>
+<td>0–1</td>
 </tr>
 <tr>
-<td style="text-align:left">Focal</td>
-<td style="text-align:right">0.835</td>
-<td style="text-align:right">0.574</td>
-<td style="text-align:right">0.521</td>
-<td style="text-align:right"><strong>0.682</strong></td>
-<td style="text-align:right">0.418</td>
+<td><strong>MCC</strong></td>
+<td>Full confusion-matrix correlation. Robust to class imbalance. Requires threshold.</td>
+<td>−1 to +1 · 0 = random</td>
 </tr>
 <tr>
-<td style="text-align:left">Weighted CE</td>
-<td style="text-align:right"><strong>0.835</strong></td>
-<td style="text-align:right">0.569</td>
-<td style="text-align:right">0.533</td>
-<td style="text-align:right">0.681</td>
-<td style="text-align:right"><strong>0.570</strong></td>
+<td><strong>P@95R</strong></td>
+<td>Precision when recall = 0.95 — alert fatigue proxy.</td>
+<td>0–1</td>
 </tr>
 <tr>
-<td style="text-align:left"><strong>Sampling strategy</strong></td>
-<td style="text-align:right"></td>
-<td style="text-align:right"></td>
-<td style="text-align:right"></td>
-<td style="text-align:right"></td>
-<td style="text-align:right"></td>
-</tr>
-<tr>
-<td style="text-align:left">None</td>
-<td style="text-align:right"><strong>0.835</strong></td>
-<td style="text-align:right"><strong>0.577</strong></td>
-<td style="text-align:right">0.522</td>
-<td style="text-align:right">0.682</td>
-<td style="text-align:right">0.415</td>
-</tr>
-<tr>
-<td style="text-align:left">Curriculum (random)</td>
-<td style="text-align:right"><strong>0.835</strong></td>
-<td style="text-align:right">—</td>
-<td style="text-align:right"><strong>0.530</strong></td>
-<td style="text-align:right"><strong>0.683</strong></td>
-<td style="text-align:right"><strong>0.432</strong></td>
-</tr>
-<tr>
-<td style="text-align:left">Curriculum (VGAE)</td>
-<td style="text-align:right">0.770</td>
-<td style="text-align:right">0.556</td>
-<td style="text-align:right">0.522</td>
-<td style="text-align:right">0.674</td>
-<td style="text-align:right">0.411</td>
-</tr>
-<tr>
-<td style="text-align:left"><strong>ID encoding</strong></td>
-<td style="text-align:right"></td>
-<td style="text-align:right"></td>
-<td style="text-align:right"></td>
-<td style="text-align:right"></td>
-<td style="text-align:right"></td>
-</tr>
-<tr>
-<td style="text-align:left">Hash</td>
-<td style="text-align:right"><strong>0.835</strong></td>
-<td style="text-align:right"><strong>0.574</strong></td>
-<td style="text-align:right">0.507</td>
-<td style="text-align:right"><strong>0.685</strong></td>
-<td style="text-align:right">0.389</td>
-</tr>
-<tr>
-<td style="text-align:left">Lookup</td>
-<td style="text-align:right">0.760</td>
-<td style="text-align:right">0.566</td>
-<td style="text-align:right"><strong>0.536</strong></td>
-<td style="text-align:right">0.682</td>
-<td style="text-align:right"><strong>0.426</strong></td>
+<td><strong>R@99P</strong></td>
+<td>Recall when precision = 0.99 — high-confidence detection proxy.</td>
+<td>0–1</td>
 </tr>
 </tbody>
-</table>
-</div>
+</table></div><div class="col"><table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Vehicle</th>
+<th>Attack</th>
+<th>Interpretation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>t01-KK</strong></td>
+<td>Known</td>
+<td>Known</td>
+<td>In-distribution baseline</td>
+</tr>
+<tr>
+<td><strong>t02-UK</strong></td>
+<td>Unknown</td>
+<td>Known</td>
+<td>Vehicle covariate shift</td>
+</tr>
+<tr>
+<td><strong>t03-KU</strong></td>
+<td>Known</td>
+<td>Unknown</td>
+<td>Zero-shot attack type</td>
+</tr>
+<tr>
+<td><strong>t04-UU</strong></td>
+<td>Unknown</td>
+<td>Unknown</td>
+<td>Full out-of-distribution</td>
+</tr>
+<tr>
+<td><strong>t05</strong></td>
+<td>—</td>
+<td>Suppress</td>
+<td>ECU frame removal — structural blind spot</td>
+</tr>
+<tr>
+<td><strong>t06</strong></td>
+<td>—</td>
+<td>Masquerade</td>
+<td>Injected spoofed frames</td>
+</tr>
+</tbody>
+</table></div></div>
 <div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">10 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
 </section>
 
-<section class="slide slide--content size-small" data-index="10">
-<h2>Main Results</h2>
-<div class="slide-content"><p><em>F1 macro (multiclass, pooled across test splits) · n=1 seed · bold = best per dataset · — = not yet run</em></p>
+<section class="slide slide--content cols-2 size-small" data-index="10">
+<h2>VGAE Training — Empirical Notes</h2>
+<div class="slide-content colloquium-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr));"><div class="col"><p><strong>Baseline Results (set_02)</strong></p>
 <table>
 <thead>
 <tr>
-<th style="text-align:left">Model</th>
-<th style="text-align:right">hcrl_sa</th>
-<th style="text-align:right">set_01</th>
-<th style="text-align:right">set_02</th>
-<th style="text-align:right">set_03</th>
-<th style="text-align:right">set_04</th>
+<th>Split</th>
+<th>AUROC</th>
+<th>Observation</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td style="text-align:left"><strong>Fusion</strong></td>
-<td style="text-align:right"></td>
-<td style="text-align:right"></td>
-<td style="text-align:right"></td>
-<td style="text-align:right"></td>
-<td style="text-align:right"></td>
+<td>t03-KU</td>
+<td>0.834</td>
+<td>Best — unknown attack type</td>
 </tr>
 <tr>
-<td style="text-align:left">MoE</td>
-<td style="text-align:right"><strong>0.997</strong></td>
-<td style="text-align:right">0.546</td>
-<td style="text-align:right">0.522</td>
-<td style="text-align:right">0.682</td>
-<td style="text-align:right"><strong>0.878</strong></td>
+<td>Overall</td>
+<td>0.621</td>
+<td></td>
 </tr>
 <tr>
-<td style="text-align:left">MoE (no aux loss)</td>
-<td style="text-align:right">—</td>
-<td style="text-align:right">0.544</td>
-<td style="text-align:right">0.521</td>
-<td style="text-align:right"><strong>0.682</strong></td>
-<td style="text-align:right">0.423</td>
+<td>t02-UK</td>
+<td>0.488</td>
+<td>Near-random — vehicle shift</td>
 </tr>
 <tr>
-<td style="text-align:left">DQN</td>
-<td style="text-align:right">0.993</td>
-<td style="text-align:right"><strong>0.549</strong></td>
-<td style="text-align:right">0.404</td>
-<td style="text-align:right">0.662</td>
-<td style="text-align:right">0.440</td>
+<td>t05</td>
+<td>0.000</td>
+<td>Suppress — structural blind spot</td>
 </tr>
 <tr>
-<td style="text-align:left">MLP</td>
-<td style="text-align:right">0.852</td>
-<td style="text-align:right"><strong>0.574</strong></td>
-<td style="text-align:right"><strong>0.522</strong></td>
-<td style="text-align:right">0.680</td>
-<td style="text-align:right">0.424</td>
-</tr>
-<tr>
-<td style="text-align:left">Bandit</td>
-<td style="text-align:right">0.953</td>
-<td style="text-align:right">0.505</td>
-<td style="text-align:right">0.405</td>
-<td style="text-align:right">0.601</td>
-<td style="text-align:right">0.272</td>
-</tr>
-<tr>
-<td style="text-align:left">Weighted avg</td>
-<td style="text-align:right">0.781</td>
-<td style="text-align:right">0.422</td>
-<td style="text-align:right">0.516</td>
-<td style="text-align:right">0.657</td>
-<td style="text-align:right">0.417</td>
-</tr>
-<tr>
-<td style="text-align:left"><strong>Student</strong></td>
-<td style="text-align:right"></td>
-<td style="text-align:right"></td>
-<td style="text-align:right"></td>
-<td style="text-align:right"></td>
-<td style="text-align:right"></td>
-</tr>
-<tr>
-<td style="text-align:left">GAT + KD</td>
-<td style="text-align:right">0.835</td>
-<td style="text-align:right">—</td>
-<td style="text-align:right">—</td>
-<td style="text-align:right">—</td>
-<td style="text-align:right">—</td>
-</tr>
-<tr>
-<td style="text-align:left">GAT (no KD)</td>
-<td style="text-align:right">0.743</td>
-<td style="text-align:right">0.572</td>
-<td style="text-align:right">0.527</td>
-<td style="text-align:right">0.681</td>
-<td style="text-align:right">0.438</td>
+<td>t06</td>
+<td>—</td>
+<td>AP 0.378 — ranking ok, calibration poor</td>
 </tr>
 </tbody>
-</table>
-</div>
+</table></div><div class="col"><p><strong>Training Difficulties</strong></p>
+<ul>
+<li>
+<p>Monitor Selection: <code>val_discrimination_ratio</code> to <code>val_recon_max_gap</code> (max gap between top-scored normal and top-scored anomaly).</p>
+</li>
+<li>
+<p>Global (time horizon / aggregate metrics) vs Local (single instance / single node)</p>
+</li>
+</ul></div></div>
+<div class="colloquium-slide-meta colloquium-slide-meta--left"><div class="colloquium-slide-footnote"><p>val_discrimination_ratio = inter/intra-class reconstruction variance ratio · val_recon_max_gap = max gap between top normal and top anomaly scores · t02-UK = unknown vehicle · t03-KU = unknown attack type · t05 = suppress (ECU frame removal)</p></div></div>
 <div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">11 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
 </section>
 
-<section class="slide slide--content" data-index="11">
-<h2>Dimensionality (UMAP) Analysis</h2>
-<div class="slide-content"><div class="colloquium-iframe-container" style="width:100%;height:auto;min-height:520px;"><iframe src="https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/umap.html" width="100%" height="520" title="UMAP embedding analysis" frameborder="0" allowfullscreen style="border:none;display:block;width:100%;height:520px"></iframe></div>
-</div>
+<section class="slide slide--content cols-2 size-small" data-index="11">
+<h2>Ablation — Loss Function</h2>
+<div class="slide-content colloquium-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr));"><div class="col"><p><strong>AUROC macro · mean(t01–t04) · seed 42</strong></p>
+<table>
+<thead>
+<tr>
+<th>variant</th>
+<th>hcrl_sa</th>
+<th>set_01</th>
+<th>set_02</th>
+<th>set_03</th>
+<th>set_04</th>
+<th>avg</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>none</td>
+<td>0.789</td>
+<td>0.691</td>
+<td>0.708</td>
+<td>0.679</td>
+<td>0.766</td>
+<td>0.727</td>
+</tr>
+<tr>
+<td>ce</td>
+<td>0.797</td>
+<td>0.693</td>
+<td>0.683</td>
+<td>0.667</td>
+<td>0.766</td>
+<td>0.721</td>
+</tr>
+<tr>
+<td>weighted_ce</td>
+<td>0.773</td>
+<td>0.661</td>
+<td>0.683</td>
+<td>0.669</td>
+<td>0.778</td>
+<td>0.713</td>
+</tr>
+<tr>
+<td>focal</td>
+<td>0.796</td>
+<td>0.693</td>
+<td>0.696</td>
+<td>0.677</td>
+<td>0.771</td>
+<td>0.727</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Calibration — set_04 (timing-perturbation attacks):</strong></p>
+<table>
+<thead>
+<tr>
+<th>variant</th>
+<th>MCC</th>
+<th>R@99P</th>
+<th>AP (avg)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ce</td>
+<td>0.001</td>
+<td>0.004</td>
+<td>0.676</td>
+</tr>
+<tr>
+<td>weighted_ce</td>
+<td>0.319</td>
+<td>0.032</td>
+<td>0.678</td>
+</tr>
+<tr>
+<td>none</td>
+<td>0.226</td>
+<td>0.154</td>
+<td>0.690</td>
+</tr>
+<tr>
+<td>focal</td>
+<td>0.233</td>
+<td>0.128</td>
+<td>0.694</td>
+</tr>
+</tbody>
+</table></div><div class="col"><p>AUROC spread ≤ 0.014 — within single-seed noise. The decisive signal is calibration at high-precision operating points.</p>
+<p><code>ce</code> collapses despite AUROC 0.766: <strong>MCC = 0.001, R@99P = 0.004</strong>. Timing-perturbation attacks share in-vocabulary CAN IDs; inverse-frequency weighting drives the model to a degenerate threshold that AUROC cannot detect.</p>
+<p><code>focal</code> avoids collapse (MCC 0.233) and leads AP across set_01–04 (0.694). The fusion stage consumes GAT probabilities as input features — a degenerate GAT output corrupts those features regardless of fusion architecture.</p>
+<div class="colloquium-box colloquium-box--muted">
+<div class="colloquium-box-title">Decision</div>
+<div class="colloquium-box-content"><p>gat_loss = focal</p></div>
+</div></div></div>
+<div class="colloquium-slide-meta colloquium-slide-meta--left"><div class="colloquium-slide-footnote"><p>AUROC = rank quality, threshold-free · AP = area under precision-recall curve · MCC = confusion-matrix correlation (0 = random) · R@99P = recall when precision ≥ 0.99</p></div></div>
 <div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">12 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
 </section>
 
-<section class="slide slide--content" data-index="12">
+<section class="slide slide--content cols-2 size-small" data-index="12">
+<h2>Ablation — Training Curriculum</h2>
+<div class="slide-content colloquium-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr));"><div class="col"><p><strong>AUROC macro · mean(t01–t04) · seed 42</strong> <em>(set_01/curriculum_random pending)</em></p>
+<table>
+<thead>
+<tr>
+<th>variant</th>
+<th>hcrl_sa</th>
+<th>set_01</th>
+<th>set_02</th>
+<th>set_03</th>
+<th>set_04</th>
+<th>avg</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>none</td>
+<td>0.789</td>
+<td>0.691</td>
+<td>0.708</td>
+<td>0.679</td>
+<td>0.766</td>
+<td>0.727</td>
+</tr>
+<tr>
+<td>curriculum_random</td>
+<td>0.793</td>
+<td>—</td>
+<td>0.701</td>
+<td>0.686</td>
+<td>0.743</td>
+<td>—</td>
+</tr>
+<tr>
+<td>curriculum_vgae</td>
+<td>0.800</td>
+<td>0.692</td>
+<td>0.709</td>
+<td>0.680</td>
+<td>0.733</td>
+<td>0.723</td>
+</tr>
+</tbody>
+</table>
+<p><strong>MCC · mean(t01–t04):</strong></p>
+<table>
+<thead>
+<tr>
+<th>variant</th>
+<th>hcrl_sa</th>
+<th>set_01</th>
+<th>set_02</th>
+<th>set_03</th>
+<th>set_04</th>
+<th>avg</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>none</td>
+<td>0.500</td>
+<td>0.199</td>
+<td>0.138</td>
+<td>0.278</td>
+<td>0.226</td>
+<td>0.268</td>
+</tr>
+<tr>
+<td>curriculum_random</td>
+<td>0.500</td>
+<td>—</td>
+<td>0.112</td>
+<td>0.282</td>
+<td>0.232</td>
+<td>—</td>
+</tr>
+<tr>
+<td>curriculum_vgae</td>
+<td>0.430</td>
+<td>0.187</td>
+<td>0.137</td>
+<td>0.267</td>
+<td>0.139</td>
+<td>0.232</td>
+</tr>
+</tbody>
+</table></div><div class="col"><p>Neither curriculum variant improves over <code>none</code> by more than single-seed noise on AUROC.</p>
+<p><code>curriculum_vgae</code> <strong>degrades MCC</strong> (0.232 vs 0.268): VGAE scores timing-perturbation attacks as <em>easy</em> (in-vocabulary IDs → low reconstruction error → low difficulty rank), deprioritizing them in early epochs. Set_04 AUROC drops 0.766→0.733, MCC drops 0.226→0.139.</p>
+<p><code>curriculum_random</code> matches <code>none</code> on AUROC but falls behind on R@99P across set_01–04 (0.125 vs 0.151).</p>
+<p>Both variants add a VGAE scoring pass each epoch. No variant justifies the overhead.</p>
+<div class="colloquium-box colloquium-box--muted">
+<div class="colloquium-box-title">Decision</div>
+<div class="colloquium-box-content"><p>gat_sampling = none</p></div>
+</div></div></div>
+<div class="colloquium-slide-meta colloquium-slide-meta--left"><div class="colloquium-slide-footnote"><p>AUROC = rank quality, threshold-free · MCC = confusion-matrix correlation (0 = random) · R@99P = recall when precision ≥ 0.99</p></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">13 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
+</section>
+
+<section class="slide slide--content cols-2 size-small" data-index="13">
+<h2>Ablation — CAN ID Encoding</h2>
+<div class="slide-content colloquium-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr));"><div class="col"><p><strong>AUROC macro · mean(t01–t04) · seed 42</strong></p>
+<table>
+<thead>
+<tr>
+<th>variant</th>
+<th>hcrl_sa</th>
+<th>set_01</th>
+<th>set_02</th>
+<th>set_03</th>
+<th>set_04</th>
+<th>avg</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>none</td>
+<td>0.789</td>
+<td>0.691</td>
+<td>0.708</td>
+<td>0.679</td>
+<td>0.766</td>
+<td>0.727</td>
+</tr>
+<tr>
+<td>id_hash</td>
+<td>0.858</td>
+<td>0.664</td>
+<td>0.698</td>
+<td>0.675</td>
+<td>0.732</td>
+<td>0.725</td>
+</tr>
+<tr>
+<td>id_lookup</td>
+<td>0.845</td>
+<td>0.679</td>
+<td>0.701</td>
+<td>0.669</td>
+<td>0.722</td>
+<td>0.724</td>
+</tr>
+</tbody>
+</table>
+<p><strong>hcrl_sa t04 — unknown vehicle + unknown attack:</strong></p>
+<table>
+<thead>
+<tr>
+<th>variant</th>
+<th>AUROC</th>
+<th>R@99P</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>none</td>
+<td>0.894</td>
+<td>0.499</td>
+</tr>
+<tr>
+<td>id_hash</td>
+<td>0.920</td>
+<td>0.499</td>
+</tr>
+<tr>
+<td>id_lookup</td>
+<td>0.988</td>
+<td>0.707</td>
+</tr>
+</tbody>
+</table></div><div class="col"><p>On set_01–04 (multi-vehicle, ~2048 unique IDs): <strong>−0.018 / −0.019 AUROC vs baseline</strong>. The vocabulary is too diverse for a fixed hash or lookup table to add signal beyond the learned embedding.</p>
+<p>Using <code>none</code> also keeps GAT node features dataset-agnostic, preserving potential generalisation in future development.</p>
+<div class="colloquium-box colloquium-box--muted">
+<div class="colloquium-box-title">Decision</div>
+<div class="colloquium-box-content"><p>id_encoding = none</p></div>
+</div></div></div>
+<div class="colloquium-slide-meta colloquium-slide-meta--left"><div class="colloquium-slide-footnote"><p>AUROC = rank quality, threshold-free · R@99P = recall when precision ≥ 0.99</p></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">14 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
+</section>
+
+<section class="slide slide--content cols-2 size-small" data-index="14">
+<h2>Ablation — Fusion Methods</h2>
+<div class="slide-content colloquium-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr));"><div class="col"><p><strong>AUROC macro · set_01 · seed 42</strong> <em>(t05 = 0.000 universally, excluded)</em></p>
+<table>
+<thead>
+<tr>
+<th>variant</th>
+<th>t01-KK</th>
+<th>t02-UK</th>
+<th>t03-KU</th>
+<th>t04-UU</th>
+<th>t06</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>mlp</td>
+<td>0.980</td>
+<td>0.455</td>
+<td>0.523</td>
+<td>0.629</td>
+<td>0.970</td>
+</tr>
+<tr>
+<td>moe</td>
+<td>0.969</td>
+<td>0.344</td>
+<td>0.569</td>
+<td>0.570</td>
+<td>0.983</td>
+</tr>
+<tr>
+<td>moe_noaux</td>
+<td>0.973</td>
+<td>0.331</td>
+<td>0.563</td>
+<td>0.573</td>
+<td>0.985</td>
+</tr>
+<tr>
+<td>weighted_avg</td>
+<td>0.594</td>
+<td>0.441</td>
+<td>0.490</td>
+<td>0.459</td>
+<td>0.481</td>
+</tr>
+<tr>
+<td>bandit</td>
+<td>0.914</td>
+<td>0.460</td>
+<td>0.570</td>
+<td>0.743</td>
+<td>0.978</td>
+</tr>
+<tr>
+<td>dqn</td>
+<td>0.818</td>
+<td>0.460</td>
+<td>0.573</td>
+<td>0.743</td>
+<td>0.955</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Mean(t01–t04) AUROC across datasets:</strong></p>
+<table>
+<thead>
+<tr>
+<th>variant</th>
+<th>set_01</th>
+<th>set_02</th>
+<th>set_03</th>
+<th>set_04</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>mlp</td>
+<td>0.647</td>
+<td>0.649</td>
+<td>0.617</td>
+<td>0.669</td>
+</tr>
+<tr>
+<td>moe_noaux</td>
+<td>0.610</td>
+<td>0.643</td>
+<td>0.637</td>
+<td>0.673</td>
+</tr>
+<tr>
+<td>weighted_avg</td>
+<td>0.496</td>
+<td>0.627</td>
+<td>0.602</td>
+<td>0.634</td>
+</tr>
+<tr>
+<td>bandit</td>
+<td>0.672</td>
+<td>0.679</td>
+<td>0.631</td>
+<td>0.654</td>
+</tr>
+<tr>
+<td>dqn</td>
+<td>0.648</td>
+<td>0.690</td>
+<td>0.659</td>
+<td>0.610</td>
+</tr>
+</tbody>
+</table></div><div class="col"><p><strong>MoE ≈ MLP ≈ MoE-noaux</strong> — within ±0.015 AUROC and ±0.030 MCC across all (dataset, split) cells. MoE routing adds no systematic advantage over a plain MLP head.</p>
+<p><strong>weighted_avg collapses</strong> on set_01 t01 (0.594 AUROC vs 0.969–0.980 for moe/mlp): a fixed linear combination of VGAE + GAT scores fails to preserve attack ranking for known attacks on the known vehicle.</p>
+<p><strong>bandit and dqn</strong> reach competitive AUROC on t01/t04 but MCC remains near zero on t02–t04 across all datasets</p>
+<p><strong>t02 (unknown vehicle)</strong> is the hardest split: AUROC 0.33–0.46 on set_01 across all methods. Vehicle shift collapses detection even for attack types seen in training.</p></div></div>
+<div class="colloquium-slide-meta colloquium-slide-meta--left"><div class="colloquium-slide-footnote"><p>AUROC = rank quality, threshold-free · KK = known vehicle + known attack · UK = unknown vehicle · KU = unknown attack type · UU = unknown vehicle + unknown attack (full OOD)</p></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">15 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
+</section>
+
+<section class="slide slide--content cols-2 size-small" data-index="15">
+<h2>Main Results</h2>
+<div class="slide-content colloquium-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr));"><div class="col"><p><strong>Hardest split — t02 (unknown vehicle, known attacks):</strong></p>
+<table>
+<thead>
+<tr>
+<th>method</th>
+<th>set_01</th>
+<th>set_02</th>
+<th>set_03</th>
+<th>set_04</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>mlp</td>
+<td>0.455</td>
+<td>0.495</td>
+<td>0.582</td>
+<td>0.541</td>
+</tr>
+<tr>
+<td>moe_noaux</td>
+<td>0.331</td>
+<td>0.494</td>
+<td>0.565</td>
+<td>0.539</td>
+</tr>
+<tr>
+<td>bandit</td>
+<td>0.460</td>
+<td>0.507</td>
+<td>0.609</td>
+<td>0.502</td>
+</tr>
+<tr>
+<td>dqn</td>
+<td>0.460</td>
+<td>0.510</td>
+<td>0.637</td>
+<td>0.544</td>
+</tr>
+</tbody>
+</table>
+<p>Gear attack (set_01): t01 AUROC <strong>0.976</strong> → t02 AUROC <strong>0.224</strong> (−0.75 on the same attack type, different vehicle).</p></div><div class="col"><p><strong>Structural blind spot — t05 (suppress attacks):</strong>
+AUROC = 0.000 across <em>every</em> method and <em>every</em> dataset. Frame suppression produces a sparser graph — the opposite of the model’s anomaly signal. A complementary traffic-volume monitor is required.</p>
+<p><strong>set_04 t03 reversal:</strong>
+Known vehicle + novel attacks (0.88–0.89 AUROC) outperforms known vehicle + known attacks (0.70).</p>
+<!-- Novel attack types on the trained vehicle are more anomalous to the graph structure than timing-perturbation variants seen in training.
+TODO: I don't know if this is actually true
+-->
+<p><strong>Masquerade (t06) range:</strong> 0.30–0.985 AUROC — widest inter-method spread. Set_03/mlp fails (0.30) while moe/moe_noaux score 0.83–0.84 on the same split.</p>
+<p><em>Single seed (42): differences within ±0.01 AUROC on any (dataset, split) cell should be treated as noise. Multi-seed runs needed before definitve claims.</em></p></div></div>
+<div class="colloquium-slide-meta colloquium-slide-meta--left"><div class="colloquium-slide-footnote"><p>AUROC = rank quality, threshold-free · t02-UK = unknown vehicle + known attacks · t05 = suppress (ECU frame removal) · t06 = masquerade (injected spoofed frames)</p></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">16 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
+</section>
+
+<section class="slide slide--content" data-index="16">
+<h2>Dimensionality (UMAP) Analysis</h2>
+<div class="slide-content"><div class="colloquium-iframe-container" style="width:100%;height:auto;min-height:520px;"><iframe src="https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/umap.html" width="100%" height="520" title="UMAP embedding analysis" frameborder="0" allowfullscreen style="border:none;display:block;width:100%;height:520px"></iframe></div>
+</div>
+<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">17 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
+</section>
+
+<section class="slide slide--content" data-index="17">
 <h2>Key Result: Representational Alignment (CKA)</h2>
 <div class="slide-content"><p><strong>What CKA measures:</strong> Centered Kernel Alignment scores linear similarity between two sets of layer activations; 1.0 = identical representations.</p>
 <div class="colloquium-iframe-container" style="width:100%;height:auto;min-height:480px;"><iframe src="https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/cka.html" width="100%" height="480" title="CKA representational similarity" frameborder="0" allowfullscreen style="border:none;display:block;width:100%;height:480px"></iframe></div>
 </div>
-<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">13 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">18 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
 </section>
 
-<section class="slide slide--section-break" data-index="13">
+<section class="slide slide--section-break" data-index="18">
 <h2>Proposed Research</h2>
-<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">14 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">19 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
 </section>
 
-<section class="slide slide--content" data-index="14">
+<section class="slide slide--content" data-index="19">
 <h2>Proposed Work: Composition Pipeline</h2>
 <div class="slide-content"><ul>
-<li><strong>Physics-Informed Neural Network (PINN):</strong> Encode vehicle dynamics as a physics residual loss; provide a causally-independent channel that prevents physically implausible detections and is structurally hard to spoof alongside the data-driven signal</li>
-<li><strong>Explainability (XAI):</strong> Expose GAT attention weights and SHAP/LIME attributions as per-message attribution maps, satisfying ISO 26262 ASIL C/D auditability requirements</li>
-<li><strong>Federated Learning (FL):</strong> Train across OEM fleets without sharing raw CAN data; address data-privacy barriers to industry adoption while preserving cross-vehicle generalization</li>
-<li><strong>Model Sizing (KD):</strong> Map the teacher→student compression frontier systematically; answer how small the model can be before performance degrades under the ARM Cortex-A7/A53 envelope</li>
+<li><strong>Physics-Informed Neural Network (PINN):</strong> Encode vehicle dynamics as a physics residual loss; provide a causally-independent channel that prevents physically implausible detections to pair with data-driven models</li>
+<li><strong>Explainability (XAI):</strong> Analysis of datasets, models, and metrics across different metrics, visualizations. Ability to explain and be better informed about problem surface.</li>
+<li><strong>Federated Learning (FL):</strong> Ability to learn across datasets within domain (cross-vehicle generalization); potentially learning across domains (automotive vs networking vs cyber physical system)</li>
+<li><strong>Model Sizing (KD):</strong> Inteligent teacher→student compressions that address constraints while minimizing degradation.</li>
 </ul>
 </div>
-<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">15 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">20 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
 </section>
 
-<section class="slide slide--content cols-2" data-index="15">
+<section class="slide slide--content cols-2" data-index="20">
 <h2>Q1: Physics &amp; Dynamic Controls</h2>
 <div class="slide-content colloquium-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr));"><div class="col"><p><strong>When to trust physics vs. data-driven?</strong></p>
 <p>Four-quadrant decision on two axes — <em>on/off the physics manifold</em> × <em>in/out of training distribution</em>:</p>
@@ -2081,38 +2469,30 @@ return K * (P * P).sum()
 <tbody>
 <tr>
 <td><strong>On manifold</strong></td>
-<td>Both apply; trivial fusion</td>
-<td>Physics carries the trust</td>
+<td>Both apply</td>
+<td>Physics higher weighting</td>
 </tr>
 <tr>
 <td><strong>Off manifold</strong></td>
-<td>Data-driven carries the trust</td>
-<td>Neither alone suffices — the research contribution</td>
+<td>Data-driven higher weighting</td>
+<td>research contribution</td>
 </tr>
 </tbody>
-</table>
-<p><strong>Channel orthogonality is the structural defense:</strong> data-driven reads raw bytes; physics reads dynamics. Simultaneous corruption requires two structurally different attacks, converting a single attack surface into two independent ones.</p></div><div class="col"><div class="colloquium-iframe-container" style="width:100%;height:auto;min-height:480px;"><iframe src="https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/vehicle-pinn.html" width="100%" height="480" title="Vehicle CAN to PINN pipeline" frameborder="0" allowfullscreen style="border:none;display:block;width:100%;height:480px"></iframe></div></div></div>
-<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">16 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
+</table></div><div class="col"><div class="colloquium-iframe-container" style="width:100%;height:auto;min-height:480px;"><iframe src="https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/vehicle-pinn.html" width="100%" height="480" title="Vehicle CAN to PINN pipeline" frameborder="0" allowfullscreen style="border:none;display:block;width:100%;height:480px"></iframe></div></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">21 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
 </section>
 
-<section class="slide slide--content" data-index="16">
+<section class="slide slide--content" data-index="21">
 <h2>Q2: Model Interpretability &amp; Calibration</h2>
 <div class="slide-content"><!-- TODO: 2 cols add another relevant visualization with description underneath each  -->
 <div class="colloquium-iframe-container" style="width:100%;height:auto;min-height:480px;"><iframe src="https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/attention.html" width="100%" height="480" title="Attention weight visualization" frameborder="0" allowfullscreen style="border:none;display:block;width:100%;height:480px"></iframe></div>
 </div>
-<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">17 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">22 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
 </section>
 
-<section class="slide slide--content" data-index="17">
-<h2>Q3: Federated Learning &amp; Convergence</h2>
-<div class="slide-content"><div class="colloquium-iframe-container" style="width:100%;height:auto;min-height:480px;"><iframe src="https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/fedavg-drift.html" width="100%" height="480" title="FedAvg calibration drift" frameborder="0" allowfullscreen style="border:none;display:block;width:100%;height:480px"></iframe></div>
-</div>
-<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">18 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
-</section>
-
-<section class="slide slide--content cols-2" data-index="18">
-<h2>Q4: Reinforcement Learning</h2>
-<div class="slide-content colloquium-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr));"><div class="col"><p><strong>Reward shift at deployment:</strong></p>
+<section class="slide slide--content cols-2" data-index="22">
+<h2>Q3 + Q4: Federated Learning, Reinforcement Learning, Convergence</h2>
+<div class="slide-content colloquium-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr));"><div class="col"><div class="colloquium-iframe-container" style="width:100%;height:auto;min-height:480px;"><iframe src="https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/fedavg-drift.html" width="100%" height="480" title="FedAvg calibration drift" frameborder="0" allowfullscreen style="border:none;display:block;width:100%;height:480px"></iframe></div></div><div class="col"><p><strong>Reward shift at deployment:</strong></p>
 <div class="math block">
 \underbrace{\mathbb{E}_{p_\text{deploy}}[R_\text{true}] - \mathbb{E}_{p_\text{train}}[R_\text{train}]}_{\text{total}} = \underbrace{\Delta p(s)}_{\substack{\text{covariate} \\ \text{shift}}} + \underbrace{\Delta R}_{\substack{\text{proxy–target} \\ \text{divergence}}}
 </div>
@@ -2120,18 +2500,17 @@ return K * (P * P).sum()
 <li><strong>Covariate shift:</strong> detectable from the input distribution; importance reweighting applies</li>
 <li><strong>Proxy–target divergence:</strong> the policy optimizes against its own confidence, which is least trustworthy exactly when the policy is most wrong — undetectable from inputs alone</li>
 <li><strong>Structural fix:</strong> physics provides a channel decoupled from optimization pressure; simultaneous corruption requires structurally different attacks on two independent channels</li>
-</ul></div><div class="col"><p><strong>Adaptive Weighting per sample:</strong></p>
-<div class="colloquium-iframe-container" style="width:100%;height:auto;min-height:480px;"><iframe src="https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/fusion.html" width="100%" height="480" title="Expert fusion mechanism" frameborder="0" allowfullscreen style="border:none;display:block;width:100%;height:480px"></iframe></div></div></div>
-<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">19 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
+</ul></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">23 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
 </section>
 
-<section class="slide slide--content cols-4-6 size-small" data-index="19">
+<section class="slide slide--content cols-4-6 size-small" data-index="23">
 <h2>Building towards a thesis (work in progress)</h2>
 <div class="slide-content colloquium-grid" style="grid-template-columns: minmax(0, 4fr) minmax(0, 6fr);"><div class="col"><ul>
 <li>Goal structured notation (GSN) is a grammar to structure and visualize arguments</li>
 </ul>
 <div class="colloquium-iframe-container" style="width:100%;height:auto;min-height:290px;"><iframe src="../tables/gsn_blocks.html" width="100%" height="290" title="GSN building blocks" frameborder="0" allowfullscreen style="border:none;display:block;width:100%;height:290px"></iframe></div></div><div class="col"><div class="colloquium-iframe-container" style="width:100%;height:auto;min-height:600px;"><iframe src="https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/gsn-thesis.html" width="100%" height="600" title="Draft of working thesis in GSN" frameborder="0" allowfullscreen style="border:none;display:block;width:100%;height:600px"></iframe></div></div></div>
-<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">20 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left">Robert Frenken · The Ohio State University</div><div class="colloquium-footer-center"><span class="colloquium-counter">24 / {total}</span></div><div class="colloquium-footer-right colloquium-footer-nav">Candidacy · 2026</div></div>
 </section>
 </div>
 
@@ -2139,7 +2518,7 @@ return K * (P * P).sum()
 
 <button class="colloquium-picker-trigger" title="Open slide picker">
     <span class="colloquium-picker-trigger-label">Slides</span>
-    <span class="colloquium-picker-trigger-count">1 / 20</span>
+    <span class="colloquium-picker-trigger-count">1 / 24</span>
 </button>
 
 <div class="colloquium-progress">

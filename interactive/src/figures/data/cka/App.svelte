@@ -14,7 +14,11 @@
   type DataMatrices = Record<string, Record<string, (number | null)[][] | null>>;
 
   const data = rawData;
-  const isEmpty = !data?.matrices || Object.keys(data.matrices).length === 0;
+  const isEmpty =
+    !data?.matrices ||
+    Object.keys(data.matrices).length === 0 ||
+    !data?.variants ||
+    (data.variants as string[]).length === 0;
 
   const datasets = isEmpty ? [] : Object.keys(data.matrices as DataMatrices).sort();
   let selectedDataset = $state(datasets[0] ?? '');
