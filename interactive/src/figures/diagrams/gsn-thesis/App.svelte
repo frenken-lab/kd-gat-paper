@@ -29,9 +29,9 @@
 
   const GROUP_IDS = ['group_thesis', 'group_instance', 'group_constraint'] as const;
   const GROUP_LABELS: Record<string, string> = {
-    group_thesis: 'Thesis',
-    group_instance: 'Instance',
-    group_constraint: 'Constraints',
+    group_thesis: 'Abstract claim',
+    group_instance: 'This system',
+    group_constraint: 'Context',
   };
   const GROUP_LAYER: Record<string, string> = {
     group_thesis: 'thesis',
