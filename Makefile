@@ -67,9 +67,10 @@ _static/site.bundle.css: _static/custom.css _static/story.css
 candidacy-site: figures tables _static/site.bundle.css ## Build candidacy site
 	myst build --site --config myst.candidacy.yml
 
-slides: ## Build colloquium slides → _build/slides/
+slides: tables ## Build colloquium slides → _build/slides/
 	uv run python tools/slides/build.py presentations/candidacy.md _build/slides
 	cp presentations/*.svg _build/slides/
+	cp images/*.svg _build/slides/
 
 slides-dev: ## Colloquium live-reload server for slides (port 8080, no tunnel needed locally)
 	@echo "Slides → http://localhost:8080/candidacy.html"

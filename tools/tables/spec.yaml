@@ -107,3 +107,20 @@ contributions:
     summary:
       - ["Integrated Framework",               primary,   primary,  primary  ]
 
+gsn_blocks:
+  title: "GSN Building Blocks"
+  label: tbl-gsn-blocks
+  kind: definition
+  editor: false
+  columns:
+    block: Building Block
+    shape: Shape
+    description: Description
+  rows:
+    - ["Goal",          "Rectangle",         "A claim to be argued"]
+    - ["Context",       "Rounded rectangle", "How a claim should be interpreted"]
+    - ["Solution",      "Circle",            "Evidence supporting an argument"]
+    - ["Strategy",      "Parallelogram",     "Reasoning steps from goal to sub-goals"]
+    - ["Assumption",    "Ellipse",           "What is taken as given for a strategy or goal"]
+    - ["Justification", "Diamond",           "Why a claim or argument is acceptable"]
+

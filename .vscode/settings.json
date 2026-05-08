@@ -32,7 +32,10 @@
 
   "[markdown]": {
     "editor.wordWrap": "wordWrapColumn",
-    "editor.wordWrapColumn": 100
+    "editor.wordWrapColumn": 100,
+    "editor.quickSuggestions": { "other": true, "comments": false, "strings": false },
+    "editor.tabCompletion": "on",
+    "editor.suggest.snippetsPreventQuickSuggestions": false
   },
 
   "editor.formatOnSave": true,

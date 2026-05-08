@@ -126,12 +126,33 @@ def render_harvey_balls(spec: dict) -> tuple[pl.DataFrame, str, str]:
     return df, gt.as_raw_html() + "\n", t.render_harvey_gfm(df, spec)
 
 
+def render_definition(spec: dict) -> tuple[pl.DataFrame, str, str]:
+    """Render a simple definition/glossary table from inline rows."""
+    cols = spec["columns"]
+    rows = spec["rows"]
+    keys = list(cols.keys())
+    records = [{keys[i]: row[i] for i in range(len(keys))} for row in rows]
+    df = pl.DataFrame(records)
+
+    gt = GT(df).cols_label(**cols).cols_align(align="left").pipe(t.theme_538)
+
+    gfm_lines = [
+        "| " + " | ".join(cols.values()) + " |",
+        "| " + " | ".join("---" for _ in cols) + " |",
+    ]
+    for row in rows:
+        gfm_lines.append("| " + " | ".join(str(v) for v in row) + " |")
+
+    return df, gt.as_raw_html() + "\n", "\n".join(gfm_lines) + "\n"
+
+
 # --- Dispatch + write ------------------------------------------------------
 
 
 RENDERERS = {
     "numeric": render_numeric,
     "harvey_balls": render_harvey_balls,
+    "definition": render_definition,
 }
 
 
@@ -140,6 +161,15 @@ def build_table(name: str, spec: dict) -> None:
     df, html, gfm = render(spec)
 
     (OUT_DIR / f"{name}.md").write_text(html)
+
+    # Emit standalone .html for iframe embedding (used by slides)
+    if spec.get("kind") == "definition":
+        standalone = (
+            '<!DOCTYPE html><html><head><meta charset="utf-8">'
+            "<style>body{margin:0;padding:8px;background:white;}</style>"
+            f"</head><body>{html}</body></html>"
+        )
+        (OUT_DIR / f"{name}.html").write_text(standalone)
 
     suffix = ""
     if spec.get("editor", True):
