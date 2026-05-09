@@ -45,7 +45,7 @@ import numpy as np
 import polars as pl
 import yaml
 from huggingface_hub import hf_hub_download, list_repo_files
-from tools.validate_inputs import load_schemas, validate_data
+from validate_inputs import load_schemas, validate_data
 
 METRICS_REPO_ID = "buckeyeguy/graphids-kd-gat"
 ANALYSIS_REPO_ID = "buckeyeguy/graphids-data"
