@@ -1,0 +1,17 @@
+---
+title: "Candidacy Committee Questions"
+---
+
+**Candidacy Committee**
+
+- Professor Qadeer Ahmed, Advisor
+- Professor Anish Arora
+- Professor Kevin (Jia) Liu
+- Professor Andrew Perrault
+
+**Topics**
+
+1. [Physics and Dynamic Controls](physics-dynamics.qmd) — Q1.1, Q1.2
+2. [Model Interpretability and Calibration](interpretability-calibration.qmd) — Q2.1, Q2.2
+3. [Federated Learning, Optimization, and Convergence](federated-optimization.qmd) — Q3.1, Q3.2, Q3.3
+4. [Reinforcement Learning](reinforcement-learning.qmd) — Q4.1, Q4.2

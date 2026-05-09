@@ -1,0 +1,127 @@
+---
+title: "Figure Gallery"
+---
+
+## Diagrams
+
+
+::: {#fig-graph-base}
+```{=html}
+<iframe src="https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/graph-base.html" width="100%" height="500" frameborder="0" loading="lazy"></iframe>
+```
+
+CAN bus graph representation. Nodes are arbitration IDs, edges are temporal co-occurrence.
+:::
+
+
+
+::: {#fig-gat-layer}
+```{=html}
+<iframe src="https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/gat-layer.html" width="100%" height="500" frameborder="0" loading="lazy"></iframe>
+```
+
+GAT attention layer with multi-head structure. Click a head to inspect its internal mechanism.
+:::
+
+
+
+::: {#fig-gat}
+```{=html}
+<iframe src="https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/gat.html" width="100%" height="500" frameborder="0" loading="lazy"></iframe>
+```
+
+GAT classifier architecture.
+:::
+
+
+
+::: {#fig-vgae}
+```{=html}
+<iframe src="https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/vgae.html" width="100%" height="500" frameborder="0" loading="lazy"></iframe>
+```
+
+VGAE anomaly detector.
+:::
+
+
+
+::: {#fig-kd-vgae}
+```{=html}
+<iframe src="https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/kd-vgae.html" width="100%" height="500" frameborder="0" loading="lazy"></iframe>
+```
+
+VGAE knowledge distillation.
+:::
+
+
+
+::: {#fig-kd-gat}
+```{=html}
+<iframe src="https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/kd-gat.html" width="100%" height="500" frameborder="0" loading="lazy"></iframe>
+```
+
+GAT knowledge distillation.
+:::
+
+
+
+::: {#fig-architecture}
+```{=html}
+<iframe src="https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/architecture.html" width="100%" height="500" frameborder="0" loading="lazy"></iframe>
+```
+
+Full KD-GAT pipeline: input graph, teacher ensemble, student distillation, bandit fusion.
+:::
+
+
+## Data Figures
+
+
+::: {#fig-gallery-umap}
+```{=html}
+<iframe src="https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/umap.html" width="100%" height="500" frameborder="0" loading="lazy"></iframe>
+```
+
+UMAP embedding of GAT graph-level representations.
+:::
+
+
+
+::: {#fig-gallery-reconstruction}
+```{=html}
+<iframe src="https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/reconstruction.html" width="100%" height="500" frameborder="0" loading="lazy"></iframe>
+```
+
+VGAE reconstruction error decomposition.
+:::
+
+
+
+::: {#fig-gallery-fusion}
+```{=html}
+<iframe src="https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/fusion.html" width="100%" height="500" frameborder="0" loading="lazy"></iframe>
+```
+
+Bandit fusion weight distribution.
+:::
+
+
+
+::: {#fig-gallery-attention}
+```{=html}
+<iframe src="https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/attention.html" width="100%" height="500" frameborder="0" loading="lazy"></iframe>
+```
+
+GAT attention graph visualization.
+:::
+
+
+
+::: {#fig-gallery-cka}
+```{=html}
+<iframe src="https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/cka.html" width="100%" height="500" frameborder="0" loading="lazy"></iframe>
+```
+
+CKA similarity between teacher and student layers.
+:::
+

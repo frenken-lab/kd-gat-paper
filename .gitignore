@@ -26,3 +26,5 @@ interactive/.env
 # Loose screenshots saved by the playwright MCP browser_take_screenshot tool
 *-baseline.png
 *-after-D*.png
+
+/.quarto/

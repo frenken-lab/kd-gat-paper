@@ -6,27 +6,13 @@ repos:
     rev: v5.0.0
     hooks:
       - id: trailing-whitespace
-        exclude: ^tmlr_do_not_modify/
       - id: end-of-file-fixer
-        exclude: ^tmlr_do_not_modify/
       - id: check-yaml
-        exclude: ^tmlr_do_not_modify/
       - id: check-added-large-files
         args: ["--maxkb=1024"]
-        exclude: ^tmlr_do_not_modify/
 
   - repo: local
     hooks:
-      # tools/tmlr/build.mjs serializes MyST mdast → Distill markdown via
-      # mdast-util-to-markdown defaultHandlers + Distill-flavored overrides.
-      # Re-run its semantic-property tests whenever the converter changes.
-      - id: tmlr-tests
-        name: tmlr serializer tests (bun test)
-        language: system
-        entry: bash -c 'cd tools/tmlr && bun test'
-        files: '^tools/tmlr/.*\.mjs$'
-        pass_filenames: false
-
       - id: validate-bib
         name: validate bibliography
         language: system

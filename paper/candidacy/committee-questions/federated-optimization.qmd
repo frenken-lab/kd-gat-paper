@@ -1,0 +1,146 @@
+---
+title: "3. Federated Learning, Optimization, and Convergence"
+---
+
+## Question 3.1
+
+> Knowledge distillation can be framed as a bilevel optimization problem. Discuss the relationship between teacher capacity, student capacity, and task complexity.
+
+Knowledge distillation hides a nested structure: the architecture choice (which student to build) and the fitting problem (how to train it) are coupled but solved at different timescales. Applying the bilevel structure from differentiable architecture search [@DARTS2019]: the outer problem picks a student architecture under hardware constraints; the inner problem fits its weights to the frozen teacher:
+
+$$
+\begin{aligned}
+\text{(outer)}\quad & \mathcal{A}_S^\star
+    = \arg\min_{\mathcal{A}_S \in \Omega}\;
+      \mathcal{R}_{\text{val}}\!\bigl(f_{S}(\,\cdot\,;\,\theta_S^\star(\mathcal{A}_S),\,\mathcal{A}_S)\bigr) \\
+\text{s.t.}\quad
+    & \mathrm{FLOPs}(\mathcal{A}_S) \le C_{\text{hw}},\quad
+      \mathrm{Latency}(\mathcal{A}_S) \le L_{\text{hw}} \\[6pt]
+\text{(inner)}\quad & \theta_S^\star(\mathcal{A}_S)
+    = \arg\min_{\theta_S}\;
+      (1-\lambda)\,\mathcal{L}_{\text{hard}}(\theta_S)
+    + \lambda\,\mathcal{L}_{\text{KD}}(\theta_S;\,f_T,\,T)
+\end{aligned}
+$$
+
+where $\mathcal{A}_S \in \Omega$ is the student architecture (discrete choice of layer counts, widths, etc.) subject to hardware budget $C_{\text{hw}}, L_{\text{hw}}$; $\theta_S^\star(\mathcal{A}_S)$ is the inner solution — optimal weights for a given architecture, treated as an implicit function of $\mathcal{A}_S$; $\lambda \in [0,1]$ trades hard-label cross-entropy against the KD objective; $T > 0$ is softmax temperature controlling teacher output entropy; and $\mathcal{L}_{\text{KD}} = \mathrm{KL}(\sigma(z_T/T) \| \sigma(z_S/T))$ is the KD loss over teacher and student pre-softmax logits. The outer objective $\mathcal{R}_{\text{val}}$ evaluates hard-label generalization on a held-out split — not fit to the teacher — which is what makes this a proper bilevel problem rather than a jointly optimized loss.
+
+**Task complexity** $\mathcal{T}$ is the intrinsic difficulty of the learning problem, indexed by the Bayes-optimal error or equivalently the capacity of the smallest model class that attains the teacher's validation accuracy from ground-truth labels alone. **Teacher capacity** $|f_T|$ must satisfy $|f_T| \gtrsim \mathcal{T}$ for soft targets to carry useful dark knowledge; an underfit teacher produces noisy soft labels. **Student capacity** $|f_S|$ is the outer decision variable, bounded below by $\mathcal{T}$ and above by the hardware budget.
+
+### Why the outer objective cannot be differentiated
+
+Optimizing the outer problem requires $d\mathcal{R}_{\text{val}}/d\mathcal{A}_S$. By the chain rule this factors into $(\partial \mathcal{R}_{\text{val}}/\partial \theta_S^\star) \cdot (d\theta_S^\star/d\mathcal{A}_S)$. The first term is standard backprop; the second requires differentiating through training. Since $\theta_S^\star$ minimizes the inner objective, applying the implicit function theorem gives:
+
+$$
+\frac{d\,\theta_S^\star}{d\,\mathcal{A}_S}
+= -\bigl[\nabla^2_{\theta_S\theta_S}\,\mathcal{L}_{\text{inner}}\bigr]^{-1}
+   \nabla^2_{\theta_S \mathcal{A}_S}\,\mathcal{L}_{\text{inner}}
+$$
+
+The first factor is the inverse Hessian — millions-by-millions for any non-trivial student, intractable to store or invert. DARTS [@DARTS2019] approximates both factors with a first-order unrolled gradient step; in the KD setting no such approximation is standard, so the outer solve is skipped and the student architecture is fixed by engineering judgment.
+
+### The outer curve is an inverted-U in student capacity
+
+Since the outer gradient is intractable, the approach is to reason about the shape of $\mathcal{R}_{\text{val}}(|f_S|)$ — validation risk as a function of student size, holding teacher and task fixed. The curve is an inverted-U (U-shape in error): performance improves with student capacity, peaks, then degrades [@Towards-Law-of-Capacity-Gap2025; @Mirzadeh-TAKD2020]. Two mechanisms govern its shape.
+
+**Task complexity controls basin width.** Easy tasks (low $\mathcal{T}$) produce wide loss basins — many student sizes achieve near-optimal validation loss. Hard tasks (high $\mathcal{T}$) produce narrow basins, making the viable range of student sizes small and the outer curve's peak sharp [@keskar2017largebatch].
+
+**Teacher capacity controls peak height non-monotonically.** Larger teachers produce higher-entropy soft targets carrying dark knowledge — non-trivial probability mass on incorrect classes encoding inter-class similarity. This richens the KD signal up to a critical teacher-to-student capacity ratio, past which the student cannot approximate the teacher's distribution and the KD loss degrades generalization. This is the "larger teachers hurt smaller students" pathology [@Mirzadeh-TAKD2020; @distillation-scaling-laws].
+
+**Consequence:** the viable compression ratio $\Delta^\star_{\text{cap}} = |f_T|/|f_S|^\star$ shrinks as $\mathcal{T}$ increases — narrower inner basins require larger students, leaving less room to compress.
+
+### Reconstructing the outer surface without gradients
+
+Three approaches sample rather than differentiate $\mathcal{R}_{\text{val}}(|f_S|)$: direct capacity-gap sweeps [@Towards-Law-of-Capacity-Gap2025]; teacher-assistant chains [@Mirzadeh-TAKD2020] that bridge large capacity gaps by inserting intermediate models, each approximating an incremental step toward the outer minimum; and distillation scaling laws [@distillation-scaling-laws] that fit a power-law to many (teacher, student) pairs, though most thoroughly characterized at LLM scale where training many model sizes is feasible.
+
+In the CAN bus context, binary attack/benign sits at the easy end of the $\mathcal{T}$ axis — wide basin, large compression ratios tolerable. Extending to multi-class attacks or federated multi-vehicle training narrows the basin and tightens the viable $\Delta^\star_{\text{cap}}$.
+
+---
+
+## Question 3.2
+
+> How could federated learning enable collaborative model improvement across a fleet of edge devices with heterogeneous, privacy-sensitive data? What convergence challenges arise from non-IID distributions in this setting?
+
+Federation solves coverage without data pooling — gradient information crosses OEM boundaries, raw CAN traces do not. OEMs will not upload traces (proprietary signal layouts, driver behaviour); no single vehicle sees more than a sliver of the attack distribution; and federation amortises teacher training cost across the fleet instead of paying it per device.
+
+### Three axes of non-IID heterogeneity
+
+- **Label shift** ($p_i(y) \ne p_j(y)$): attack-exposure heterogeneity; the base 927:1 imbalance is amplified per vehicle, with some subclasses never appearing locally.
+- **Feature shift** ($p_i(x \mid y) \ne p_j(x \mid y)$): wear, weather, route — tire wear changes dynamics signals feeding the Q1.1 PINN.
+- **Concept shift** ($p_i(y \mid x) \ne p_j(y \mid x)$): OEM-specific protocol semantics; two OEMs can assign the same arbitration ID to different signals.
+
+The axes matter separately because the fixes differ. Label shift amplifies per-client gradient variance; feature shift causes client-specific overfitting; concept shift drives per-client gradients structurally opposite for the same input — no averaging converges to a shared function across OEMs.
+
+### Convergence under FedAvg and what breaks
+
+FedAvg averages $\theta^{(t+1)} = \sum_i \frac{n_i}{n} \theta_i^{(t)}$ over $E$ local steps. Under non-IID data, per-client drift accumulates and FedAvg converges to a stationary point of $\sum_i \frac{n_i}{n} F_i$ rather than $F$ [@kairouz2021advances]. The interactive figure below illustrates this: client iterates are pulled toward local minima, the FedAvg aggregate drifts from $\theta^*$, FedProx's proximal pull partially corrects toward the true gradient direction, and SCAFFOLD's control variates eliminate drift entirely. Drag the **E** slider to vary the number of local steps.
+
+
+::: {#fig-fedavg-drift}
+```{=html}
+<iframe src="https://frenken-lab.github.io/kd-gat-paper/assets/html/submission/fedavg-drift.html" width="100%" height="500" frameborder="0" loading="lazy"></iframe>
+```
+
+FedAvg gradient drift under non-IID client data. Three clients optimise toward structurally incompatible local minima (label shift, feature shift, concept shift). The FedAvg aggregate (thick grey) drifts from $\theta^*$; FedProx (dashed purple, $\mu=1$) reduces but does not eliminate the drift; SCAFFOLD (dashed teal) eliminates drift by correcting each client's gradient toward the global gradient. Slider controls local-step count $E \in [1, 15]$.
+:::
+
+
+Two remedies handle two axes: **FedProx** [@li2020fedprox] adds a proximal penalty $\frac{\mu}{2}\|\theta - \theta^{(t)}\|^2$, targeting feature-shift drift (axis 2); **SCAFFOLD** [@karimireddy2020scaffold] subtracts per-client control variates, recovering IID-like rates and targeting label-shift variance (axis 1). Concept shift (axis 3) is structurally irreducible — the answer is personalisation: a shared backbone with per-client heads.
+
+### Federated body, local heads
+
+Federate the shared substrate; localise OEM-specific pieces:
+
+
+| Component           | Local                                              | Shared                        | Strategy                                 |
+| ------------------- | -------------------------------------------------- | ----------------------------- | ---------------------------------------- |
+| VGAE                | Anomaly thresholds, hard-sample buffer             | Encoder + decoder             | SCAFFOLD on encoder                      |
+| GAT backbone        | Per-platform input projection, curriculum schedule | GAT layers, KD teacher logits | FedAvg/SCAFFOLD + federated KD           |
+| Classification head | Per-platform output head                           | —                             | Local only or clustered FL               |
+| Fusion policy       | Per-vehicle calibration, reward coefficients       | Policy backbone               | Federated init; Neural-LinUCB adaptation |
+
+
+### Poisoning and privacy
+
+A malicious client shifts the FedAvg aggregate by $\Theta(1/K)$ per round. Defences: Byzantine-robust aggregation (geometric median or Krum [@blanchard2017krum]), norm clipping on client updates, and per-round outlier detection on gradient norms. This adds an attack surface absent from the Q1.2 taxonomy — the federated backbone is exactly what an adversary targets.
+
+---
+
+## Question 3.3
+
+> Curriculum learning modifies the training distribution over time. Does a curriculum-trained model converge to the same solution as one trained on the full distribution, and what bias might it introduce?
+
+### Does it converge to the same solution?
+
+No, not in general. Curriculum modifies the effective training distribution $p_t(x, y)$ at each step, changing the expected gradient and SGD's trajectory — @bengio2009curriculum frames this as a continuation method guiding SGD toward better local optima. The answer is asymmetric: curriculum can strictly improve convergence _rate_; convergence to the same _minimum_ generally does not hold. @hacohen2019power show curriculum-trained networks reach lower final loss than shuffled baselines, with the gap largest on harder tasks.
+
+A sufficient condition for convergence to the same minimum is that the schedule asymptotes to the full distribution before SGD reaches a basin, and that the loss is convex there. Neither holds for a deep GAT.
+
+### What bias does it introduce?
+
+The effective training distribution integrated over the schedule,
+
+$$\tilde{p}(x, y) = \frac{1}{T}\sum_{t=1}^{T} p_t(x, y),$$
+
+is not the deployment distribution $p_{\text{nat}}$. Three bias manifestations:
+
+1. **Class-prior shift.** Oversampling the minority class early inflates its weight in $\tilde{p}$, raising minority recall and lowering precision at threshold 0.5 — a calibrated expression of the imbalance trade-off, not a bug.
+2. **Feature-selection bias.** Minority features seen first shape earliest-layer filters around minority-discriminative patterns; later imbalanced exposure fine-tunes the head but leaves the representation biased toward the minority [@hacohen2019power].
+3. **Calibration drift.** A prior diverging from $p_{\text{nat}}$ means softmax probabilities no longer match empirical deployment frequencies [@guo2017calibration]. Measure with class-conditional ECE (Q2.1); correct via temperature scaling on a natural-distribution split, propagating the correction to Q1.1 gate thresholds.
+
+Biases (1) and (2) are intentional given 927:1 imbalance. Bias (3) is a liability that propagates downstream.
+
+### This schedule is closer to anti-curriculum
+
+The momentum-based schedule,
+
+$$p_t = 1 - \exp(-t / \tau),\qquad B_t = (1 - p_t)\,B_{\text{bal}} + p_t\,B_{\text{nat}} + \alpha_{\text{buf}}\,B_{\text{hard}}$$
+
+starts fully class-balanced (minority _oversampled_) and blends exponentially toward the natural imbalanced distribution. Because rare attacks are arguably the hardest examples, starting with them overrepresented is closer to anti-curriculum with difficulty-aware replay than Bengio-style easy-to-hard [@soviany2022curriculum]. The hard-sample buffer (refreshed every 100 steps from highest-VGAE-error samples, $\alpha_{\text{buf}}=0.2$) couples detection stages by design — curriculum-by-model rather than curriculum-by-heuristic.
+
+Biases separated by intent:
+
+- **Intended:** Minority-attack recall gains; $\tau$ provides a continuous precision-recall knob.
+- **Intended:** Hard-sample replay biases the representation toward the VGAE error surface, coupling detection stages.
+- **Unintended, measurable:** Majority-class calibration drift — predicted $P(\text{attack})$ exceeds the natural 0.1%–3% base rate. Quantify with class-conditional ECE.
+- **Unintended, worth testing:** Final-weight divergence from a non-curriculum baseline — parameter distance $\|\theta_{\text{curr}} - \theta_{\text{nat}}\|_2 / \|\theta_{\text{nat}}\|_2$ per layer and prediction disagreement on natural-distribution test data, at $N=3$ seeds.

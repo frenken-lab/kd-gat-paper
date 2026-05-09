@@ -16,86 +16,53 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  validate:
+  build:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with: { python-version: "3.12" }
-      - uses: astral-sh/setup-uv@v3
-        with: { version: "0.10.4" }
-      - run: uv sync --frozen
-      - run: uv run python tools/validate/inputs/data.py
-      - run: uv run python tools/validate/inputs/bib.py
-
-  # Fast TMLR-converter regression check, parallel to validate. Fails fast on
-  # paper-content edits that would break the load-bearing AST serializer.
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-        with: { bun-version: 1.3.13 }
-      - run: cd interactive && bun install --frozen-lockfile && bun run test
-
-  figures:
-    runs-on: ubuntu-latest
-    needs: [validate, test]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-        with: { bun-version: 1.3.13 }
-      - run: cd interactive && bun install --frozen-lockfile && bun run build
-      - uses: actions/upload-artifact@v4
-        with: { name: figures, path: "_build/figures/*.html" }
-
-  # ---- Deploy jobs (main branch only) ----
-  # TMLR submission build is suppressed in CI; run `make tmlr` locally when needed.
-
-  deploy-pages:
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: ubuntu-latest
-    needs: figures
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    # BASE_URL tells MyST the subpath this site is served from on GitHub Pages.
+      url: ${{ steps.deploy.outputs.page_url }}
     env:
-      BASE_URL: /${{ github.event.repository.name }}
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      QUARTO_PYTHON: ${{ github.workspace }}/.venv/bin/python
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-        with: { bun-version: 1.3.13 }
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - uses: astral-sh/setup-uv@v3
         with: { version: "0.10.4" }
-      - uses: actions/download-artifact@v4
-        with: { name: figures, path: _build/figures/ }
+      - uses: oven-sh/setup-bun@v2
+        with: { bun-version: 1.3.13 }
+      - uses: quarto-dev/quarto-actions/setup@v2
+        with: { version: "1.8.2" }
+
       - run: uv sync --frozen --extra notebooks --group dev
-      - name: Build candidacy MyST site
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+
+      - name: Validate
         run: |
-          cp myst.yml myst.yml.paper
-          cp myst.candidacy.yml myst.yml
-          trap 'mv myst.yml.paper myst.yml' EXIT
-          uv run python tools/tables/build.py
-          cat _static/custom.css _static/story.css > _static/site.bundle.css
-          bun install -g mystmd@1.8.3
-          uv run myst build --execute --html
-      - name: Copy figures into Pages output
+          uv run python tools/validate/inputs/data.py
+          uv run python tools/validate/inputs/bib.py
+
+      - name: Build figures
+        run: cd interactive && bun install --frozen-lockfile && bun run build
+
+      - name: Build tables
+        run: uv run python tools/tables/build.py
+
+      - name: Render Quarto book
+        run: quarto render
+
+      - name: Copy figures and slides into site
         run: |
-          mkdir -p _build/html/assets/html/submission
-          cp _build/figures/*.html _build/html/assets/html/submission/
-      - name: Build and copy slides
-        run: |
+          mkdir -p _build/site/assets/html/submission _build/site/slides
+          cp _build/figures/*.html _build/site/assets/html/submission/
           uv run python tools/slides/build.py presentations/candidacy.md _build/slides
-          mkdir -p _build/html/slides
-          cp _build/slides/candidacy.html _build/html/slides/
-      - uses: actions/configure-pages@v4
-      - uses: actions/upload-pages-artifact@v3
-        with: { path: _build/html/ }
-      - name: Deploy to GitHub Pages
-        id: deployment
+          cp _build/slides/candidacy.html _build/site/slides/
+
+      - if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: actions/configure-pages@v4
+      - if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: actions/upload-pages-artifact@v3
+        with: { path: _build/site/ }
+      - if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        id: deploy
         uses: actions/deploy-pages@v4

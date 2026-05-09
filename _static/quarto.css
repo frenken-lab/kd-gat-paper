@@ -1,0 +1,73 @@
+/* Algorithm box — replaces MyST `:class: algorithm` admonitions. */
+.algorithm {
+  border: 1px solid #4a86c8;
+  border-radius: 4px;
+  padding: 16px 20px;
+  margin: 24px 0;
+  background: #f8faff;
+  font-family: "Times New Roman", serif;
+}
+
+.algorithm > p:first-child,
+.algorithm > strong:first-child {
+  font-weight: 700;
+  font-size: 14px;
+  margin: 0 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #ccd9f0;
+  color: #0066cc;
+  font-family: system-ui, -apple-system, sans-serif;
+  display: block;
+}
+
+.algorithm table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.algorithm th { display: none; }
+
+.algorithm td {
+  border: none;
+  padding: 2px 8px;
+  vertical-align: top;
+  line-height: 1.6;
+}
+
+.algorithm td:first-child {
+  width: 2em;
+  text-align: right;
+  color: #8899aa;
+  font-size: 0.85em;
+  padding-right: 12px;
+}
+
+.algorithm td:last-child {
+  text-align: right;
+  color: #6688aa;
+  font-style: italic;
+  font-size: 0.9em;
+  white-space: nowrap;
+}
+
+.algorithm tr:hover td {
+  background: #e8f0ff;
+  transition: background 0.15s;
+}
+
+.algorithm tr:hover td:first-child {
+  color: #0066cc;
+}
+
+/* Iframe figures need consistent sizing — figure-resize.ts in the original
+ * MyST build adjusted iframe heights at runtime; Quarto serves figures with
+ * fixed default heights, then iframe-resizer (loaded by figure pages) grows
+ * them to fit content. */
+figure iframe,
+.cell-output iframe {
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  display: block;
+  margin: 0 auto;
+}
