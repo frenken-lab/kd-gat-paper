@@ -56,6 +56,7 @@ def phase_validate_gate() -> None:
 
 
 def phase_figures() -> None:
+    run(["bun", "install", "--frozen-lockfile"], cwd=INTERACTIVE)
     run(["bun", "run", "build"], cwd=INTERACTIVE)
 
 
