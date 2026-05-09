@@ -50,11 +50,11 @@ interactive/src/figures/data/umap/
    bun run dev    # shell at localhost:5173; pick my-figure from the dropdown
    ```
 
-5. Build all figures:
+5. Build the repo:
    ```bash
-   make figures
+   make build
    ```
-   Output: `_build/figures/my-figure.html`
+   Output: the figure lands in `_build/figures/my-figure.html` as part of the full site build.
 
 6. Reference in content via iframe:
    ```markdown
@@ -78,7 +78,7 @@ Architecture diagrams (architecture, gat, kd-gat, kd-vgae, vgae) use a different
 
 ## Build System Internals
 
-`build.js` orchestrates the build because `vite-plugin-singlefile` requires `inlineDynamicImports`, which is incompatible with multiple Rollup entry points in a single pass. For each figure:
+`build.js` orchestrates the figure build because `vite-plugin-singlefile` requires `inlineDynamicImports`, which is incompatible with multiple Rollup entry points in a single pass. You normally do not run it directly; `make build` invokes it for you. For each figure:
 
 1. Scans `src/figures/{data,diagrams}/` for directories containing `App.svelte`
 2. Auto-generates `index.html` + `main.js` from templates if missing

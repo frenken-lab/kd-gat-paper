@@ -22,6 +22,7 @@ Usage:
     python tools/pull_data.py --dry-run        # preview what would be written
     python tools/pull_data.py --skip-metrics   # figures only (skip CSV tables)
     python tools/pull_data.py --skip-figures   # metrics tables only (skip figures)
+    python tools/pull_data.py --skip-validation # skip output validation (for orchestrators)
 
 UMAP variant (edit these constants to use a different run):
     UMAP_GROUP, UMAP_VARIANT, UMAP_SEED  (applied to all datasets)
@@ -37,7 +38,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import subprocess
 import sys
 from pathlib import Path
 
@@ -45,6 +45,7 @@ import numpy as np
 import polars as pl
 import yaml
 from huggingface_hub import hf_hub_download, list_repo_files
+from tools.validate_inputs import load_schemas, validate_data
 
 METRICS_REPO_ID = "buckeyeguy/graphids-kd-gat"
 ANALYSIS_REPO_ID = "buckeyeguy/graphids-data"
@@ -68,7 +69,6 @@ VARIANT_ORDER = [
 
 ROOT = Path(__file__).resolve().parent.parent
 SCHEMA_PATH = ROOT / "data" / "schemas.yaml"
-VALIDATOR = ROOT / "tools" / "validate" / "inputs" / "data.py"
 FIGURES_DIR = ROOT / "interactive" / "src" / "figures" / "data"
 
 MULTICLASS_ATTACK_TYPE_LABELS: dict[int, str] = {
@@ -401,6 +401,11 @@ def main() -> None:
     parser.add_argument("--dry-run", action="store_true", help="Show what would be written")
     parser.add_argument("--skip-metrics", action="store_true", help="Skip metrics table pull")
     parser.add_argument("--skip-figures", action="store_true", help="Skip figure data generation")
+    parser.add_argument(
+        "--skip-validation",
+        action="store_true",
+        help="Skip validating the written outputs",
+    )
     args = parser.parse_args()
 
     if not args.skip_metrics:
@@ -414,15 +419,16 @@ def main() -> None:
         for name, reason in SKIPPED_FIGURES.items():
             print(f"  - {name}: {reason}")
 
-    if not args.dry_run:
+    if not args.dry_run and not args.skip_validation:
         print("\nValidating output...")
-        result = subprocess.run([sys.executable, str(VALIDATOR)], capture_output=True, text=True)
-        print(result.stdout, end="")
-        if result.stderr:
-            print(result.stderr, end="", file=sys.stderr)
-        if result.returncode:
+        schemas = load_schemas()
+        errors = validate_data(schemas)
+        if errors:
+            for e in errors:
+                print(f"  FAIL: {e}", file=sys.stderr)
             print("Validation failed — some figures may need KD-GAT export pipeline")
-        sys.exit(result.returncode)
+            sys.exit(1)
+        print(f"  OK: {len(schemas.get('csv', {}))} CSV, {len(schemas.get('json', {}))} JSON validated")
 
 
 if __name__ == "__main__":

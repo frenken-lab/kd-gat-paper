@@ -50,6 +50,24 @@ bun run dev    # shell at localhost:5173 — pick figure from dropdown
 
 The shell page uses an iframe so switching figures never tears down the HMR connection. Works in StackBlitz.
 
+For the normal repo build, use `make build` and let the orchestrator rebuild figures, tables, slides, and the site together.
+
+### Spec editor / anywidget
+
+```bash
+make speceditor      # build the widget bundle for stable use on OSC
+```
+
+Use the built bundle on OSC when you want to open and edit diagrams. That is the normal path.
+
+### Insight loop
+
+```bash
+make marimo   # open analysis/marimo/ as the primary insight workspace
+```
+
+Use marimo for reactive inspection and claim drafting. Save stable results into `paper/candidacy/_generated/`, then point Quarto or notebook wrappers at those files.
+
 ## Project Layout
 
 ```
@@ -108,10 +126,13 @@ Open `http://localhost:3000` in your local browser. Closing Terminal 1 drops the
 | Change | Auto-reload? | Manual step |
 |---|---|---|
 | `.md` content files | Yes | — |
-| `.svelte` figure source | No | `make figures`, then hard-refresh |
-| Table spec / CSV | No | `make tables`, then refresh |
+| `.svelte` figure source | No | `make build`, then hard-refresh |
+| Table spec / CSV | No | `make build`, then refresh |
+| `analysis/marimo/*` | No | save artifact to `paper/candidacy/_generated/`, then refresh the consumer |
 | `myst.yml` config | No | Restart `make dev-myst` (clears cache on start) |
 | CSS in `_static/` | No | Hard-refresh (Ctrl+Shift+R) |
+
+If you do not want to think about which layer changed, run `make build` and refresh once.
 
 ## Validation
 
@@ -120,6 +141,6 @@ make validate    # Checks data against schemas.yaml + validates .bib files
 make bib         # Validates bibliography only
 ```
 
-`tools/validate/inputs/data.py` reads `data/schemas.yaml` and checks:
+`tools/validate_inputs.py --data-only` reads `data/schemas.yaml` and checks:
 - CSV files: required columns exist, minimum row count met
 - JSON files (figure data): required keys present, array length constraints

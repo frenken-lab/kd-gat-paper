@@ -2,6 +2,8 @@
 
 The paper build is a typed-source → AST → multi-shape-artifact pipeline. This doc holds the three lenses you need to reason about it: the latency loops you author against, the component inventory of what library does what, and the validation architecture that gates each contract.
 
+The one command that runs the full build is `make build`.
+
 ```
 SOURCES                 AST                  ARTIFACTS
 data/csv/        →      _build/site/    →    _build/submission/    (TMLR Distill)
@@ -32,10 +34,11 @@ Four loops. Each has a latency budget; the dev orchestration is shaped to hit th
 | ---- | --------------------------------- | --------------------------------- | --------- | ------ |
 | L1   | `paper/**/*.md`                   | Rendered prose, cites, figures    | <1s       | ✓ MyST `start` |
 | L2   | `interactive/src/figures/**/*`    | Updated chart in browser          | <200ms    | ✓ Vite HMR |
-| L3   | `data/csv/*.csv`, schemas         | Updated chart from new numbers    | <5s       | partial — needs `data.dev.json` (open) |
+| L2.5 | `analysis/marimo/**/*`             | Reactive insight, claim drafting   | <1s       | new |
+| L3   | `data/csv/*.csv`, schemas, generated artifacts | Updated chart from new numbers | <5s | partial — add chapter-local artifact cache |
 | L4   | Anything                          | Distill-rendered TMLR submission  | <30s      | ✓ `tools/tmlr/preview.mjs` (~2s) |
 
-`make dev` orchestrates the lot via overmind + `Procfile.dev` (4 processes: `myst`, `figs`, `tables`, `preview`). `make dev-myst` is the no-overmind fallback.
+`make dev` orchestrates the lot via overmind + `Procfile.dev` (4 processes: `myst`, `figs`, `tables`, `preview`). `make dev-myst` is the no-overmind fallback. `make marimo` opens the insight workspace directly.
 
 ---
 
@@ -48,7 +51,7 @@ Ten components a markdown-driven scientific authoring stack needs, mapped to wha
 | 1 | **Parser** | mystmd CommonMark + roles/directives, via `myst build` | — |
 | 2 | **AST / IR** | mdast JSON in `_build/site/content/*.json`, consumed by `tools/tmlr/build.mjs` (rides `mdast-util-to-markdown` defaults + `gfm-table`; ~15 Distill-flavored handler overrides) and `tools/validate/lint.mjs` | — |
 | 3 | **Cross-references** | mystmd resolves `{ref}`/`{numref}`/`{eq}` across files; resolution surfaces as `crossReference.resolved` in the AST | Editor-side label completion |
-| 4 | **Citations** | 12 topic-split `.bib` files in `paper/references/`, validated by `tools/validate/inputs/bib.py`. mystmd resolves `[@key]`. TMLR build emits `<d-cite>`. | Bibkey completion that knows `{cite:p}` |
+| 4 | **Citations** | 12 topic-split `.bib` files in `paper/references/`, validated by `tools/validate_inputs.py --bib-only`. mystmd resolves `[@key]`. TMLR build emits `<d-cite>`. | Bibkey completion that knows `{cite:p}` |
 | 5 | **Math** | mystmd handles inline + display + label refs. AMS tagging in TMLR via `\eqref{}`. Round-trips via `inlineMath` / `math` handlers. | Live math preview, equation-label completion |
 | 6 | **Figures** | SveltePlot data figures + SvelteFlow diagrams under `interactive/src/figures/`. Vite + `vite-plugin-singlefile` → self-contained HTML. iframed; TMLR rewrites paths via `_h_iframe`. | — |
 | 7 | **PDF output** | Distill HTML for TMLR (Beyond PDF). Candidacy PDF removed 2026-05-06 — see commit log. | True LaTeX export (not currently demanded); print-quality candidacy PDF if needed later |
@@ -64,7 +67,7 @@ Three contracts → three layers → three drivers. All off-the-shelf — none o
 
 | Layer | Contract | Driver | Lives in |
 |-------|----------|--------|----------|
-| 1 — Inputs | schemas.yaml ✓, bib structure ✓, asset hygiene ✗, alt-text ✗ | Python (library-driven: `pyyaml`, `bibtexparser`) | `tools/validate/inputs/` |
+| 1 — Inputs | schemas.yaml ✓, bib structure ✓, asset hygiene ✗, alt-text ✗ | Python (library-driven: `pyyaml`, `bibtexparser`) | `tools/validate_inputs.py` |
 | 2 — Semantic | refs resolve, cites match bib, labels unique, math parses, links live | Bun + `unist-util-visit` plugins reporting via `vfile-reporter` | `tools/validate/lint.mjs` + `tools/validate/semantic/` |
 | 3 — Artifacts | submission shape, anonymization, paths bundled | `bun:test` (semantic-property tests over `_build/submission/submission.md`) | `tools/tmlr/build.test.mjs` (handler-level today; submission-level missing) |
 
@@ -110,7 +113,9 @@ Missing:
 
 - **Figure data sketch path — `data.dev.json` convention.** Iterating a figure's data still requires `KD-GAT/export_paper_data.py` + `make data`, closing L3 from "minutes" to <200ms. Convention: if `interactive/src/figures/<kind>/<name>/data.dev.json` exists, the figure loads it instead of `data.json`. Gitignored, blocked by pre-commit. ~10 lines total. Pay off only when figure-data iteration becomes the daily bottleneck.
 
-- **Output-tree split (paper vs candidacy).** Both builds currently write to `_build/site/`, so switching between `make site` and `make candidacy-site` clobbers the previous output. The Distill preview server reads from `_build/site/content/*.json` — fine while building one config at a time, foot-gun once both are active in CI. Fix: route MyST output through `--output _build/<config>/site/`. Mechanical; defer until the conflict bites.
+- **Chapter-local artifact cache.** For notebook-driven claims, prefer `paper/candidacy/_generated/<kind>/...` as the local cache path, with HF fallback only for missing artifacts. That keeps marimo iterations fast while keeping the publication path obvious.
+
+- **Output-tree split (paper vs candidacy).** Both builds currently write to `_build/site/`, so switching between paper and candidacy outputs clobbers the previous result. The Distill preview server reads from `_build/site/content/*.json` — fine while building one config at a time, foot-gun once both are active in CI. Fix: route MyST output through `--output _build/<config>/site/`. Mechanical; defer until the conflict bites.
 
 ---
 

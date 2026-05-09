@@ -33,11 +33,10 @@ book:
     - part: "Committee Questions"
       chapters:
         - paper/candidacy/committee-questions/index.qmd
-        - paper/candidacy/committee-questions/physics-dynamics.qmd
-        - paper/candidacy/committee-questions/interpretability-calibration.qmd
-        - paper/candidacy/committee-questions/federated-optimization.qmd
-        - paper/candidacy/committee-questions/reinforcement-learning.qmd
-    - paper/candidacy/results-notebook.qmd
+    - paper/candidacy/committee-questions/physics-dynamics.qmd
+    - paper/candidacy/committee-questions/interpretability-calibration.qmd
+    - paper/candidacy/committee-questions/federated-optimization.qmd
+    - paper/candidacy/committee-questions/reinforcement-learning.qmd
     - paper/content/conclusion.qmd
   appendices:
     - paper/candidacy/appendix.qmd

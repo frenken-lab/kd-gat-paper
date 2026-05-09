@@ -39,7 +39,7 @@ main_results:
 ## Build
 
 ```bash
-make tables    # Renders all specs to _build/tables/*.md
+make build    # Renders tables as part of the full repo build
 ```
 
 `build.py` reads each spec entry, loads the CSVs, applies formatting and sorting, then writes a booktabs-style markdown pipe table.
@@ -59,14 +59,14 @@ In any MyST content file:
 ```
 ````
 
-Tables are rebuilt by `make tables` before `make site`, so they're always fresh in the site build.
+Tables are rebuilt by `make build`, so they're always fresh in the site build.
 
 ## Adding a New Table
 
 1. Export the CSV from KD-GAT and place in `data/csv/`.
 2. Add a schema entry in `data/schemas.yaml`.
 3. Add a spec entry in `tools/tables/spec.yaml`.
-4. Run `make tables` to verify output.
+4. Run `make build` to verify output in the full repo context.
 5. Add an `{include}` directive in the relevant content file.
 
 ## Literature Baselines

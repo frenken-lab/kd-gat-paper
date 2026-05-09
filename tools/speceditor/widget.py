@@ -6,6 +6,8 @@ import traitlets
 
 
 class SpecEditor(anywidget.AnyWidget):
+    """Browser-first spec editor built on anywidget."""
+
     _esm = pathlib.Path(__file__).parent / "dist" / "widget.js"
     _css = pathlib.Path(__file__).parent / "dist" / "kd-gat-paper-figures.css"
 

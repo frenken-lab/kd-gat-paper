@@ -37,26 +37,10 @@ jobs:
 
       - run: uv sync --frozen --extra notebooks --group dev
 
-      - name: Validate
-        run: |
-          uv run python tools/validate/inputs/data.py
-          uv run python tools/validate/inputs/bib.py
-
-      - name: Build figures
-        run: cd interactive && bun install --frozen-lockfile && bun run build
-
-      - name: Build tables
-        run: uv run python tools/tables/build.py
-
-      - name: Render Quarto book
-        run: quarto render
-
-      - name: Copy figures and slides into site
-        run: |
-          mkdir -p _build/site/assets/html/submission _build/site/slides
-          cp _build/figures/*.html _build/site/assets/html/submission/
-          uv run python tools/slides/build.py presentations/candidacy.md _build/slides
-          cp _build/slides/candidacy.html _build/site/slides/
+      - name: Unified build
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: uv run python tools/build.py build
 
       - if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         uses: actions/configure-pages@v4

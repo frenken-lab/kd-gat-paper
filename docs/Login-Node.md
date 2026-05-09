@@ -11,8 +11,8 @@ spikes briefly on `.md` saves.
 | Memory | ~150–300 MB | Node.js process + AST cache; shared login-node RAM |
 | SSH tunnel | Negligible | Just a channel in sshd |
 
-Running `make figures` (bun build) **alongside** `myst start` on the login node is
-borderline — move to a compute node if you need both simultaneously.
+Running `make build` alongside `myst start` on the login node is borderline —
+move to a compute node if you need both simultaneously.
 
 ## Running two dev servers simultaneously
 

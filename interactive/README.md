@@ -33,12 +33,14 @@ Two templates to copy from:
 
 For architecture diagrams, copy any `diagrams/*/` figure — they follow the `spec.yaml` → `specToFlow` → `<DiagramCanvas>` pattern documented in the root `CLAUDE.md`.
 
+The canonical diagram editor is the browser-based anywidget widget in `tools/speceditor/widget.py`. The ipywidgets version exists as a JupyterLab fallback only.
+
 ## Building all figures
 
 ```bash
 bun run build
 # or from the repo root:
-make figures
+make build
 ```
 
 `build.js` walks `src/figures/{data,diagrams}/*/` for directories containing `App.svelte`, builds each one in a separate Vite pass, and writes the output to a flat `_build/figures/<name>.html`. Figure names must be unique across categories so the output filename is unambiguous. `index.html` and `main.js` are auto-generated for any figure that doesn't already have them.

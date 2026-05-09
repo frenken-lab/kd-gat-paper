@@ -8,7 +8,7 @@ _DESC = {"description_width": "auto"}
 
 
 class SpecEditorIPyw(w.VBox):
-    """ipywidgets-based spec.yaml editor — works on any JupyterLab (no anywidget needed)."""
+    """ipywidgets-based spec.yaml editor for JupyterLab fallback use."""
 
     def __init__(self, spec_path: str | pathlib.Path):
         self._path = pathlib.Path(spec_path)

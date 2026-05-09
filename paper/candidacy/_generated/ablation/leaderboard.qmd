@@ -1,25 +1,27 @@
----
-title: Ablation Results
-short_title: Results
----
-
-F1 macro mean per variant across the KD-GAT ablation groups, pulled live from the HuggingFace dataset at build time.
+F1 macro mean per variant across the KD-GAT ablation groups. When a local
+chapter-local artifact is present, the generated fragment uses it first;
+otherwise it falls back to the published HuggingFace dataset so the build still
+works.
 
 ```{python}
 #| echo: false
-from huggingface_hub import hf_hub_download
+from pathlib import Path
+
 import polars as pl
 import altair as alt
+from huggingface_hub import hf_hub_download
 
-df = (
-    pl.read_parquet(
+leaderboard_path = Path("paper/candidacy/_generated/results/leaderboard.parquet")
+if not leaderboard_path.exists():
+    leaderboard_path = Path(
         hf_hub_download(
             "buckeyeguy/graphids-kd-gat",
             "metrics/leaderboard.parquet",
             repo_type="dataset",
         )
     )
-)
+
+df = pl.read_parquet(leaderboard_path)
 ```
 
 ```{python}

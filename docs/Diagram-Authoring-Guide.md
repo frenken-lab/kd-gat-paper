@@ -50,7 +50,7 @@ For sub-spec composition pass a `specs` map: `specToFlow(mainSpec, { specs: { vg
 ### 3. Build
 
 ```bash
-FIGURE=my-figure bun run build    # or: make figures
+FIGURE=my-figure bun run build    # or: make build
 ```
 
 Output: `_build/figures/my-figure.html` (self-contained, JS + CSS inlined).

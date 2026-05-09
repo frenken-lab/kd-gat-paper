@@ -25,6 +25,5 @@ For deployment, CI, TMLR export, and candidacy-vs-paper build differences, see `
 ```bash
 make dev            # Paper live-reload (overmind: myst + vite + table watcher)
 make candidacy-dev  # Candidacy live-reload
-make figures        # Build all interactive figures
-make all            # Full pipeline: data → figures → tables → site
+make build          # Full pipeline: data → figures → tables → slides → site
 ```

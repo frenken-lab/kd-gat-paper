@@ -171,6 +171,26 @@ const figureAliasPlugin = {
 // ---------------------------------------------------------------------------
 export default defineConfig(({ command }) => {
   const isServe = command === 'serve';
+  const isWidget = process.env.TARGET === 'widget';
+
+  if (isWidget) {
+    return {
+      plugins: [yamlImportPlugin, stylesVirtualPlugin, svelte()],
+      root: __dirname,
+      build: {
+        lib: {
+          entry: resolve(__dirname, 'src/speceditor/widget.js'),
+          formats: ['es'],
+          fileName: () => 'widget.js',
+        },
+        outDir: resolve(__dirname, '../tools/speceditor/dist'),
+        emptyOutDir: true,
+        rollupOptions: {
+          external: [],
+        },
+      },
+    };
+  }
 
   // When FIGURE env is set (by build.js), build only that figure.
   // vite-plugin-singlefile requires inlineDynamicImports = single entry point.

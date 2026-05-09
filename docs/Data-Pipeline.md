@@ -10,18 +10,20 @@ KD-GAT eval artifacts
   → buckeyeguy/GraphIDS (Hugging Face dataset)
   → tools/pull_data.py (validates against schemas.yaml)
   → data/csv/ + interactive/src/figures/data/*/data.json
-  → make figures → _build/figures/*.html
-  → make tables → _build/tables/*.md
-  → myst build → paper site
+  → analysis/marimo/ (reactive exploration)
+  → paper/candidacy/_generated/ (stable chapter-local artifacts)
+  → make build → _build/site/
 ```
 
 ## Schema Validation
 
 `data/schemas.yaml` is the **single source of truth** for all data contracts. Both the KD-GAT exporter and this repo's pull script read from it. Don't hardcode schemas elsewhere.
 
+`paper/candidacy/_generated/` is the stable landing zone for notebook-derived artifacts that feed the candidacy chapter. Quarto notebooks should prefer local files there and only fall back to HF when the file is absent.
+
 ### CSV Validation
 
-For each declared CSV, `tools/validate/inputs/data.py` checks:
+`tools/validate_inputs.py --data-only` checks:
 - File exists at `data/csv/<name>`
 - All declared `columns` are present in CSV headers
 - Row count meets `min_rows` constraint
@@ -37,6 +39,7 @@ For each declared JSON file:
 
 | Command | What it does |
 |---------|-------------|
+| `make build` | Full pipeline: pull data, build figures/tables/slides, render site |
 | `make data` | Pulls from `buckeyeguy/GraphIDS` (HF) + validates against `schemas.yaml` |
 | `make validate` | Validates committed data only (no HF pull, used in CI) |
 
@@ -52,6 +55,6 @@ For each declared JSON file:
 
 2. Export from KD-GAT via `export_paper_data.py` (add an export handler there).
 
-3. Run `make data` to pull and validate.
+3. Run `make data` to pull and validate, or `make build` if you want the full repo output.
 
 4. If it's figure data, add a `file_map` entry in `schemas.yaml` pointing to the JSON path under `interactive/src/figures/data/`.

@@ -25,3 +25,7 @@ To assess the contribution of each model component, we perform ablation experime
 
 
 The ablation results show that GAT-only performs best or on par with the weighted fusion approach across all datasets, suggesting that simple linear fusion offers limited benefits over the standalone GAT classifier. Future work should explore more sophisticated fusion strategies, such as mixture-of-experts (MoE) architectures or attention-based fusion mechanisms, to better leverage the complementary strengths of both components.
+
+### Ablation Summary
+
+{{< include _generated/ablation/leaderboard.qmd >}}

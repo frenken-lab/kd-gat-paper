@@ -6,9 +6,7 @@ Validators for the paper build, organized by the contract they enforce. See `AUT
 
 ```
 tools/validate/
-  inputs/                        Layer 1 — input contract (Python, library-driven)
-    data.py                        CSV/JSON shapes against data/schemas.yaml
-    bib.py                         BibTeX structure (required fields, dupes, DOI presence)
+  validate_inputs.py              Layer 1 driver — CSV/JSON + BibTeX input contract
   semantic/                      Layer 2 — semantic contract over the mdast (Bun, unist-util-visit)
     no-dangling-xrefs.mjs          Fails on crossReference nodes with resolved !== true
     citations-exist.mjs            Fails on cite keys missing from paper/references/*.bib;
@@ -24,7 +22,7 @@ tools/validate/
 ```bash
 make validate                      # all layers
 make validate-inputs               # Layer 1 only (Python)
-make validate-semantic             # Layer 2 only (depends on `make site`)
+make validate-semantic             # Layer 2 only (depends on built mdast JSON from the site build)
 ```
 
 Exit code is non-zero if any message is `fatal`.

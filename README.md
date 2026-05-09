@@ -17,6 +17,9 @@ kd-gat-paper/
     content/             Shared chapters (.qmd)
     candidacy/           Candidacy-specific chapters (.qmd)
     references/          BibTeX (topic-split)
+  analysis/            Reactive insight workspace
+  paper/candidacy/_generated/
+                      Chapter-local stable artifacts consumed by Quarto
   interactive/         Svelte figure source + diagram library
   data/                Source CSVs + validation schemas
   tools/               Build scripts, validators, slides, GSN
@@ -31,17 +34,18 @@ Source directories produce or consume each other:
 
 ```
 paper/references/   data/csv/   interactive/src/
+paper/candidacy/_generated/    analysis/marimo/
     |             |              |
     |             v              v
     |        _build/tables/ _build/figures/
     |             |              |
-    +------+------+--------------+
+    +------+------+------+-------+
            |
            v
        paper/{content,candidacy}/  (.qmd: includes tables, iframes, cites)
            |
            v
-       quarto render --> _build/site/
+       make build --> _build/site/
 ```
 
 ## Local Setup
@@ -54,20 +58,19 @@ paper/references/   data/csv/   interactive/src/
 | [uv](https://docs.astral.sh/uv/) | Python package manager | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
 | [Quarto](https://quarto.org) 1.8+ | book builder | https://quarto.org/docs/get-started/ |
 | [Bun](https://bun.sh) | runs interactive figure builds + ESLint | `curl -fsSL https://bun.sh/install \| bash` |
+| [marimo](https://docs.marimo.io/) | primary insight notebook for analysis | `pip install marimo` or `uv add marimo` |
 
 ### 2. Install project dependencies
 
 ```bash
-uv sync --extra notebooks --group dev   # Python deps incl. jupyter for results-notebook
+uv sync --extra notebooks --group dev   # Python deps incl. Quarto notebook execution; add marimo for the insight loop
 cd interactive && bun install            # Figure deps (Svelte, Vite, SveltePlot)
 ```
 
 ### 3. Verify
 
 ```bash
-make figures     # Build all interactive figures into _build/figures/*.html
-make tables      # Render data tables into _build/tables/*.md
-make render      # Run quarto render → _build/site/
+make build       # data → figures → tables → slides → site
 ```
 
 ### 4. Day-to-day
@@ -79,16 +82,22 @@ make watch-tables # rebuild tables when CSVs / spec.yaml change (entr-driven)
 
 ## Commands
 
+Primary:
+
 ```bash
-make render          # figures → tables → quarto render → _build/site/
+make build           # full repo build: data → figures → tables → slides → site
 make dev             # quarto preview live-reload
-make figures         # interactive figures only
-make tables          # markdown tables only
-make data            # pull metrics + analysis artifacts + validate
+make data            # refresh pulled metrics + analysis artifacts
 make validate        # schema + bib + GSN validation (CI entry point)
-make all             # data → figures → tables → render
+make all             # alias for build
 make clean           # rm -rf _build
 ```
+
+Specialized:
+
+- `make figures` for figure-only rebuilds
+- `make tables` for table-only rebuilds
+- `make slides` for slide-only rebuilds
 
 ## Developing Interactive Figures
 
@@ -112,6 +121,15 @@ Figures use [SveltePlot](https://svelteplot.dev) (grammar-of-graphics): `<Cell>`
 [SvelteFlow](https://svelteflow.dev/) (`@xyflow/svelte`) with
 [ELK](https://eclipse.dev/elk/) for orthogonal layout.
 
+## Analysis Workspace
+
+`analysis/` holds the reactive insight layer:
+
+- `analysis/marimo/` — marimo notebooks for exploration and claim drafting
+- `paper/candidacy/_generated/` — stable chapter-local artifacts written by marimo and read by Quarto
+
+Use `make marimo` to open the workspace when you are iterating on claims or need to replace ad hoc notebook state with a reproducible artifact.
+
 **Dev workflow:**
 
 ```bash
@@ -121,10 +139,10 @@ bun run dev    # shell at localhost:5173 — pick figure from dropdown
 
 The shell page keeps HMR alive across figure switches.
 
-**Build all figures:**
+**Build the project:**
 
 ```bash
-make figures   # vite + vite-plugin-singlefile produces one self-contained HTML per figure
+make build   # figures + tables + slides + site
 ```
 
 **Conventions:**
@@ -145,9 +163,9 @@ artifacts:
    `buckeyeguy/graphids-kd-gat` with provenance tracking
 2. `make data` pulls exports, validates against `data/schemas.yaml`, writes
    `data/csv/` and `interactive/src/figures/*/data.json`
-3. `make figures` builds Svelte apps into `_build/figures/*.html`
-4. `make tables` renders CSVs + literature baselines into `_build/tables/*.md`
-5. `quarto render` assembles everything into `_build/site/`
+3. `analysis/marimo/` explores those artifacts and writes stable outputs to
+   `paper/candidacy/_generated/`
+4. `make build` runs the full pipeline into `_build/site/`
 
 `data/schemas.yaml` is the single source of truth for validation — both
 the KD-GAT exporter and this repo's pull script read from it.
@@ -156,7 +174,7 @@ the KD-GAT exporter and this repo's pull script read from it.
 
 | Target | What | How |
 | ------ | ---- | --- |
-| [GitHub Pages](https://frenken-lab.github.io/kd-gat-paper/) | Candidacy book | `quarto render` + `deploy-pages` in CI |
+| [GitHub Pages](https://frenken-lab.github.io/kd-gat-paper/) | Candidacy book | `make build` + `deploy-pages` in CI |
 
 Figures require iframe isolation (Svelte apps need `<script>` execution).
 The Quarto site embeds figures as iframes pointing at GitHub Pages absolute

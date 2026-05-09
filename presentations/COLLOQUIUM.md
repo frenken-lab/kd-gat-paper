@@ -163,17 +163,19 @@ messages:
 ```
 ````
 
-### `iframe` — custom element (tools/slides/build.py)
+### `iframe` — custom element (`presentations/_slides.py`)
 
 ````markdown
 ```iframe
 src: https://example.com/figure.html
-height: 520        # optional; default = IFRAME_DEFAULT_HEIGHT (480) in build.py
+height: 520        # optional; default = IFRAME_DEFAULT_HEIGHT (480) in iframe.py
 title: Accessible title
+loading: lazy      # optional; defaults to lazy
 ```
 ````
 
-Width is always 100%. Change `IFRAME_DEFAULT_HEIGHT` in `tools/slides/build.py` for a global default.
+Width is always 100%. Change `IFRAME_DEFAULT_HEIGHT` in
+`presentations/_slides.py` for a global default.
 
 ## Inline syntax
 

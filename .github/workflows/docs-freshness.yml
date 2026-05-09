@@ -24,11 +24,11 @@ jobs:
           # the doc is considered stale.
           declare -A DOC_SOURCES
           DOC_SOURCES=(
-            ["docs/Development-Setup.md"]="interactive/package.json Makefile _quarto.yml tools/validate/inputs/data.py"
-            ["docs/Figure-Authoring.md"]="interactive/build.js interactive/vite.config.js interactive/src/lib/ interactive/package.json"
+            ["docs/Development-Setup.md"]="interactive/package.json Makefile _quarto.yml tools/build.py tools/validate_inputs.py"
+            ["docs/Figure-Authoring.md"]="interactive/build.js interactive/vite.config.js interactive/src/lib/ interactive/package.json tools/build.py"
             ["docs/Diagram-Authoring-Guide.md"]="interactive/src/lib/flow/"
-            ["docs/Data-Pipeline.md"]="data/schemas.yaml tools/validate/inputs/data.py data/csv/"
-            ["docs/Table-Authoring.md"]="tools/tables/build.py tools/tables/spec.yaml"
+            ["docs/Data-Pipeline.md"]="data/schemas.yaml tools/build.py tools/validate_inputs.py data/csv/"
+            ["docs/Table-Authoring.md"]="tools/build.py tools/tables/build.py tools/tables/spec.yaml"
             ["docs/Candidacy-Build.md"]="_quarto.yml paper/candidacy/ paper/content/"
             ["docs/Deployment-and-CI.md"]=".github/workflows/paper.yml"
           )

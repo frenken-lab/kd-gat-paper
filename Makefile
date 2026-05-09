@@ -1,9 +1,9 @@
-.PHONY: data validate validate-inputs validate-semantic validate-gsn gsn gsn-render gsn-figure-data figures tables render dev bib test all clean watch-tables pre-commit pre-commit-install slides slides-dev speceditor help
+.PHONY: build data validate validate-inputs validate-semantic validate-gsn gsn gsn-render gsn-figure-data figures tables render dev bib test all clean watch-tables pre-commit pre-commit-install slides slides-dev speceditor marimo help
 
 .DEFAULT_GOAL := help
 
 # Quarto picks up the Python kernel from $QUARTO_PYTHON; point it at the uv venv
-# so the results-notebook executes in this project's environment, not a random
+# so the results chapter executes in this project's environment, not a random
 # Python on PATH.
 export QUARTO_PYTHON := $(CURDIR)/.venv/bin/python
 
@@ -18,7 +18,7 @@ data: ## Pull metrics + analysis artifacts + validate
 validate: validate-inputs validate-gsn ## Run all validation layers (CI + pre-commit entry point)
 
 validate-inputs: bib ## Layer 1: schema + bib structure
-	uv run python tools/validate/inputs/data.py
+	uv run python tools/validate_inputs.py --data-only
 
 validate-gsn gsn: ## Layer 2: GSN safety argument schema + gap inventory (gsn is an alias)
 	uv run python tools/gsn/walker.py
@@ -30,18 +30,20 @@ gsn-figure-data: data/gsn/gsn-dag.yaml tools/gsn/render.py
 	uv run python tools/gsn/render.py --output interactive/src/figures/diagrams/gsn-thesis/data.json
 
 bib: ## Validate bibliography files only
-	uv run python tools/validate/inputs/bib.py
+	uv run python tools/validate_inputs.py --bib-only
 
 ##@ Build
 
+build: ## Unified build: data → figures → tables → slides → site
+	uv run python tools/build.py build
+
 figures: data gsn-figure-data ## Build all interactive figures → _build/figures/  (FIGURE=name  FORCE=1)
-	cd interactive && bun install && FIGURE="$(FIGURE)" FORCE="$(FORCE)" bun run build
+	uv run python tools/build.py figures
 
 tables: data ## Build markdown tables → _build/tables/
-	uv run python tools/tables/build.py
+	uv run python tools/build.py tables
 
-render: figures tables ## Full site build: figures → tables → quarto render
-	quarto render
+render: build ## Full site build (alias for build)
 
 dev: ## Quarto live-reload preview server
 	quarto preview
@@ -52,9 +54,7 @@ watch-tables: ## Watch data/csv + specs, rebuild tables on change — requires e
 	@find data/csv data/schemas.yaml tools/tables/spec.yaml | entr -r make tables
 
 slides: tables ## Build colloquium slides → _build/slides/
-	uv run python tools/slides/build.py presentations/candidacy.md _build/slides
-	cp presentations/*.svg _build/slides/
-	cp images/*.svg _build/slides/
+	uv run python tools/build.py slides
 
 slides-dev: ## Colloquium live-reload server for slides (port 8080)
 	@echo "Slides → http://localhost:8080/candidacy.html"
@@ -63,7 +63,10 @@ slides-dev: ## Colloquium live-reload server for slides (port 8080)
 speceditor: ## Build spec editor widget
 	cd interactive && bun run build:widget
 
-all: render ## Full pipeline: data → figures → tables → site
+marimo: ## Open the marimo insight workspace (requires marimo)
+	uv run marimo edit analysis/marimo
+
+all: build ## Full pipeline: data → figures → tables → slides → site
 
 ##@ Meta
 
