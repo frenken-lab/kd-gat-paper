@@ -31,7 +31,7 @@ Two templates to copy from:
 - **`data/umap/`** — canonical data figure: imports `data.json`, renders with SveltePlot marks (`<Dot>`, `<Cell>`, etc.), no computation in the component.
 - **`data/fedavg-drift/`** — canonical interactive figure: no `data.json`, slider-driven state, positions computed analytically inside the component.
 
-For architecture diagrams, copy any `diagrams/*/` figure — they follow the `spec.yaml` → `specToFlow` → `<DiagramCanvas>` pattern documented in the root `CLAUDE.md`.
+For architecture diagrams, copy any `diagrams/*/` figure. They follow the `spec.yaml` → `specToFlow` → `<DiagramCanvas>` pattern documented in `docs/Diagram-Authoring-Guide.md`.
 
 The canonical diagram editor is the browser-based anywidget widget in `tools/speceditor/widget.py`. The ipywidgets version exists as a JupyterLab fallback only.
 

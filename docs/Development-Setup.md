@@ -6,13 +6,13 @@
 |------|---------|---------|
 | Bun | latest | `curl -fsSL https://bun.sh/install \| bash` |
 | Python | 3.12+ | System or `module load python/3.12` (OSC) |
-| MyST | latest | `bun install -g mystmd@1.8.3` |
-| Typst | latest | [typst.app/docs/installation](https://github.com/typst/typst) (PDF export only) |
+| uv | latest | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| Quarto | 1.8+ | [quarto.org/docs/get-started](https://quarto.org/docs/get-started/) |
 
 Python packages:
 
 ```bash
-pip install pyyaml tabulate "bibtexparser>=2.0.0b7"
+uv sync --extra notebooks --group dev
 ```
 
 ## First-Time Setup
@@ -20,26 +20,19 @@ pip install pyyaml tabulate "bibtexparser>=2.0.0b7"
 ```bash
 git clone git@github.com:frenken-lab/kd-gat-paper.git
 cd kd-gat-paper
+uv sync --extra notebooks --group dev
 cd interactive && bun install --frozen-lockfile && cd ..
 ```
 
 ## Development Workflows
 
-### Paper (TMLR submission)
+### Quarto site
 
 ```bash
-make dev    # Starts MyST dev server with live reload at localhost:3000
+make dev    # Starts Quarto preview with live reload
 ```
 
-This uses `myst.yml` and serves the paper content. Edits to `content/*.md` files reload automatically.
-
-### Candidacy Report
-
-```bash
-make candidacy-dev    # MyST dev server using myst.candidacy.yml
-```
-
-Serves the candidacy superset (paper content + candidacy extensions). The candidacy TOC uses combined pages via `{include}` directives — edits to any included source file trigger a reload.
+This uses `_quarto.yml` and serves the candidacy book. Edits to `.qmd` source files reload automatically.
 
 ### Figures
 
@@ -114,9 +107,7 @@ ssh -L 3000:localhost:3000 pitzer-login01.hpc.osc.edu
 
 ```bash
 cd ~/kd-gat-paper
-make dev-myst        # paper (myst.yml)
-# or
-make candidacy-dev   # candidacy superset
+make dev
 ```
 
 Open `http://localhost:3000` in your local browser. Closing Terminal 1 drops the tunnel.
@@ -125,11 +116,11 @@ Open `http://localhost:3000` in your local browser. Closing Terminal 1 drops the
 
 | Change | Auto-reload? | Manual step |
 |---|---|---|
-| `.md` content files | Yes | — |
+| `.qmd` content files | Yes | — |
 | `.svelte` figure source | No | `make build`, then hard-refresh |
 | Table spec / CSV | No | `make build`, then refresh |
 | `analysis/marimo/*` | No | save artifact to `paper/candidacy/_generated/`, then refresh the consumer |
-| `myst.yml` config | No | Restart `make dev-myst` (clears cache on start) |
+| `_quarto.yml` config | No | Restart `make dev` |
 | CSS in `_static/` | No | Hard-refresh (Ctrl+Shift+R) |
 
 If you do not want to think about which layer changed, run `make build` and refresh once.

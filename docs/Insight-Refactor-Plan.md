@@ -29,7 +29,7 @@ graphids
 | `paper/candidacy/_generated/ablation/leaderboard.qmd` | Hold the chart logic next to the ablation chapter instead of as a standalone notebook chapter. | Removes the extra publication surface. |
 | `Makefile` | Add a `marimo` target for opening the analysis workspace. | Gives the new insight loop a first-class entry point. |
 | `README.md` | Update the repo overview and setup notes to mention the analysis workspace. | Makes the new flow visible at the top level. |
-| `AUTHORING.md` | Add the insight loop to the authoring model. | Documents the new latency tier between raw export and publication. |
+| `README.md` | Add the insight loop to the authoring model. | Documents the new latency tier between raw export and publication. |
 | `docs/Data-Pipeline.md` | Insert `analysis/` into the data-to-paper flow. | Clarifies where stable insights become artifacts. |
 | `docs/Development-Setup.md` | Document how to use the marimo workspace and when to refresh artifacts. | Prevents the old notebook workflow from remaining the implied default. |
 | `tools/speceditor/widget.py` | Keep the anywidget editor as the canonical browser-first spec editor. | Narrows diagram editing to the faster path. |

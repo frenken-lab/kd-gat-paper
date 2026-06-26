@@ -1,4 +1,4 @@
-.PHONY: build data validate validate-inputs validate-semantic validate-gsn gsn gsn-render gsn-figure-data figures tables render dev bib test all clean watch-tables pre-commit pre-commit-install slides slides-dev speceditor marimo help
+.PHONY: build data validate validate-inputs validate-gsn gsn gsn-render gsn-figure-data figures tables render dev bib test all clean watch-tables pre-commit pre-commit-install slides slides-dev speceditor marimo help
 
 .DEFAULT_GOAL := help
 
@@ -70,8 +70,8 @@ all: build ## Full pipeline: data → figures → tables → slides → site
 
 ##@ Meta
 
-test: ## Run interactive figure tests (bun test in interactive/)
-	cd interactive && bun test
+test: ## Run interactive figure tests (vitest in interactive/)
+	cd interactive && bun run test
 
 pre-commit: ## Run pre-commit hooks on all files
 	pre-commit run --all-files

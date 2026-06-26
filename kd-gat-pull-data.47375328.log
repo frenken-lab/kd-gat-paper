@@ -1,6 +1,0 @@
-=== kd-gat pull_data ===
-repo: /var/spool/slurmd
-node: p0014.ten.osc.edu
-args: <none>
-========================
-/users/PAS2022/rf15/kd-gat-paper/.venv/bin/python3: can't open file '/var/spool/slurmd/tools/pull_data.py': [Errno 2] No such file or directory

@@ -11,19 +11,17 @@ Development guides for the **Adaptive Fusion of Graph-Based Ensembles for Automo
 - [Data Pipeline](Data-Pipeline.md) — How data flows from KD-GAT experiments to the paper
 - [Table Authoring](Table-Authoring.md) — Declarative table specs and the build script
 
-For deployment, CI, TMLR export, and candidacy-vs-paper build differences, see `CLAUDE.md` (canonical) and `tools/tmlr/README.md`. The dedicated wiki pages were removed (2026-05-02) because they had drifted out of sync with the unified TMLR Distill / GitHub Pages pipeline.
+For deployment and CI, see the root `README.md`, `_quarto.yml`, and `.github/workflows/paper.yml`.
 
 ## Build Targets
 
 | Target | Config | Deployed to |
 |--------|--------|-------------|
-| Paper | `myst.yml` | Built locally via `make tmlr` (CI suppressed) |
-| Candidacy | `myst.candidacy.yml` | [GitHub Pages](https://frenken-lab.github.io/kd-gat-paper/) via CI |
+| Candidacy | `_quarto.yml` | [GitHub Pages](https://frenken-lab.github.io/kd-gat-paper/) via CI |
 
 ## Quick Reference
 
 ```bash
-make dev            # Paper live-reload (overmind: myst + vite + table watcher)
-make candidacy-dev  # Candidacy live-reload
+make dev            # Quarto live-reload
 make build          # Full pipeline: data → figures → tables → slides → site
 ```
